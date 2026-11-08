@@ -49,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -134,10 +136,13 @@ fun TripListScreen(
             )
         },
         floatingActionButton = {
+            val fabLabel = stringResource(R.string.trips_new)
             ExtendedFloatingActionButton(
                 onClick = onCreate,
                 icon = { Icon(Icons.Filled.Add, null) },
-                text = { Text(stringResource(R.string.trips_new)) },
+                text = { Text(fabLabel) },
+                // M3 1.3 exposes no text for the extended FAB; label it for TalkBack and UI tests.
+                modifier = Modifier.semantics { contentDescription = fabLabel },
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },
