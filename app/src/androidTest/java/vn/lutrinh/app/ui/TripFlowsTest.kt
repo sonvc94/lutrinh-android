@@ -26,6 +26,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.MainActivity
+import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.TransportMode
+import vn.lutrinh.app.domain.usecase.SaveResult
+import vn.lutrinh.app.domain.usecase.StepInput
+import vn.lutrinh.app.domain.usecase.TripInput
+import java.time.LocalDate
 
 /**
  * End-to-end UI flows on a device (docs/03-screens.md). Every trip made here starts with
@@ -110,6 +116,46 @@ class TripFlowsTest {
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText("Chưa có điểm dừng").fetchSemanticsNodes().isEmpty() }
     }
 
+    @Test
+    fun setLegTransport_fromTheTimeline_showsAndStoresTheMode() {
+        val secondStepId = seedTripWithTwoSteps(title)
+        rule.onNodeWithText(title).performClick()
+        waitForText("Hồ Gươm")
+        clickable("Chọn cách di chuyển", substring = true).onFirst().performClick()
+
+        waitForText("Từ Hồ Gươm đến Tràng An")
+        rule.onNodeWithText("Xe máy").performClick()
+
+        waitForText("Xe máy ·")
+        rule.waitUntil(TIMEOUT) {
+            runBlocking { container().steps.getStep(secondStepId)?.arrivalTransport } == TransportMode.MOTORBIKE
+        }
+    }
+
+    @Test
+    fun openMyMap_fromTheTripList_showsTotalsAndTrips() {
+        seedTripWithTwoSteps(title)
+        rule.onNodeWithContentDescription("Bản đồ của tôi").performClick()
+
+        waitForText("Bản đồ của tôi")
+        waitForText("chuyến đi")
+        waitForText("điểm dừng")
+        waitForText(title) // newest trip first in the card row
+    }
+
+    /** Creates a trip (today) with two steps through the app container; returns the second step id. */
+    private fun seedTripWithTwoSteps(name: String): String = runBlocking {
+        val c = container()
+        val today = LocalDate.now()
+        val tripId = (c.saveTrip(null, TripInput(name, "", today, null)) as SaveResult.Saved).id
+        c.saveStep(tripId, null, StepInput("Hồ Gươm", "", GeoPoint(21.0287, 105.8524), today.atTime(8, 0), emptyList()))
+        val second = c.saveStep(tripId, null, StepInput("Tràng An", "", GeoPoint(20.2546, 105.9161), today.atTime(11, 0), emptyList()))
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(name).fetchSemanticsNodes().isNotEmpty() }
+        (second as SaveResult.Saved).id
+    }
+
+    private fun container() = ApplicationProvider.getApplicationContext<LuTrinhApp>().container
+
     private fun createTrip(name: String) {
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithContentDescription("Chuyến đi mới").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithContentDescription("Chuyến đi mới").performClick()
@@ -117,7 +163,8 @@ class TripFlowsTest {
         clickable("Tạo chuyến đi").onFirst().performClick() // the button, not the top bar title
     }
 
-    private fun clickable(text: String) = rule.onAllNodesWithText(text).filter(hasClickAction())
+    private fun clickable(text: String, substring: Boolean = false) =
+        rule.onAllNodesWithText(text, substring = substring).filter(hasClickAction())
 
     private fun waitForText(text: String) {
         try {
