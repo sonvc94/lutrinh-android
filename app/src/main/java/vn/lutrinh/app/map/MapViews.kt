@@ -45,6 +45,7 @@ import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.usecase.NewStepDefaults
 
 /** One numbered pin on the map. */
 data class MapMarker(val id: String, val label: String, val point: GeoPoint, val highlighted: Boolean = false)
@@ -237,7 +238,7 @@ private fun fitCamera(map: MapLibreMap, points: List<GeoPoint>, paddingPx: Float
     when (points.size) {
         0 -> map.moveCamera(
             CameraUpdateFactory.newCameraPosition(
-                CameraPosition.Builder().target(LatLng(16.0, 106.0)).zoom(MapConfig.OVERVIEW_ZOOM).build(),
+                CameraPosition.Builder().target(LatLng(NewStepDefaults.FALLBACK_CENTER.latitude, NewStepDefaults.FALLBACK_CENTER.longitude)).zoom(MapConfig.OVERVIEW_ZOOM).build(),
             ),
         )
         1 -> map.moveCamera(

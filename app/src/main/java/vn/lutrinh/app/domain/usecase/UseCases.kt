@@ -49,7 +49,7 @@ class DeleteTrip(private val trips: TripRepository, private val files: PhotoFile
     }
 }
 
-/** Creates a step when [stepId] is null, otherwise updates it; replaces its photo list (R6, R8). */
+/** Creates a step when [stepId] is null, otherwise updates it; replaces its photo list (R5, R8). */
 class SaveStep(
     private val trips: TripRepository,
     private val steps: StepRepository,
