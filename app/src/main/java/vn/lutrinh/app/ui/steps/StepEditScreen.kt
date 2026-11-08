@@ -88,6 +88,7 @@ import vn.lutrinh.app.domain.usecase.StepInput
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
 import vn.lutrinh.app.map.MapMarker
 import vn.lutrinh.app.map.TripMap
+import vn.lutrinh.app.ui.common.VietnameseLocale
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.DiscardDialog
 import vn.lutrinh.app.ui.common.LoadingState
@@ -438,7 +439,7 @@ private fun PhotosSection(f: StepForm, onAdd: () -> Unit, onRemove: (String) -> 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimePickDialog(initial: LocalTime, onDismiss: () -> Unit, onPicked: (LocalTime) -> Unit) {
+private fun TimePickDialog(initial: LocalTime, onDismiss: () -> Unit, onPicked: (LocalTime) -> Unit) = VietnameseLocale {
     val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,

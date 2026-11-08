@@ -61,6 +61,7 @@ import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.DiscardDialog
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.MessageState
+import vn.lutrinh.app.ui.common.VietnameseLocale
 import vn.lutrinh.app.ui.common.display
 import vn.lutrinh.app.ui.common.factory
 import java.time.Instant
@@ -272,10 +273,10 @@ fun DateField(label: String, value: String, modifier: Modifier = Modifier, onCli
     }
 }
 
-/** Material date picker working in UTC millis <-> LocalDate (no zone shift). */
+/** Material date picker working in UTC millis <-> LocalDate (no zone shift), always in Vietnamese. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickDialog(initial: LocalDate, onDismiss: () -> Unit, onPicked: (LocalDate) -> Unit) {
+fun DatePickDialog(initial: LocalDate, onDismiss: () -> Unit, onPicked: (LocalDate) -> Unit) = VietnameseLocale {
     val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli())
     DatePickerDialog(
         onDismissRequest = onDismiss,

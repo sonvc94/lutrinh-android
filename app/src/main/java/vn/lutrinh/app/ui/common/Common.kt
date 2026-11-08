@@ -1,5 +1,9 @@
 package vn.lutrinh.app.ui.common
 
+import android.content.ContextWrapper
+import android.content.res.Configuration
+import android.content.res.Resources
+import android.os.LocaleList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,10 +24,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +54,28 @@ fun LocalDate.display(): String = format(DATE_FMT)
 fun LocalDate.displayDay(): String = format(DAY_FMT).replaceFirstChar { it.titlecase(VI) }
 fun LocalDateTime.displayTime(): String = format(TIME_FMT)
 fun LocalDateTime.displayDateTime(): String = "${toLocalDate().display()} · ${displayTime()}"
+
+/**
+ * Runs [content] with a Vietnamese configuration, whatever the device language. Used around the
+ * Material date/time pickers, which take month/day names, date formats and their own button/
+ * headline strings from `LocalConfiguration` / `LocalContext` resources (docs/03-screens.md).
+ * Not applied app-wide: MapLibre's MapView needs the real Activity context.
+ */
+@Composable
+fun VietnameseLocale(content: @Composable () -> Unit) {
+    val base = LocalContext.current
+    val parentConfig = LocalConfiguration.current
+    val viConfig = remember(parentConfig) {
+        Configuration(parentConfig).apply { setLocales(LocaleList(VI)) }
+    }
+    val viContext = remember(base, viConfig) {
+        val viResources = base.createConfigurationContext(viConfig).resources
+        object : ContextWrapper(base) {
+            override fun getResources(): Resources = viResources
+        }
+    }
+    CompositionLocalProvider(LocalConfiguration provides viConfig, LocalContext provides viContext, content = content)
+}
 
 fun dateRange(start: LocalDate, end: LocalDate?, openEnded: (String) -> String): String = when {
     end == null -> openEnded(start.display())
