@@ -15,6 +15,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -62,6 +63,8 @@ dependencies {
 
     // Images: Coil 3 core only (no coil-network module) -> it can load local files, never URLs.
     implementation(libs.coil.compose)
+    // EXIF orientation + removing GPS tags on photo import (data/PhotoStorage.kt).
+    implementation(libs.androidx.exifinterface)
 
     // Map: MapLibre Native rendering OpenStreetMap raster tiles (see map/MapConfig.kt).
     implementation(libs.maplibre.android)
@@ -69,9 +72,15 @@ dependencies {
     implementation(libs.okhttp)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }
