@@ -1,0 +1,249 @@
+package vn.lutrinh.app.ui.trips
+
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Landscape
+import androidx.compose.material.icons.outlined.Luggage
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import vn.lutrinh.app.AppContainer
+import vn.lutrinh.app.BuildConfig
+import vn.lutrinh.app.R
+import vn.lutrinh.app.data.SampleData
+import vn.lutrinh.app.domain.model.TripSummary
+import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
+import vn.lutrinh.app.ui.common.Loadable
+import vn.lutrinh.app.ui.common.LoadingState
+import vn.lutrinh.app.ui.common.LocalPhoto
+import vn.lutrinh.app.ui.common.MessageState
+import vn.lutrinh.app.ui.common.dateRange
+import vn.lutrinh.app.ui.common.factory
+
+class TripListViewModel(private val c: AppContainer) : ViewModel() {
+    val state: StateFlow<Loadable<List<TripSummary>>> = c.trips.observeTripSummaries()
+        .map<List<TripSummary>, Loadable<List<TripSummary>>> { Loadable.Ready(it) }
+        .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
+
+    fun delete(id: String) = viewModelScope.launch { c.deleteTrip(id) }
+
+    suspend fun seed() = SampleData.seed(c)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TripListScreen(
+    onCreate: () -> Unit,
+    onOpen: (String) -> Unit,
+    onEdit: (String) -> Unit,
+    vm: TripListViewModel = viewModel(factory = factory { c, _ -> TripListViewModel(c) }),
+) {
+    val state by vm.state.collectAsStateWithLifecycle()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var menuOpen by remember { mutableStateOf(false) }
+    var toDelete by remember { mutableStateOf<TripSummary?>(null) }
+    val seededMsg = stringResource(R.string.trips_seeded)
+    val seed: () -> Unit = {
+        scope.launch {
+            vm.seed()
+            snackbar.showSnackbar(seededMsg)
+        }
+    }
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    Column {
+                        Text(stringResource(R.string.trips_title), fontWeight = FontWeight.SemiBold)
+                    }
+                },
+                actions = {
+                    if (BuildConfig.DEBUG) {
+                        IconButton(onClick = { menuOpen = true }) {
+                            Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
+                        }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.trips_seed)) },
+                                onClick = { menuOpen = false; seed() },
+                            )
+                        }
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onCreate,
+                icon = { Icon(Icons.Filled.Add, null) },
+                text = { Text(stringResource(R.string.trips_new)) },
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbar) },
+    ) { padding ->
+        when (val s = state) {
+            Loadable.Loading -> LoadingState(Modifier.padding(padding))
+            is Loadable.Failed -> MessageState(
+                Icons.Outlined.ErrorOutline, stringResource(R.string.state_error, s.message), "",
+                Modifier.padding(padding),
+            )
+            Loadable.Missing -> Unit
+            is Loadable.Ready -> if (s.value.isEmpty()) {
+                MessageState(
+                    icon = Icons.Outlined.Luggage,
+                    title = stringResource(R.string.trips_empty_title),
+                    body = stringResource(R.string.trips_empty_body),
+                    modifier = Modifier.padding(padding),
+                    actionLabel = if (BuildConfig.DEBUG) stringResource(R.string.trips_seed) else stringResource(R.string.trips_new),
+                    onAction = if (BuildConfig.DEBUG) seed else onCreate,
+                )
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(s.value, key = { it.trip.id }) { summary ->
+                        TripCard(summary, onOpen = { onOpen(summary.trip.id) }, onEdit = { onEdit(summary.trip.id) }, onDelete = { toDelete = summary })
+                    }
+                }
+            }
+        }
+    }
+
+    toDelete?.let { t ->
+        ConfirmDeleteDialog(
+            title = stringResource(R.string.trip_delete_confirm_title),
+            body = stringResource(R.string.trip_delete_confirm_body, t.trip.title, t.stepCount, t.photoCount),
+            onConfirm = { vm.delete(t.trip.id); toDelete = null },
+            onDismiss = { toDelete = null },
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    Card(
+        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = { menu = true }),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Box(Modifier.fillMaxWidth().height(150.dp)) {
+            val cover = summary.coverPhotoFile
+            if (cover != null) {
+                LocalPhoto(cover, Modifier.fillMaxSize())
+            } else {
+                Box(
+                    Modifier.fillMaxSize().background(
+                        Brush.linearGradient(
+                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
+                        ),
+                    ),
+                    Alignment.Center,
+                ) {
+                    Icon(Icons.Outlined.Landscape, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onPrimary)
+                }
+            }
+        }
+        Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    summary.trip.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val openEnded = stringResource(R.string.trip_open_ended, "%s")
+                Text(
+                    dateRange(summary.trip.startDate, summary.trip.endDate) { openEnded.format(it) },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    stringResource(R.string.trip_counts, summary.stepCount, summary.photoCount),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Box {
+                IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more)) }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_edit)) },
+                        leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+                        onClick = { menu = false; onEdit() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.action_delete)) },
+                        leadingIcon = { Icon(Icons.Outlined.Delete, null) },
+                        onClick = { menu = false; onDelete() },
+                    )
+                }
+            }
+        }
+    }
+}

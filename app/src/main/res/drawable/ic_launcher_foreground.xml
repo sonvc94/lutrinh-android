@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- sun -->
+    <path android:fillColor="#F2B441" android:pathData="M66,38m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0"/>
+    <!-- karst peaks -->
+    <path android:fillColor="#E8F1EC" android:pathData="M28,66 L40,40 L48,54 L56,36 L70,66 Z"/>
+    <!-- terraces -->
+    <path android:fillColor="#9CCB6B" android:pathData="M26,66 C38,60 58,60 82,66 L82,71 C58,65 38,65 26,71 Z"/>
+    <path android:fillColor="#C9E08E" android:pathData="M26,73 C40,68 60,68 82,73 L82,78 C60,73 40,73 26,78 Z"/>
+    <path android:fillColor="#F2B441" android:pathData="M26,80 C42,76 62,76 82,80 L82,84 L26,84 Z"/>
+</vector>

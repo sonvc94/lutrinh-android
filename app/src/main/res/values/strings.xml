@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lữ Trình</string>
+    <string name="app_tagline">Nhật ký những cung đường</string>
+
+    <!-- Common -->
+    <string name="action_save">Lưu</string>
+    <string name="action_cancel">Hủy</string>
+    <string name="action_delete">Xóa</string>
+    <string name="action_edit">Sửa</string>
+    <string name="action_back">Quay lại</string>
+    <string name="action_close">Đóng</string>
+    <string name="action_more">Thêm tùy chọn</string>
+    <string name="action_retry">Thử lại</string>
+    <string name="state_loading">Đang tải…</string>
+    <string name="state_error">Không đọc được dữ liệu: %1$s</string>
+    <string name="not_found">Không tìm thấy dữ liệu này. Có thể nó đã bị xóa.</string>
+
+    <!-- Trip list -->
+    <string name="trips_title">Chuyến đi của tôi</string>
+    <string name="trips_new">Chuyến đi mới</string>
+    <string name="trips_empty_title">Chưa có chuyến đi nào</string>
+    <string name="trips_empty_body">Ghi lại hành trình đầu tiên — mùa lúa chín Hà Giang, sông nước Tràng An hay bất cứ nơi nào bạn đặt chân tới.</string>
+    <string name="trips_seed">Tạo dữ liệu mẫu</string>
+    <string name="trips_seeded">Đã thêm 2 chuyến đi mẫu</string>
+    <string name="trip_counts">%1$d điểm dừng · %2$d ảnh</string>
+    <string name="trip_open_ended">từ %1$s</string>
+
+    <!-- Trip edit -->
+    <string name="trip_create_title">Tạo chuyến đi</string>
+    <string name="trip_edit_title">Sửa chuyến đi</string>
+    <string name="trip_field_title">Tên chuyến đi</string>
+    <string name="trip_field_title_hint">VD: Vòng cung Hà Giang</string>
+    <string name="trip_field_description">Mô tả ngắn (không bắt buộc)</string>
+    <string name="trip_field_start">Ngày đi</string>
+    <string name="trip_field_end">Ngày về</string>
+    <string name="trip_field_end_none">Chưa xác định</string>
+    <string name="trip_field_end_clear">Bỏ ngày về</string>
+    <string name="trip_create_button">Tạo chuyến đi</string>
+    <string name="trip_delete_button">Xóa chuyến đi</string>
+    <string name="trip_delete_confirm_title">Xóa chuyến đi này?</string>
+    <string name="trip_delete_confirm_body">\"%1$s\" cùng %2$d điểm dừng và %3$d ảnh sẽ bị xóa khỏi máy. Không thể hoàn tác.</string>
+    <string name="err_trip_title_blank">Hãy đặt tên cho chuyến đi</string>
+    <string name="err_trip_title_long">Tên tối đa %1$d ký tự</string>
+    <string name="err_trip_description_long">Mô tả tối đa %1$d ký tự</string>
+    <string name="err_trip_end_before_start">Ngày về phải sau hoặc bằng ngày đi</string>
+    <string name="err_trip_steps_outside">Có điểm dừng nằm ngoài khoảng ngày mới (%1$s – %2$s). Hãy sửa các điểm dừng đó trước.</string>
+
+    <!-- Trip detail -->
+    <string name="trip_detail_steps">Hành trình</string>
+    <string name="trip_open_map">Xem bản đồ</string>
+    <string name="trip_add_step">Thêm điểm dừng</string>
+    <string name="trip_no_steps_title">Chưa có điểm dừng</string>
+    <string name="trip_no_steps_body">Thêm nơi bạn đã ghé — chọn vị trí trên bản đồ, ghi chú và đính kèm ảnh.</string>
+    <string name="stat_steps">điểm dừng</string>
+    <string name="stat_photos">ảnh</string>
+    <string name="stat_km">km (đường chim bay)</string>
+    <string name="stat_days">ngày</string>
+    <string name="day_label">Ngày %1$d · %2$s</string>
+
+    <!-- Trip map -->
+    <string name="trip_map_title">Bản đồ hành trình</string>
+    <string name="trip_map_empty">Chuyến đi chưa có điểm dừng nào để hiển thị.</string>
+
+    <!-- Step edit -->
+    <string name="step_create_title">Điểm dừng mới</string>
+    <string name="step_edit_title">Sửa điểm dừng</string>
+    <string name="step_field_title">Tên địa điểm</string>
+    <string name="step_field_title_hint">VD: Đèo Mã Pí Lèng</string>
+    <string name="step_field_date">Ngày đến</string>
+    <string name="step_field_time">Giờ đến</string>
+    <string name="step_field_note">Ghi chú</string>
+    <string name="step_field_note_hint">Bạn đã làm gì, ăn gì, gặp ai ở đây?</string>
+    <string name="step_location">Vị trí</string>
+    <string name="step_location_pick">Chọn trên bản đồ</string>
+    <string name="step_location_change">Đổi vị trí</string>
+    <string name="step_location_none">Chưa chọn vị trí</string>
+    <string name="step_photos">Ảnh</string>
+    <string name="step_photos_add">Thêm ảnh</string>
+    <string name="step_photos_hint">Chạm vào ảnh để đặt làm ảnh bìa.</string>
+    <string name="step_photo_cover">Ảnh bìa</string>
+    <string name="step_photo_remove">Bỏ ảnh</string>
+    <string name="step_photos_import_failed">Không đọc được %1$d ảnh</string>
+    <string name="step_delete_button">Xóa điểm dừng</string>
+    <string name="step_delete_confirm_title">Xóa điểm dừng này?</string>
+    <string name="step_delete_confirm_body">\"%1$s\" và %2$d ảnh đính kèm sẽ bị xóa. Không thể hoàn tác.</string>
+    <string name="err_step_title_blank">Hãy nhập tên địa điểm</string>
+    <string name="err_step_title_long">Tên tối đa %1$d ký tự</string>
+    <string name="err_step_note_long">Ghi chú tối đa %1$d ký tự</string>
+    <string name="err_step_location_missing">Hãy chọn vị trí trên bản đồ</string>
+    <string name="err_step_location_invalid">Tọa độ không hợp lệ</string>
+    <string name="err_step_before_trip">Ngày đến phải từ %1$s trở đi (ngày bắt đầu chuyến đi)</string>
+    <string name="err_step_after_trip">Ngày đến phải trước hoặc bằng %1$s (ngày kết thúc chuyến đi)</string>
+    <string name="err_step_too_many_photos">Tối đa %1$d ảnh mỗi điểm dừng</string>
+    <string name="err_step_trip_missing">Chuyến đi không còn tồn tại</string>
+    <string name="discard_title">Bỏ các thay đổi?</string>
+    <string name="discard_body">Những gì bạn vừa nhập sẽ không được lưu.</string>
+    <string name="discard_confirm">Bỏ</string>
+    <string name="keep_editing">Tiếp tục sửa</string>
+
+    <!-- Location picker -->
+    <string name="picker_title">Chọn vị trí</string>
+    <string name="picker_hint">Kéo bản đồ để đặt ghim vào đúng chỗ</string>
+    <string name="picker_confirm">Dùng vị trí này</string>
+    <string name="picker_quick">Đi nhanh tới</string>
+
+    <!-- Step detail / photos -->
+    <string name="step_detail_photos">Ảnh (%1$d)</string>
+    <string name="step_detail_no_note">Chưa có ghi chú.</string>
+    <string name="photo_viewer_counter">%1$d / %2$d</string>
+    <string name="photo_missing">Không tìm thấy tệp ảnh</string>
+</resources>
