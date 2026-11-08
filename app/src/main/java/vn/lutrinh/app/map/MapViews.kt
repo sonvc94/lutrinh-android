@@ -45,6 +45,8 @@ import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.TransportMode
+import vn.lutrinh.app.domain.usecase.LegGeometry
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
 
 /** One numbered pin on the map. */
@@ -54,11 +56,21 @@ private const val SRC_STEPS = "steps-src"
 private const val SRC_ROUTE = "route-src"
 private const val LAYER_STEPS = "steps-layer"
 private const val LAYER_ROUTE = "route-layer"
+private const val LAYER_ROUTE_DASHED = "route-dashed-layer"
+private const val LAYER_ROUTE_DOTTED = "route-dotted-layer"
 private const val LAYER_ROUTE_CASING = "route-casing-layer"
+private const val SRC_LEG_BADGES = "leg-badges-src"
+private const val LAYER_LEG_BADGES = "leg-badges-layer"
+
+/** Value of the "mode" feature property for a leg without a transport mode. */
+private const val NO_MODE = "none"
+
+private fun modesWith(dash: LineDash): Array<String> =
+    TransportMode.entries.filter { TransportStyle.of(it).dash == dash }.map { it.code }.toTypedArray()
 
 /** Creates a MapView bound to the composition's lifecycle. */
 @Composable
-private fun rememberMapView(): MapView {
+internal fun rememberMapView(): MapView {
     val context = LocalContext.current
     val mapView = remember { MapView(context).apply { onCreate(null) } }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -85,7 +97,7 @@ private fun rememberMapView(): MapView {
     return mapView
 }
 
-private fun MapLibreMap.applyCommonSettings(interactive: Boolean) {
+internal fun MapLibreMap.applyCommonSettings(interactive: Boolean) {
     uiSettings.isLogoEnabled = false
     // Attribution is drawn by [OsmAttribution] so it is always visible as plain text.
     uiSettings.isAttributionEnabled = false
@@ -114,27 +126,34 @@ fun OsmAttribution(modifier: Modifier = Modifier) {
 }
 
 /**
- * Trip map: numbered step pins + a route line joining them in the given order.
+ * Trip map: numbered step pins + one line per leg joining them in the given order, styled by
+ * the leg's transport mode ([legModes][i] = mode of markers[i] -> markers[i+1], R12).
  * The camera fits all pins whenever the set of pins changes (docs/05-map.md).
  */
 @Composable
 fun TripMap(
     markers: List<MapMarker>,
     modifier: Modifier = Modifier,
+    legModes: List<TransportMode?> = emptyList(),
     showRoute: Boolean = true,
     interactive: Boolean = true,
     fitPaddingDp: Int = 56,
     /** Extra room at the bottom for UI drawn over the map (e.g. a card carousel), in dp. */
     fitExtraBottomDp: Int = 0,
     onMarkerClick: ((String) -> Unit)? = null,
+    /** Tap on a leg's mode badge; receives the id of the marker where the leg ends. */
+    onLegClick: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val mapView = rememberMapView()
-    val routeColor = MaterialTheme.colorScheme.primary.toArgb()
+    val routeColor = MaterialTheme.colorScheme.primary
     val pinColor = MaterialTheme.colorScheme.primary.toArgb()
     val highlightColor = MaterialTheme.colorScheme.tertiary.toArgb()
     val state = remember { TripMapState() }
+    state.noModeColor = routeColor.hex()
+    val badges = rememberTransportBadges()
     val clickHandler = rememberUpdatedState(onMarkerClick)
+    val legClickHandler = rememberUpdatedState(onLegClick)
 
     Box(modifier) {
         AndroidView(
@@ -143,21 +162,51 @@ fun TripMap(
                     map.applyCommonSettings(interactive)
                     map.setStyle(Style.Builder().fromJson(MapConfig.styleJson())) { style ->
                         style.addSource(GeoJsonSource(SRC_ROUTE))
+                        style.addSource(GeoJsonSource(SRC_LEG_BADGES))
                         style.addSource(GeoJsonSource(SRC_STEPS))
+                        badges.forEach { (mode, bmp) -> style.addImage(mode.badgeId(), bmp) }
                         style.addLayer(
                             LineLayer(LAYER_ROUTE_CASING, SRC_ROUTE).withProperties(
                                 PropertyFactory.lineColor(android.graphics.Color.WHITE),
                                 PropertyFactory.lineWidth(7f),
+                                PropertyFactory.lineOpacity(0.9f),
                                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                                 PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                             ),
                         )
+                        // Line dash patterns are not data-driven in MapLibre Native: one layer per dash kind.
                         style.addLayer(
                             LineLayer(LAYER_ROUTE, SRC_ROUTE).withProperties(
-                                PropertyFactory.lineColor(routeColor),
+                                PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
                                 PropertyFactory.lineWidth(4f),
                                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                                 PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                            ).withFilter(
+                                Expression.`in`(Expression.get("mode"), Expression.literal(modesWith(LineDash.SOLID) + NO_MODE)),
+                            ),
+                        )
+                        style.addLayer(
+                            LineLayer(LAYER_ROUTE_DASHED, SRC_ROUTE).withProperties(
+                                PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
+                                PropertyFactory.lineWidth(4f),
+                                PropertyFactory.lineDasharray(arrayOf(2.2f, 1.6f)),
+                                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                            ).withFilter(Expression.`in`(Expression.get("mode"), Expression.literal(modesWith(LineDash.DASHED)))),
+                        )
+                        style.addLayer(
+                            LineLayer(LAYER_ROUTE_DOTTED, SRC_ROUTE).withProperties(
+                                PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
+                                PropertyFactory.lineWidth(4.5f),
+                                // Zero-length dashes with round caps = dots.
+                                PropertyFactory.lineDasharray(arrayOf(0f, 1.8f)),
+                                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                            ).withFilter(Expression.`in`(Expression.get("mode"), Expression.literal(modesWith(LineDash.DOTTED)))),
+                        )
+                        style.addLayer(
+                            SymbolLayer(LAYER_LEG_BADGES, SRC_LEG_BADGES).withProperties(
+                                PropertyFactory.iconImage(Expression.get("icon")),
+                                PropertyFactory.iconAllowOverlap(true),
+                                PropertyFactory.iconIgnorePlacement(true),
                             ),
                         )
                         style.addLayer(
@@ -176,9 +225,17 @@ fun TripMap(
                         val handler = clickHandler.value ?: return@addOnMapClickListener false
                         val p = map.projection.toScreenLocation(latLng)
                         val r = 22f * context.resources.displayMetrics.density
-                        val hit = map.queryRenderedFeatures(RectF(p.x - r, p.y - r, p.x + r, p.y + r), LAYER_STEPS)
-                        val id = hit.firstOrNull()?.getStringProperty("id") ?: return@addOnMapClickListener false
-                        handler(id)
+                        val box = RectF(p.x - r, p.y - r, p.x + r, p.y + r)
+                        val hit = map.queryRenderedFeatures(box, LAYER_STEPS)
+                        val id = hit.firstOrNull()?.getStringProperty("id")
+                        if (id != null) {
+                            handler(id)
+                            return@addOnMapClickListener true
+                        }
+                        val legHandler = legClickHandler.value ?: return@addOnMapClickListener false
+                        val to = map.queryRenderedFeatures(box, LAYER_LEG_BADGES).firstOrNull()?.getStringProperty("to")
+                            ?: return@addOnMapClickListener false
+                        legHandler(to)
                         true
                     }
                 }
@@ -186,6 +243,7 @@ fun TripMap(
             },
             update = {
                 state.markers = markers
+                state.legModes = legModes
                 state.showRoute = showRoute
                 state.render(context, mapView, pinColor, highlightColor, fitPaddingDp, fitExtraBottomDp)
             },
@@ -198,6 +256,8 @@ private class TripMapState {
     var map: MapLibreMap? = null
     var style: Style? = null
     var markers: List<MapMarker> = emptyList()
+    var legModes: List<TransportMode?> = emptyList()
+    var noModeColor: String = "#1F5C45"
     var showRoute: Boolean = true
     private var fittedKey: Pair<List<GeoPoint>, Int>? = null
 
@@ -217,16 +277,28 @@ private class TripMapState {
             }
         }
         style.getSourceAs<GeoJsonSource>(SRC_STEPS)?.setGeoJson(FeatureCollection.fromFeatures(features))
-        val route = style.getSourceAs<GeoJsonSource>(SRC_ROUTE)
-        if (showRoute && markers.size >= 2) {
-            route?.setGeoJson(
-                Feature.fromGeometry(
-                    LineString.fromLngLats(markers.map { Point.fromLngLat(it.point.longitude, it.point.latitude) }),
-                ),
-            )
-        } else {
-            route?.setGeoJson(FeatureCollection.fromFeatures(emptyList()))
+        val legs = if (showRoute) markers.zipWithNext() else emptyList()
+        val lines = mutableListOf<Feature>()
+        val badges = mutableListOf<Feature>()
+        legs.forEachIndexed { i, (from, to) ->
+            val mode = legModes.getOrNull(i)
+            val path = LegGeometry.path(from.point, to.point, mode)
+            lines += Feature.fromGeometry(LineString.fromLngLats(path.map { Point.fromLngLat(it.longitude, it.latitude) })).apply {
+                addStringProperty("mode", mode?.code ?: NO_MODE)
+                addStringProperty("color", mode?.let { TransportStyle.of(it).hex } ?: noModeColor)
+                addStringProperty("to", to.id)
+            }
+            if (mode != null) {
+                val mid = path[path.size / 2].takeIf { path.size > 2 }
+                    ?: GeoPoint((from.point.latitude + to.point.latitude) / 2, (from.point.longitude + to.point.longitude) / 2)
+                badges += Feature.fromGeometry(Point.fromLngLat(mid.longitude, mid.latitude)).apply {
+                    addStringProperty("icon", mode.badgeId())
+                    addStringProperty("to", to.id)
+                }
+            }
         }
+        style.getSourceAs<GeoJsonSource>(SRC_ROUTE)?.setGeoJson(FeatureCollection.fromFeatures(lines))
+        style.getSourceAs<GeoJsonSource>(SRC_LEG_BADGES)?.setGeoJson(FeatureCollection.fromFeatures(badges))
         // Re-fit when the pins change or when the bottom overlay is first measured / resized.
         val points = markers.map { it.point }
         val key = points to extraBottomDp
@@ -244,7 +316,7 @@ private class TripMapState {
  * Camera rule C1-C3 (docs/05-map.md). [padding] = left, top, right, bottom in px; the visible
  * area is the map minus this padding, so pins never sit under overlays.
  */
-private fun fitCamera(map: MapLibreMap, points: List<GeoPoint>, padding: IntArray) {
+internal fun fitCamera(map: MapLibreMap, points: List<GeoPoint>, padding: IntArray) {
     when (points.size) {
         0 -> map.moveCamera(
             CameraUpdateFactory.newCameraPosition(

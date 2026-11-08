@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -63,6 +64,7 @@ fun TripMapScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     var selected by remember { mutableStateOf<String?>(null) }
+    var editLegTo by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val detail = (state as? Loadable.Ready)?.value
     val density = LocalDensity.current
@@ -90,11 +92,13 @@ fun TripMapScreen(
         Box(Modifier.padding(padding).fillMaxSize()) {
             TripMap(
                 markers = detail.steps.toMarkers(selected),
+                legModes = detail.legModes,
                 modifier = Modifier.fillMaxSize(),
                 fitPaddingDp = 48,
                 // Cards height + their bottom offset, so the fit keeps every pin above the cards.
                 fitExtraBottomDp = carouselDp,
                 onMarkerClick = { selected = it },
+                onLegClick = { editLegTo = it },
             )
             if (detail.steps.isEmpty()) {
                 Surface(
@@ -133,11 +137,17 @@ fun TripMapScreen(
                             Column(Modifier.padding(start = 10.dp)) {
                                 Text("${i + 1}. ${step.title}", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(step.arrivedAt.displayDateTime(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                // The leg that ends here (R12); the first step has none.
+                                if (i > 0) LegChip(detail.legs[i - 1], onClick = { editLegTo = step.id }, Modifier.height(32.dp))
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    detail?.legs?.firstOrNull { it.to.id == editLegTo }?.let { leg ->
+        LegModeSheet(leg, onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
     }
 }

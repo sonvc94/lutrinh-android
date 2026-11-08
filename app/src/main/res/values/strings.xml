@@ -62,6 +62,21 @@
     <string name="trip_map_title">Bản đồ hành trình</string>
     <string name="trip_map_empty">Chuyến đi chưa có điểm dừng nào để hiển thị.</string>
 
+    <!-- Legs / transport (R12) -->
+    <string name="transport_walk">Đi bộ</string>
+    <string name="transport_motorbike">Xe máy</string>
+    <string name="transport_car">Ô tô</string>
+    <string name="transport_bus">Xe buýt/xe khách</string>
+    <string name="transport_train">Tàu hỏa</string>
+    <string name="transport_plane">Máy bay</string>
+    <string name="transport_boat">Thuyền</string>
+    <string name="transport_none">Chưa chọn</string>
+    <string name="leg_set_mode">Chọn cách di chuyển</string>
+    <string name="leg_km">%1$s km</string>
+    <string name="leg_sheet_title">Từ %1$s đến %2$s</string>
+    <string name="leg_sheet_subtitle">Bạn di chuyển bằng gì? (%1$s km đường chim bay)</string>
+    <string name="leg_arrived_by">Đến bằng: %1$s</string>
+
     <!-- Step edit -->
     <string name="step_create_title">Điểm dừng mới</string>
     <string name="step_edit_title">Sửa điểm dừng</string>

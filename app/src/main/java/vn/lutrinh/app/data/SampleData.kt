@@ -12,6 +12,7 @@ import java.time.LocalDateTime
 import kotlin.random.Random
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.usecase.SaveResult
 import vn.lutrinh.app.domain.usecase.StepInput
 import vn.lutrinh.app.domain.usecase.TripInput
@@ -21,7 +22,11 @@ import vn.lutrinh.app.domain.usecase.TripInput
  * real places. Photos are generated landscape drawings, not real pictures.
  */
 object SampleData {
-    private data class S(val title: String, val lat: Double, val lng: Double, val at: String, val note: String, val photos: Int)
+    /** [by] = transport of the leg that ends at this step (R12); null on the first step. */
+    private data class S(
+        val title: String, val lat: Double, val lng: Double, val at: String, val note: String, val photos: Int,
+        val by: TransportMode? = null,
+    )
 
     suspend fun seed(c: AppContainer) {
         val year = LocalDate.now().year - 1
@@ -33,13 +38,15 @@ object SampleData {
             ),
             listOf(
                 S("TP Hà Giang", 22.8233, 104.9836, "$year-10-20T08:00", "Thuê xe máy, nhận giấy phép, ăn phở chua.", 1),
-                S("Cổng Trời Quản Bạ", 23.0688, 104.9930, "$year-10-20T11:30", "Núi đôi Cô Tiên nhìn từ trên đèo.", 2),
-                S("Yên Minh", 23.1203, 105.1406, "$year-10-20T16:00", "Rừng thông Yên Minh, nghỉ đêm ở homestay.", 0),
-                S("Cột cờ Lũng Cú", 23.3638, 105.3164, "$year-10-21T09:00", "Điểm cực Bắc, leo 389 bậc.", 2),
-                S("Phố cổ Đồng Văn", 23.2786, 105.3621, "$year-10-21T17:00", "Cà phê phố cổ, chợ phiên sáng Chủ nhật.", 1),
-                S("Đèo Mã Pí Lèng", 23.2397, 105.4096, "$year-10-22T08:30", "Sông Nho Quế xanh ngọc dưới vực.", 3),
-                S("Mèo Vạc", 23.1597, 105.4086, "$year-10-22T12:00", "", 0),
-                S("Du Già", 22.9333, 105.1667, "$year-10-23T10:00", "Thác Du Già, quay về TP Hà Giang chiều tối.", 1),
+                S("Cổng Trời Quản Bạ", 23.0688, 104.9930, "$year-10-20T11:30", "Núi đôi Cô Tiên nhìn từ trên đèo.", 2, TransportMode.MOTORBIKE),
+                S("Yên Minh", 23.1203, 105.1406, "$year-10-20T16:00", "Rừng thông Yên Minh, nghỉ đêm ở homestay.", 0, TransportMode.MOTORBIKE),
+                S("Cột cờ Lũng Cú", 23.3638, 105.3164, "$year-10-21T09:00", "Điểm cực Bắc, leo 389 bậc.", 2, TransportMode.MOTORBIKE),
+                S("Làng Lô Lô Chải", 23.3557, 105.3266, "$year-10-21T11:00", "Đi bộ xuống làng, nhà trình tường vàng.", 1, TransportMode.WALK),
+                S("Phố cổ Đồng Văn", 23.2786, 105.3621, "$year-10-21T17:00", "Cà phê phố cổ, chợ phiên sáng Chủ nhật.", 1, TransportMode.MOTORBIKE),
+                S("Đèo Mã Pí Lèng", 23.2397, 105.4096, "$year-10-22T08:30", "Sông Nho Quế xanh ngọc dưới vực.", 3, TransportMode.MOTORBIKE),
+                S("Hẻm Tu Sản", 23.2128, 105.4366, "$year-10-22T10:30", "Đi thuyền trên sông Nho Quế qua hẻm vực.", 1, TransportMode.BOAT),
+                S("Mèo Vạc", 23.1597, 105.4086, "$year-10-22T14:00", "", 0, TransportMode.CAR),
+                S("Du Già", 22.9333, 105.1667, "$year-10-23T10:00", "Thác Du Già, quay về TP Hà Giang chiều tối.", 1, TransportMode.MOTORBIKE),
             ),
         )
         createTrip(
@@ -47,9 +54,9 @@ object SampleData {
             TripInput("Ninh Bình thơ mộng", "Cuối tuần chèo đò Tràng An, leo Hang Múa.", LocalDate.of(year, 6, 7), LocalDate.of(year, 6, 8)),
             listOf(
                 S("Cố đô Hoa Lư", 20.2862, 105.9063, "$year-06-07T09:00", "Đền vua Đinh, vua Lê.", 1),
-                S("Tràng An", 20.2546, 105.8954, "$year-06-07T13:00", "Chèo đò 3 tiếng qua 9 hang.", 2),
-                S("Hang Múa", 20.2299, 105.9327, "$year-06-08T06:00", "Ngắm bình minh trên đỉnh, 500 bậc đá.", 1),
-                S("Tam Cốc", 20.2163, 105.9370, "$year-06-08T10:00", "Lúa chín vàng hai bên sông Ngô Đồng.", 0),
+                S("Tràng An", 20.2546, 105.8954, "$year-06-07T13:00", "Chèo đò 3 tiếng qua 9 hang.", 2, TransportMode.CAR),
+                S("Hang Múa", 20.2299, 105.9327, "$year-06-08T06:00", "Ngắm bình minh trên đỉnh, 500 bậc đá.", 1, TransportMode.MOTORBIKE),
+                S("Tam Cốc", 20.2163, 105.9370, "$year-06-08T10:00", "Lúa chín vàng hai bên sông Ngô Đồng.", 0, TransportMode.WALK),
             ),
         )
     }
@@ -58,11 +65,12 @@ object SampleData {
         val tripId = (c.saveTrip(null, trip) as? SaveResult.Saved)?.id ?: return
         steps.forEachIndexed { i, s ->
             val photos = (0 until s.photos).map { k -> c.photos.write(landscape(seed = s.title.hashCode() + k * 31 + i)) }
-            c.saveStep(
+            val saved = c.saveStep(
                 tripId,
                 null,
                 StepInput(s.title, s.note, GeoPoint(s.lat, s.lng), LocalDateTime.parse(s.at), photos),
             )
+            if (saved is SaveResult.Saved && s.by != null) c.setLegTransport(saved.id, s.by)
         }
     }
 

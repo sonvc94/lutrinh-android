@@ -72,9 +72,12 @@ import kotlinx.coroutines.launch
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.usecase.Leg
 import vn.lutrinh.app.domain.usecase.TripStats
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
+import vn.lutrinh.app.domain.usecase.legsOf
 import vn.lutrinh.app.domain.usecase.statsOf
 import vn.lutrinh.app.map.MapMarker
 import vn.lutrinh.app.map.TripMap
@@ -90,7 +93,11 @@ import vn.lutrinh.app.ui.common.factory
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-data class TripDetail(val trip: Trip, val steps: List<Step>, val stats: TripStats)
+data class TripDetail(val trip: Trip, val steps: List<Step>, val stats: TripStats) {
+    /** legs[i] = steps[i] -> steps[i+1] (R12). */
+    val legs: List<Leg> = legsOf(steps)
+    val legModes: List<TransportMode?> get() = legs.map { it.mode }
+}
 
 fun List<Step>.toMarkers(highlightId: String? = null): List<MapMarker> =
     mapIndexed { i, s -> MapMarker(s.id, "${i + 1}", s.location, s.id == highlightId) }
@@ -110,6 +117,8 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
+
+    fun setLegMode(toStepId: String, mode: TransportMode?) = viewModelScope.launch { c.setLegTransport(toStepId, mode) }
 
     fun delete() = viewModelScope.launch {
         c.deleteTrip(tripId)
@@ -131,6 +140,7 @@ fun TripDetailScreen(
     val deleted by vm.deleted.collectAsStateWithLifecycle()
     var menu by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var editLegTo by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(deleted) { if (deleted) onBack() }
     val detail = (state as? Loadable.Ready)?.value
 
@@ -178,8 +188,12 @@ fun TripDetailScreen(
             Loadable.Loading -> LoadingState(Modifier.padding(padding))
             Loadable.Missing -> MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
             is Loadable.Failed -> MessageState(Icons.Outlined.ErrorOutline, stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
-            is Loadable.Ready -> TripDetailContent(s.value, padding, onOpenMap, onAddStep, onOpenStep)
+            is Loadable.Ready -> TripDetailContent(s.value, padding, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it })
         }
+    }
+
+    detail?.legs?.firstOrNull { it.to.id == editLegTo }?.let { leg ->
+        LegModeSheet(leg, onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
     }
 
     if (confirmDelete && detail != null) {
@@ -199,6 +213,7 @@ private fun TripDetailContent(
     onOpenMap: () -> Unit,
     onAddStep: () -> Unit,
     onOpenStep: (String) -> Unit,
+    onEditLeg: (toStepId: String) -> Unit,
 ) {
     LazyColumn(
         contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 104.dp),
@@ -206,7 +221,7 @@ private fun TripDetailContent(
     ) {
         item {
             Box(Modifier.fillMaxWidth().height(220.dp)) {
-                TripMap(markers = d.steps.toMarkers(), interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize())
+                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize())
                 Box(Modifier.fillMaxSize().clickable(onClick = onOpenMap))
                 SmallFloatingActionButton(
                     onClick = onOpenMap,
@@ -231,6 +246,7 @@ private fun TripDetailContent(
             itemsIndexed(d.steps, key = { _, s -> s.id }) { i, step ->
                 val prevDay = d.steps.getOrNull(i - 1)?.arrivedAt?.toLocalDate()
                 val day = step.arrivedAt.toLocalDate()
+                if (i > 0) LegRow(d.legs[i - 1]) { onEditLeg(step.id) }
                 if (day != prevDay) {
                     val n = ChronoUnit.DAYS.between(d.trip.startDate, day) + 1
                     Text(
@@ -277,6 +293,17 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
             Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+    }
+}
+
+/** Between two timeline rows: the connector line continues, with the leg's mode chip beside it. */
+@Composable
+private fun LegRow(leg: Leg, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(32.dp).height(44.dp), Alignment.Center) {
+            Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
+        }
+        LegChip(leg, onClick, Modifier.padding(start = 12.dp))
     }
 }
 
