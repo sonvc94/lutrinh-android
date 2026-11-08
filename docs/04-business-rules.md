@@ -102,6 +102,25 @@ Shown on Trip detail: number of steps, number of photos, distance = sum of great
 "km (đường chim bay)" because it is not a road distance; days = `endDate − startDate + 1` (only
 when the trip has an end date).
 
+## R11 — Photo import processing
+
+Every picked photo is stored upright, with a long edge of at most 2560 px and without location
+EXIF (details and the EXIF orientation table in 06-photos.md):
+
+* long edge > 2560 → scaled down to exactly 2560, aspect kept; smaller images are never upscaled;
+* EXIF orientation ≠ 1 → pixels rotated (and mirrored for 2/4/5/7) and re-encoded; 90/270 swap
+  width and height;
+* small, upright JPEG/PNG/WebP → original bytes kept, GPS tags removed in place;
+* re-encoded files are JPEG quality 85 (PNG when transparent) and carry no EXIF;
+* GIF and formats the platform cannot decode are kept byte for byte.
+
+*Tests:* `PhotoImportPlanTest` (`large landscape is downscaled to 2560 on the long edge keeping
+aspect`, `small and boundary images keep their size`, `rotated 90 or 270 swaps width and height of
+the stored copy`, `sample size is the largest power of two that still covers the target`,
+`reencode only when too large, not upright or not strippable in place`, `each exif orientation puts
+the stored top-left corner where the spec says`, `transpose maps x to y`, `unknown exif values are
+treated as upright`). Decoding/encoding itself is checked on a device (06-photos.md).
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

@@ -17,32 +17,73 @@ no in-app MediaStore gallery, no "allow all photos" rationale sheet, no date-fil
 suggestions, no camera capture, no videos — all of these need broad media permissions or more
 UI; they can come later.
 
-## Persisting: copy into app storage
+## Persisting: import into app storage
 
 The URI from the picker is temporary (valid until the app process ends). To survive restarts
-each picked image is **copied right away** into the app's private folder:
+each picked image is **imported right away** into the app's private folder:
 
 ```
-<filesDir>/photos/<random-uuid>.<ext>      ext from MIME: jpg (default) | png | webp | heic | gif
+<filesDir>/photos/<random-uuid>.<ext>
 ```
 
-* Copy is a byte-for-byte stream copy on a background thread; the original file is untouched,
-  so EXIF (including GPS and orientation) stays in the copy. Nothing is resized or recompressed.
 * The database stores only the file name (02-data-model.md), never the content URI.
-* A failed copy (unreadable URI, disk full) is skipped and counted; the form shows
-  "Không đọc được N ảnh". A partial file is deleted.
+* A failed import (unreadable URI, undecodable file, disk full, out of memory) is skipped and
+  counted; the form shows "Không đọc được N ảnh". A partial file is deleted.
 * Why copy instead of `takePersistableUriPermission`: the Photo Picker's URIs cannot be persisted
   on all Android versions; and a copy keeps working if the user deletes the photo from the
   gallery, is included in the app's backup, and maps directly to iOS (copy the picked data into
   the app container).
-* Cost: storage use doubles for picked photos. Future work: downscale to e.g. 2048 px long side
-  on import, and/or keep a thumbnail.
+
+### Import processing (rule R11 in 04-business-rules.md)
+
+Runs on a background thread (`data/PhotoStorage.import`); the sizing/orientation maths is pure
+code in `data/photo/PhotoImportPlan.kt` and unit-tested (`PhotoImportPlanTest`).
+
+1. Copy the picked bytes to a temp file in the cache folder (read several times below; deleted at
+   the end whatever happens).
+2. **GIF** → kept byte for byte (may be animated, carries no EXIF). Stored as `.gif`.
+3. Read the pixel size without decoding. Not decodable by the platform (e.g. HEIC before
+   Android 9) → kept byte for byte with its original extension (location EXIF stays — rare case,
+   accepted).
+4. Read the EXIF `Orientation` tag (1–8; missing/unknown = 1).
+5. **Keep as is** when all of: long edge ≤ **2560 px**, orientation 1 (upright), and the format is
+   JPEG/PNG/WebP. The original bytes are copied, then every **GPS EXIF tag is removed in place**
+   (`ExifInterface.saveAttributes`). Other EXIF (date, camera) stays. If the metadata cannot be
+   rewritten, fall through to step 6.
+6. **Re-encode** otherwise (too large, rotated/mirrored, HEIC/HEIF or other format):
+   * decode with the largest power-of-two subsample that still gives ≥ 2560 px on the long edge
+     (`sampleSize`), to bound memory;
+   * scale so the long edge is exactly 2560 px (aspect kept, rounded; never upscaled);
+   * apply the orientation: rotate clockwise 0/90/180/270, then mirror horizontally for EXIF
+     2/4/5/7 (table below); width/height swap for 90/270;
+   * write **JPEG quality 85** (`.jpg`), or **PNG** (`.png`) when the image has transparency.
+     The new file has **no EXIF at all** (orientation applied in the pixels, location gone).
+
+| EXIF | meaning | rotate (cw) | then mirror |
+| --- | --- | --- | --- |
+| 1 | normal | 0 | no |
+| 2 | flip horizontal | 0 | yes |
+| 3 | rotate 180 | 180 | no |
+| 4 | flip vertical | 180 | yes |
+| 5 | transpose | 90 | yes |
+| 6 | rotate 90 cw | 90 | no |
+| 7 | transverse | 270 | yes |
+| 8 | rotate 270 cw | 270 | no |
+
+Result: every stored file is upright for any viewer, at most 2560 px, and carries no location.
+Checked on the emulator with a 4800×3600 JPEG (EXIF 6 + GPS, 374 KB): stored as a 1920×2560 JPEG,
+79 KB, no EXIF, shown upright (`img/22-photo-exif-rotated-upright.png`); a 1200×900 upright JPEG
+with GPS was kept at 1200×900 with its EXIF minus the 4 GPS tags.
+
+*Inspired by* polarsteps docs/16 U5 (EXIF orientation → mirror/rotate matrix, re-encoding drops
+EXIF). *Changed:* own size limit (2560 px) and quality (85), one stored copy instead of
+thumbnails + original, small upright images are not re-encoded, GPS is removed explicitly.
 
 ## Lifecycle of a photo file
 
 | Event | File effect |
 | --- | --- |
-| Picked in the form | copied → `photos/x.jpg` (not yet in the database) |
+| Picked in the form | imported → `photos/x.jpg` (not yet in the database) |
 | Removed (×) in the form before saving | stays until the form ends, then deleted (R9) |
 | Form saved | rows written; copies picked in this session but no longer in the list are deleted |
 | Form left without saving (Back → "Bỏ") or the process ends the screen | all copies of this session deleted (R9) |
@@ -75,5 +116,7 @@ caption) pushed into the emulator gallery, so that the real Photo Picker flow co
 
 ## Not done (later)
 
-EXIF reading (date/GPS → suggest step date/location), videos, camera capture, upload to a server
-(see 01-architecture.md), image downscaling, photo captions, sharing.
+EXIF reading for suggestions (date/GPS → suggest step date/location; GPS must then be read
+before it is stripped), thumbnails (Coil decodes at view size from the 2560 px copy), videos,
+camera capture, upload to a server (see 01-architecture.md), photo captions, sharing, removing
+location from XMP blocks (only EXIF GPS tags are removed).

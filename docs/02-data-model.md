@@ -57,7 +57,8 @@ Dates are stored as ISO-8601 text so that text order equals time order (used by 
 the step date range query) and the values are readable in any SQLite browser. The exported schema
 is in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/1.json`.
 
-Photo files live outside the database in `<app private files>/photos/<uuid>.<ext>`; the database
+Photo files live outside the database in `<app private files>/photos/<uuid>.<ext>` (`jpg` for
+re-encoded photos, `png` when transparent, otherwise the picked format — R11); the database
 only stores the file name, so the folder can move (backup/restore, iOS container) without a
 migration.
 

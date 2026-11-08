@@ -53,8 +53,10 @@ The picker returns its result to the step form through the previous screen's sav
 ## 2. Trip form — "Tạo chuyến đi" / "Sửa chuyến đi"
 
 * **Fields:** Tên chuyến đi (counter n/60, required), Mô tả ngắn (optional), Ngày đi (default
-  today), Ngày về (optional, "Chưa xác định"; "Bỏ ngày về" clears it). Dates use the system date
-  picker.
+  today), Ngày về (optional, "Chưa xác định"; "Bỏ ngày về" clears it). Dates use the Material
+  date picker, always in Vietnamese whatever the device language ("Chọn ngày", "23 thg 10, 2025",
+  "tháng 10 năm 2025", week from T2 to CN; `img/21-date-picker-vietnamese.png` was taken on an
+  English emulator). The step form's time picker (24 h) gets the same treatment.
 * **Validation:** on save, via the domain (02-data-model.md); errors appear under the fields. Edit
   also blocks date changes that would orphan steps (R4).
 * **Edit only:** "Xóa chuyến đi" button → same confirm as the list.
@@ -83,11 +85,13 @@ The picker returns its result to the step form through the previous screen's sav
 
 ## 4. Trip map — full screen
 
-* **Content:** map with all pins + route, fitted to all steps (05-map.md camera rules); a
-  horizontal carousel of step cards at the bottom (thumbnail, "1. Title", date · time).
+* **Content:** map with all pins + route, fitted to all steps (05-map.md camera rules) in the area
+  above the card carousel, so no pin hides under a card; a horizontal carousel of step cards at
+  the bottom (thumbnail, "1. Title", date · time).
 * **Behaviour:** tapping a pin selects it (gold) and scrolls the carousel to its card; tapping a
   card opens Step detail. Empty trip: message "Chuyến đi chưa có điểm dừng nào để hiển thị."
-* **Screens:** `img/09-trip-map-route.png`, `img/16-sample-hagiang-map.png`.
+* **Screens:** `img/09-trip-map-route.png`, `img/16-sample-hagiang-map.png`,
+  `img/20-trip-map-pins-above-cards.png`.
 * **Inspired by:** docs/22 §1.1/§2 (map with step-card carousel, fit-to-steps camera).
   **Changed:** straight route segments only (no transport mode, no snap-to-roads, no flight arcs),
   own pin design (numbered circles), no map-style switcher.
@@ -95,7 +99,7 @@ The picker returns its result to the step form through the previous screen's sav
 ## 5. Step form — "Điểm dừng mới" / "Sửa điểm dừng"
 
 * **Fields:** Tên địa điểm (required, n/80), Vị trí card (mini map + coordinates; "Chọn trên bản
-  đồ" / "Đổi vị trí"), Ngày đến + Giờ đến (system pickers), Ghi chú (multi-line), Ảnh (n) with
+  đồ" / "Đổi vị trí"), Ngày đến + Giờ đến (Material pickers, Vietnamese), Ghi chú (multi-line), Ảnh (n) with
   "Thêm ảnh", thumbnails with a remove (×) button, first photo marked "Ảnh bìa"; tapping a photo
   makes it the cover.
 * **Defaults (new step):** R6 — date/time and the point where the picker opens.
@@ -165,3 +169,17 @@ The picker returns its result to the step form through the previous screen's sav
 | 17-trip-delete-confirm.png | delete trip confirm with counts |
 | 18-trip-list-after-delete.png | list after the trip was deleted |
 | 19-trip-validation.png | "Hãy đặt tên cho chuyến đi" on empty title |
+| 20-trip-map-pins-above-cards.png | Hà Giang trip map fitted above the card carousel |
+| 21-date-picker-vietnamese.png | date picker in Vietnamese on an English-language emulator |
+| 22-photo-exif-rotated-upright.png | 4800×3600 photo with EXIF orientation 6 + GPS, stored and shown upright |
+
+## Accessibility and UI tests
+
+* The extended FABs ("Chuyến đi mới", "Thêm điểm dừng") carry their label as content description:
+  Material 3 1.3 exposes no text for them, so TalkBack would only say "Button".
+* Instrumented Compose tests (`app/src/androidTest/.../ui/TripFlowsTest.kt`) drive the real app
+  on a device: create trip, edit trip, delete trip, add a step with the "Mã Pí Lèng" quick-place
+  chip. They find nodes by the Vietnamese texts/labels above (changing a string means updating the
+  test) and delete every trip whose title starts with `UITEST` afterwards. Run with
+  `./gradlew connectedDebugAndroidTest` (needs network for tiles only cosmetically; the picker
+  centre updates without tiles).

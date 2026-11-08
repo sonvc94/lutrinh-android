@@ -50,8 +50,24 @@ sample trips (a Hà Giang loop and Ninh Bình) with generated pictures.
 
 JVM unit tests: validation (`ValidationTest`), ordering/route/stats/defaults (`OrderingTest`), use
 cases with in-memory fakes (`UseCasesTest`) and the Room database incl. cascade deletes, run on
-Robolectric with an in-memory database (`RoomRepositoryTest`). Reports:
-`app/build/reports/tests/testDebugUnitTest/index.html`.
+Robolectric with an in-memory database (`RoomRepositoryTest`), photo import sizing/orientation
+(`PhotoImportPlanTest`). Reports: `app/build/reports/tests/testDebugUnitTest/index.html`.
+
+Instrumented Compose UI tests (create / edit / delete a trip, add a step via a quick-place chip)
+run on a connected device or emulator:
+
+```bash
+ANDROID_SERIAL=<device> ./gradlew connectedDebugAndroidTest
+```
+
+They clean up the trips they create (titles starting with `UITEST`). Report:
+`app/build/reports/androidTests/connected/debug/index.html`.
+
+## Photos
+
+Picked photos are imported upright (EXIF orientation applied), downscaled to at most 2560 px on
+the long edge (JPEG quality 85) and without GPS EXIF; small upright photos keep their bytes. See
+[docs/06-photos.md](docs/06-photos.md).
 
 ## Project layout
 
@@ -61,7 +77,8 @@ app/src/main/java/vn/lutrinh/app/
   data/        Room database, repositories, photo file store, sample data
   map/         MapConfig (tile URL, attribution, User-Agent), MapLibre setup and map views
   ui/          screens + view models (trips, steps, picker, photos, common, theme)
-app/src/test/  unit tests
+app/src/test/  JVM unit tests
+app/src/androidTest/  instrumented Compose UI tests
 app/schemas/   exported Room schema
 docs/          platform-neutral spec + screenshots (docs/img)
 ```

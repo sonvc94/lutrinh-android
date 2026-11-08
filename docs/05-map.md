@@ -83,12 +83,14 @@ picker = clay `#B85C2E`.
 | --- | --- |
 | No steps | centre (16.0, 106.0) — Vietnam overview — zoom 5 |
 | One step | centre on it, zoom 12 |
-| Two or more | fit the bounds of all steps with padding (40 dp on cards, 64 dp full screen), then cap zoom at 14 |
+| Two or more | fit the bounds of all steps inside the padded area, then cap zoom at 14. Padding: 40 dp on embedded maps; full trip map 48 dp on each side **plus the measured height of the card carousel (incl. its 24 dp offset and the navigation bar) at the bottom**, so no pin is drawn under the cards |
 | Picker opening | target point at zoom 13 (see R6 for which point); overview at zoom 5 when none |
 | Quick-place chip | animate to the place at zoom 13 |
 
-The camera is fitted once per change of the step list, after the view has its size; the user's
-own panning is not reset while the list stays the same.
+The camera is fitted once per change of the step list — or of the bottom padding, i.e. when the
+carousel is first measured — after the view has its size; the user's own panning is not reset
+while both stay the same. A single step is centred in the whole view (well above the cards).
+Screenshot: `img/20-trip-map-pins-above-cards.png` (Hà Giang sample, 8 pins, all above the cards).
 
 *Inspired by* polarsteps docs/22 §2.4 (single point zoom 11, fit-to-points with padding and max
 zoom 14). *Changed:* zoom 12 for a single point (village scale suits rural Vietnam better), no
