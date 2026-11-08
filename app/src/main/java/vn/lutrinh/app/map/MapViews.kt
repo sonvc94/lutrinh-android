@@ -124,6 +124,8 @@ fun TripMap(
     showRoute: Boolean = true,
     interactive: Boolean = true,
     fitPaddingDp: Int = 56,
+    /** Extra room at the bottom for UI drawn over the map (e.g. a card carousel), in dp. */
+    fitExtraBottomDp: Int = 0,
     onMarkerClick: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
@@ -168,7 +170,7 @@ fun TripMap(
                         )
                         state.map = map
                         state.style = style
-                        state.render(context, mapView, pinColor, highlightColor, fitPaddingDp)
+                        state.render(context, mapView, pinColor, highlightColor, fitPaddingDp, fitExtraBottomDp)
                     }
                     map.addOnMapClickListener { latLng ->
                         val handler = clickHandler.value ?: return@addOnMapClickListener false
@@ -185,7 +187,7 @@ fun TripMap(
             update = {
                 state.markers = markers
                 state.showRoute = showRoute
-                state.render(context, mapView, pinColor, highlightColor, fitPaddingDp)
+                state.render(context, mapView, pinColor, highlightColor, fitPaddingDp, fitExtraBottomDp)
             },
         )
         OsmAttribution(Modifier.align(Alignment.BottomEnd))
@@ -197,9 +199,9 @@ private class TripMapState {
     var style: Style? = null
     var markers: List<MapMarker> = emptyList()
     var showRoute: Boolean = true
-    private var fittedKey: List<GeoPoint>? = null
+    private var fittedKey: Pair<List<GeoPoint>, Int>? = null
 
-    fun render(context: Context, mapView: MapView, pinColor: Int, highlightColor: Int, paddingDp: Int) {
+    fun render(context: Context, mapView: MapView, pinColor: Int, highlightColor: Int, paddingDp: Int, extraBottomDp: Int) {
         val map = map ?: return
         val style = style ?: return
         if (!style.isFullyLoaded) return
@@ -225,34 +227,42 @@ private class TripMapState {
         } else {
             route?.setGeoJson(FeatureCollection.fromFeatures(emptyList()))
         }
-        val key = markers.map { it.point }
+        // Re-fit when the pins change or when the bottom overlay is first measured / resized.
+        val points = markers.map { it.point }
+        val key = points to extraBottomDp
         if (key != fittedKey) {
             fittedKey = key
-            mapView.doOnLayout { fitCamera(map, key, paddingDp * context.resources.displayMetrics.density) }
+            val density = context.resources.displayMetrics.density
+            val p = (paddingDp * density).toInt()
+            val padding = intArrayOf(p, p, p, p + (extraBottomDp * density).toInt())
+            mapView.doOnLayout { fitCamera(map, points, padding) }
         }
     }
 }
 
-/** Camera rule C1-C3 (docs/05-map.md). */
-private fun fitCamera(map: MapLibreMap, points: List<GeoPoint>, paddingPx: Float) {
+/**
+ * Camera rule C1-C3 (docs/05-map.md). [padding] = left, top, right, bottom in px; the visible
+ * area is the map minus this padding, so pins never sit under overlays.
+ */
+private fun fitCamera(map: MapLibreMap, points: List<GeoPoint>, padding: IntArray) {
     when (points.size) {
         0 -> map.moveCamera(
             CameraUpdateFactory.newCameraPosition(
                 CameraPosition.Builder().target(LatLng(NewStepDefaults.FALLBACK_CENTER.latitude, NewStepDefaults.FALLBACK_CENTER.longitude)).zoom(MapConfig.OVERVIEW_ZOOM).build(),
             ),
         )
+        // One pin: centred in the whole view, which is far above a bottom overlay.
         1 -> map.moveCamera(
             CameraUpdateFactory.newLatLngZoom(LatLng(points[0].latitude, points[0].longitude), MapConfig.SINGLE_POINT_ZOOM),
         )
         else -> {
             val bounds = LatLngBounds.Builder().includes(points.map { LatLng(it.latitude, it.longitude) }).build()
-            val p = paddingPx.toInt()
-            val pos = map.getCameraForLatLngBounds(bounds, intArrayOf(p, p, p, p))
+            val pos = map.getCameraForLatLngBounds(bounds, padding)
             if (pos != null) {
                 val zoom = pos.zoom.coerceAtMost(MapConfig.FIT_MAX_ZOOM)
                 map.moveCamera(CameraUpdateFactory.newCameraPosition(CameraPosition.Builder(pos).zoom(zoom).build()))
             } else {
-                map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, p))
+                map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, padding[0], padding[1], padding[2], padding[3]))
             }
         }
     }

@@ -31,12 +31,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,6 +65,8 @@ fun TripMapScreen(
     var selected by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val detail = (state as? Loadable.Ready)?.value
+    val density = LocalDensity.current
+    var carouselDp by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(selected, detail) {
         val idx = detail?.steps?.indexOfFirst { it.id == selected } ?: -1
@@ -86,7 +91,9 @@ fun TripMapScreen(
             TripMap(
                 markers = detail.steps.toMarkers(selected),
                 modifier = Modifier.fillMaxSize(),
-                fitPaddingDp = 64,
+                fitPaddingDp = 48,
+                // Cards height + their bottom offset, so the fit keeps every pin above the cards.
+                fitExtraBottomDp = carouselDp,
                 onMarkerClick = { selected = it },
             )
             if (detail.steps.isEmpty()) {
@@ -100,7 +107,10 @@ fun TripMapScreen(
                 state = listState,
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 24.dp),
+                // Measured outside the insets/offset: the whole strip the cards take from the map.
+                modifier = Modifier.align(Alignment.BottomCenter)
+                    .onSizeChanged { carouselDp = with(density) { it.height.toDp().value.toInt() } }
+                    .navigationBarsPadding().padding(bottom = 24.dp),
             ) {
                 itemsIndexed(detail.steps, key = { _, s -> s.id }) { i, step ->
                     val isSel = step.id == selected
