@@ -4,7 +4,11 @@
 
     <!-- Only for map tiles (MapLibre + OpenStreetMap). No other network use. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- No storage/media permission: photos come from the system Photo Picker. -->
+    <!-- No storage/media read permission: step photos come from the system Photo Picker.
+         "Thêm từ ảnh" (R13) opens the system file picker and needs this permission to read the
+         GPS position in the photos' EXIF (Android 10+ redacts it otherwise). The stored copies
+         are still saved without location (R11). -->
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
     <!-- MapLibre declares location permissions for its location component, which the app does
          not use (no tracking / my-location in this phase). Network/Wi-Fi state stay: MapLibre
          uses them to pause tile requests while offline. -->

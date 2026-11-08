@@ -1,8 +1,10 @@
 package vn.lutrinh.app.ui.steps
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +67,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -214,14 +217,24 @@ fun FromPhotosScreen(
 ) {
     val s by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris ->
+    // R13: the system Photo Picker redacts GPS, so this flow uses the system file picker and
+    // ACCESS_MEDIA_LOCATION (docs/06-photos.md). Denied -> photos come without location.
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         vm.onPicked(uris) { n -> context.getString(R.string.from_photos_default_title, n) }
+    }
+    val pick = { picker.launch(arrayOf("image/*")) }
+    val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { pick() }
+    val startPicking = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_MEDIA_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) askLocation.launch(Manifest.permission.ACCESS_MEDIA_LOCATION)
+        else pick()
     }
     var launched by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!launched && s.phase == FromPhotosState.Phase.PICKING) {
             launched = true
-            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            startPicking()
         }
     }
     LaunchedEffect(pickedLocation) {
@@ -266,7 +279,7 @@ fun FromPhotosScreen(
                     stringResource(R.string.from_photos_pick_hint),
                     Modifier.padding(padding),
                     actionLabel = stringResource(R.string.from_photos_pick),
-                    onAction = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    onAction = { startPicking() },
                 )
             FromPhotosState.Phase.READING -> LoadingState(Modifier.padding(padding))
             FromPhotosState.Phase.MISSING ->

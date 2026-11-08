@@ -133,7 +133,7 @@
     <!-- Steps from photos (R13) -->
     <string name="from_photos_title">Thêm từ ảnh</string>
     <string name="from_photos_pick">Chọn ảnh</string>
-    <string name="from_photos_pick_hint">Chọn nhiều ảnh: ảnh có vị trí và ngày chụp sẽ được gom thành các điểm dừng gợi ý.</string>
+    <string name="from_photos_pick_hint">Chọn nhiều ảnh: ảnh có vị trí và ngày chụp sẽ được gom thành các điểm dừng gợi ý. Cho phép truy cập vị trí trong ảnh để gom theo nơi chụp.</string>
     <string name="from_photos_default_title">Điểm dừng %1$d</string>
     <string name="from_photos_summary">%1$d ảnh → %2$d điểm dừng gợi ý</string>
     <string name="from_photos_summary_hint">Gom theo ngày chụp và vị trí (cách nhau dưới 2 km). Sửa tên, bỏ chọn nhóm không cần, đặt vị trí cho ảnh không có vị trí.</string>
