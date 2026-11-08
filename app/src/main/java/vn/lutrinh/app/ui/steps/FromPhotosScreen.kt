@@ -212,7 +212,7 @@ fun FromPhotosScreen(
     onPickLocation: (GeoPoint?) -> Unit,
     onBack: () -> Unit,
     /** Called when the flow ends; [created] steps were saved. */
-    onDone: (created: Int) -> Unit,
+    onDone: (created: Int, unreadablePhotos: Int) -> Unit,
     vm: FromPhotosViewModel = viewModel(factory = factory { c, h -> FromPhotosViewModel(c, h) }),
 ) {
     val s by vm.state.collectAsStateWithLifecycle()
@@ -243,7 +243,7 @@ fun FromPhotosScreen(
             onPickedConsumed()
         }
     }
-    LaunchedEffect(s.phase) { if (s.phase == FromPhotosState.Phase.DONE) onDone(s.savedSteps) }
+    LaunchedEffect(s.phase) { if (s.phase == FromPhotosState.Phase.DONE) onDone(s.savedSteps, s.failedPhotos) }
 
     Scaffold(
         topBar = {

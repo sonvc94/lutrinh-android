@@ -81,7 +81,6 @@
     <string name="leg_km">%1$s km</string>
     <string name="leg_sheet_title">Từ %1$s đến %2$s</string>
     <string name="leg_sheet_subtitle">Bạn di chuyển bằng gì? (%1$s km đường chim bay)</string>
-    <string name="leg_arrived_by">Đến bằng: %1$s</string>
 
     <!-- Step edit -->
     <string name="step_create_title">Điểm dừng mới</string>

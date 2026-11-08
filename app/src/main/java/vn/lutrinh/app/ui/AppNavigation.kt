@@ -125,9 +125,13 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onPickedConsumed = { entry.savedStateHandle[PICKED_LOCATION] = null },
                 onPickLocation = { at -> nav.navigate(Routes.picker(tripId, null, at)) },
                 onBack = { nav.popBackStack() },
-                onDone = { created ->
-                    if (created > 0) {
-                        Toast.makeText(context, context.getString(R.string.from_photos_created, created), Toast.LENGTH_SHORT).show()
+                onDone = { created, unreadable ->
+                    val messages = listOfNotNull(
+                        context.getString(R.string.from_photos_created, created).takeIf { created > 0 },
+                        context.getString(R.string.step_photos_import_failed, unreadable).takeIf { unreadable > 0 },
+                    )
+                    if (messages.isNotEmpty()) {
+                        Toast.makeText(context, messages.joinToString(" · "), Toast.LENGTH_SHORT).show()
                     }
                     nav.popBackStack()
                 },
