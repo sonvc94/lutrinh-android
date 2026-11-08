@@ -439,7 +439,7 @@ private fun PhotosSection(f: StepForm, onAdd: () -> Unit, onRemove: (String) -> 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TimePickDialog(initial: LocalTime, onDismiss: () -> Unit, onPicked: (LocalTime) -> Unit) = VietnameseLocale {
+private fun TimePickDialog(initial: LocalTime, onDismiss: () -> Unit, onPicked: (LocalTime) -> Unit) {
     val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = true)
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -447,7 +447,7 @@ private fun TimePickDialog(initial: LocalTime, onDismiss: () -> Unit, onPicked: 
             TextButton(onClick = { onPicked(LocalTime.of(state.hour, state.minute)); onDismiss() }) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-        text = { TimePicker(state = state) },
+        text = { VietnameseLocale { TimePicker(state = state) } },
     )
 }
 

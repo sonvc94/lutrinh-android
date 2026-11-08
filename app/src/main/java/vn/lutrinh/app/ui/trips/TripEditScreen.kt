@@ -276,7 +276,7 @@ fun DateField(label: String, value: String, modifier: Modifier = Modifier, onCli
 /** Material date picker working in UTC millis <-> LocalDate (no zone shift), always in Vietnamese. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DatePickDialog(initial: LocalDate, onDismiss: () -> Unit, onPicked: (LocalDate) -> Unit) = VietnameseLocale {
+fun DatePickDialog(initial: LocalDate, onDismiss: () -> Unit, onPicked: (LocalDate) -> Unit) {
     val state = rememberDatePickerState(initialSelectedDateMillis = initial.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli())
     DatePickerDialog(
         onDismissRequest = onDismiss,
@@ -287,5 +287,8 @@ fun DatePickDialog(initial: LocalDate, onDismiss: () -> Unit, onPicked: (LocalDa
             }) { Text(stringResource(R.string.action_save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
-    ) { DatePicker(state = state) }
+    ) {
+        // Inside the dialog: its window re-provides the device configuration (docs/03-screens.md).
+        VietnameseLocale { DatePicker(state = state) }
+    }
 }

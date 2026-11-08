@@ -59,6 +59,8 @@ fun LocalDateTime.displayDateTime(): String = "${toLocalDate().display()} · ${d
  * Runs [content] with a Vietnamese configuration, whatever the device language. Used around the
  * Material date/time pickers, which take month/day names, date formats and their own button/
  * headline strings from `LocalConfiguration` / `LocalContext` resources (docs/03-screens.md).
+ * Must wrap the picker INSIDE the dialog content: a Dialog window has its own ComposeView, which
+ * re-provides the device configuration and would undo a wrapper placed around the dialog.
  * Not applied app-wide: MapLibre's MapView needs the real Activity context.
  */
 @Composable
