@@ -5,8 +5,9 @@
 * The step form's "Thêm ảnh" opens the **system photo picker** (Android Photo Picker via
   `PickMultipleVisualMedia`, images only, at most 30 per pick).
 * **No storage permission** is requested or declared. The picker runs in the system process and
-  grants the app temporary read access to the chosen items only. (Manifest permissions of the app:
-  `INTERNET` only, for tiles.)
+  grants the app temporary read access to the chosen items only. (Merged manifest permissions:
+  `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` — all for map tiles; the location
+  permissions MapLibre would add are removed.)
 * On devices without the new picker, androidx falls back to the documents UI
   (`ACTION_OPEN_DOCUMENT`) automatically — still no permission.
 * Selection order is kept: the first picked photo becomes the step cover if the step had none.
