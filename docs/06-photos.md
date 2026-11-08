@@ -6,15 +6,47 @@
   `PickMultipleVisualMedia`, images only, at most 30 per pick).
 * **No storage permission** is requested or declared. The picker runs in the system process and
   grants the app temporary read access to the chosen items only. (Merged manifest permissions:
-  `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` — all for map tiles; the location
-  permissions MapLibre would add are removed.)
+  `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` — all for map tiles — plus
+  `ACCESS_MEDIA_LOCATION`, asked only by "Thêm từ ảnh" below; the location permissions MapLibre
+  would add are removed.)
 * On devices without the new picker, androidx falls back to the documents UI
   (`ACTION_OPEN_DOCUMENT`) automatically — still no permission.
 * Selection order is kept: the first picked photo becomes the step cover if the step had none.
 
+### "Thêm từ ảnh" (steps from photos, R13): file picker + media location
+
+Making steps from photos needs each photo's **GPS**, which the Photo Picker hides:
+
+* Verified on the emulator (Android 16, API 36) with JPEGs carrying GPS: a Photo Picker URI
+  (`content://media/picker/…`) returns the EXIF date but **no GPS** — even with
+  `ACCESS_MEDIA_LOCATION` granted — and `MediaStore.setRequireOriginal` on it throws
+  `UnsupportedOperationException: Require Original is not supported for Picker URI`.
+* The system **file picker** (`ACTION_OPEN_DOCUMENT`, `OpenMultipleDocuments` with `image/*`,
+  multi-select) returns `content://com.android.providers.media.documents/…` URIs; with
+  `ACCESS_MEDIA_LOCATION` granted, a plain `openInputStream` keeps the GPS tags.
+
+So "Thêm từ ảnh" (and only it — the step form keeps the Photo Picker):
+1. On Android 10+ asks for `ACCESS_MEDIA_LOCATION` (declared in the manifest) if not granted.
+   On Android 14+ the system shows its photos dialog ("Allow limited access / Allow all /
+   Don't allow"); "limited" first asks the user to select photos, then grants the permission.
+   Android 8–9 have no such permission (GPS is readable).
+2. Opens the file picker whatever the answer. **Denied** → GPS reads as none, so all photos end
+   up in the "Ảnh không có vị trí" group that the user places on the map or skips (dates still
+   work).
+3. Reads date + GPS of every photo (`data/PhotoMetaReader`, `ExifInterface` on the stream)
+   **before** import — the stored copy has its GPS stripped (R11). The values are only used for
+   grouping (R13) and never stored.
+4. On confirm, imports the kept photos exactly like the step form (below); unticked groups are
+   never copied. The URIs are only used during this screen (no persisted permission).
+
+Test photos: JPEGs with known `DateTimeOriginal` and GPS were generated, pushed to
+`/sdcard/Pictures/…` and picked through this flow (5 photos, 2 days/places + 1 without GPS →
+3 suggestions, `img/29-from-photos-review.png`, `img/30-from-photos-result.png`); the stored
+copies pulled with `run-as` had the date and **no GPS**.
+
 *Inspired by* polarsteps docs/22 §3.1 (androidx Photo Picker as the "Library" button). *Changed:*
-no in-app MediaStore gallery, no "allow all photos" rationale sheet, no date-filtered
-suggestions, no camera capture, no videos — all of these need broad media permissions or more
+no in-app MediaStore gallery, no "allow all photos" rationale sheet, no automatic
+suggestions from the whole gallery (only from photos the user picks), no camera capture, no videos — all of these need broad media permissions or more
 UI; they can come later.
 
 ## Persisting: import into app storage
@@ -116,7 +148,6 @@ caption) pushed into the emulator gallery, so that the real Photo Picker flow co
 
 ## Not done (later)
 
-EXIF reading for suggestions (date/GPS → suggest step date/location; GPS must then be read
-before it is stripped), thumbnails (Coil decodes at view size from the 2560 px copy), videos,
+Suggestions from the whole gallery without picking (needs broad media access), thumbnails (Coil decodes at view size from the 2560 px copy), videos,
 camera capture, upload to a server (see 01-architecture.md), photo captions, sharing, removing
 location from XMP blocks (only EXIF GPS tags are removed).

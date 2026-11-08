@@ -1,6 +1,6 @@
 # 03 — Screens and navigation
 
-Nine destinations, one activity/window. Every screen that reads data shows one of four states:
+Eleven destinations, one activity/window. Every screen that reads data shows one of four states:
 
 | State | Meaning | UI |
 | --- | --- | --- |
@@ -21,17 +21,22 @@ Trip list ──FAB "Chuyến đi mới"─────────────�
    │  card ⋮ / long-press → Sửa                  │  ⋮ Sửa ─▶ Trip form (edit) ─save/back─▶ back
    ├──────────────────────────────▶ Trip form    │  ⋮ Xóa ─▶ confirm ─▶ back to list
    │  card ⋮ → Xóa → confirm                     │  map icon / header expand ─▶ Trip map
-   └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │  FAB "Thêm điểm dừng" ─▶ Step form (create)
+   ├─ globe "Bản đồ của tôi" ─▶ My map           │  FAB "Thêm điểm dừng" ─▶ Step form (create)
+   │       └─ tap trip card ─▶ Trip detail       │  small FAB "Thêm từ ảnh" ─▶ From photos
+   └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │  tap leg chip ─▶ Leg mode sheet
                                                  │  tap step ─▶ Step detail
+From photos ── file picker ─▶ review ── "Chọn trên bản đồ" ─▶ Location picker ─▶ back with point
+From photos ── "Tạo N điểm dừng" ─▶ back to Trip detail (toast "Đã tạo N điểm dừng từ ảnh")
 Step form ── "Chọn trên bản đồ"/"Đổi vị trí" ──▶ Location picker ── "Dùng vị trí này" ─▶ back with point
 Step form ── "Thêm ảnh" ──▶ system Photo Picker ─▶ back with URIs
 Step detail ── pencil ─▶ Step form (edit) │ bin ─▶ confirm ─▶ back │ tap photo ─▶ Photo viewer
-Trip map ── tap card ─▶ Step detail
+Trip map ── tap card ─▶ Step detail │ tap leg chip on a card / mode badge on the map ─▶ Leg mode sheet
 ```
 
 Route strings (Android, kept for deep links later): `trips`, `tripEdit?tripId=`, `trip/{tripId}`,
 `trip/{tripId}/map`, `trip/{tripId}/stepEdit?stepId=`, `trip/{tripId}/step/{stepId}`,
-`trip/{tripId}/pick?stepId=&lat=&lng=`, `trip/{tripId}/step/{stepId}/photos?index=`.
+`trip/{tripId}/pick?stepId=&lat=&lng=`, `trip/{tripId}/step/{stepId}/photos?index=`, `myMap`,
+`trip/{tripId}/fromPhotos`. The leg mode sheet is a bottom sheet, not a route.
 The picker returns its result to the step form through the previous screen's saved state
 (`picked_location` = `"lat,lng"`); on iOS use a binding or a callback closure.
 
@@ -40,7 +45,8 @@ The picker returns its result to the step form through the previous screen's sav
 * **Purpose:** all trips, newest first (R1); entry point.
 * **Content:** large title; one card per trip with cover photo (or a gradient placeholder), title,
   date range (`6 thg 11 – 9 thg 11, 2026`, or `từ …` when open-ended), "N điểm dừng · M ảnh".
-* **Actions:** tap → Trip detail; ⋮ or long-press → Sửa / Xóa; FAB "Chuyến đi mới".
+* **Actions:** tap → Trip detail; ⋮ or long-press → Sửa / Xóa; FAB "Chuyến đi mới"; globe icon
+  in the top bar (label "Bản đồ của tôi") → My map.
   Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
 * **Empty:** suitcase icon, "Chưa có chuyến đi nào" + invitation text; in debug builds a
   "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip.
@@ -74,27 +80,61 @@ The picker returns its result to the step form through the previous screen's sav
 * **Content:** header map (220 dp) with numbered pins and the route (R3) and an expand button;
   title, date range, description; four stat tiles: điểm dừng, ảnh, km (đường chim bay = straight
   line, R10), ngày; timeline grouped by day ("Ngày 2 · Thứ Bảy, 7/11"), each step with its number,
-  time, note preview and up to a row of photo thumbnails.
-* **Actions:** map icon → Trip map; ⋮ → Sửa / Xóa; tap step → Step detail; FAB "Thêm điểm dừng".
+  time, note preview and up to a row of photo thumbnails. Between two steps a **leg chip** (mode
+  icon + name in the mode colour, or "Chọn cách di chuyển" when not set, then "· N km") sits on
+  the timeline connector (R12); the header map draws the legs per mode (05-map.md).
+* **Actions:** map icon → Trip map; ⋮ → Sửa / Xóa; tap step → Step detail; tap a leg chip → Leg
+  mode sheet; FAB "Thêm điểm dừng"; small FAB above it (photo icon, label "Thêm từ ảnh") → From
+  photos.
 * **Empty:** "Chưa có điểm dừng" + text + button "Thêm điểm dừng"; the map shows Vietnam overview.
 * **Screens:** `img/03` (empty state is the same layout), `img/08-trip-detail.png`,
-  `img/14-photos-after-restart.png`.
+  `img/14-photos-after-restart.png`, `img/28-upgrade-after-v2.png` (leg chips),
+  `img/30-from-photos-result.png` (both FABs).
 * **Inspired by:** docs/22 §1.1 (trip opens on its map with step cards, drawer with stats).
   **Changed:** a scrolling timeline with the map as a header instead of a map-first screen with a
   drawer; day numbers are computed from the trip start date.
 
 ## 4. Trip map — full screen
 
-* **Content:** map with all pins + route, fitted to all steps (05-map.md camera rules) in the area
-  above the card carousel, so no pin hides under a card; a horizontal carousel of step cards at
-  the bottom (thumbnail, "1. Title", date · time).
+* **Content:** map with all pins + legs styled per mode with a mode badge at each leg's middle
+  (05-map.md), fitted to all steps (camera rules) in the area above the card carousel, so no pin
+  hides under a card; a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
+  date · time; from card 2 on, the chip of the leg that arrives at this step).
 * **Behaviour:** tapping a pin selects it (gold) and scrolls the carousel to its card; tapping a
-  card opens Step detail. Empty trip: message "Chuyến đi chưa có điểm dừng nào để hiển thị."
+  card opens Step detail; tapping a badge or a card's leg chip opens the Leg mode sheet. Empty
+  trip: message "Chuyến đi chưa có điểm dừng nào để hiển thị."
 * **Screens:** `img/09-trip-map-route.png`, `img/16-sample-hagiang-map.png`,
-  `img/20-trip-map-pins-above-cards.png`.
-* **Inspired by:** docs/22 §1.1/§2 (map with step-card carousel, fit-to-steps camera).
-  **Changed:** straight route segments only (no transport mode, no snap-to-roads, no flight arcs),
-  own pin design (numbered circles), no map-style switcher.
+  `img/20-trip-map-pins-above-cards.png`, `img/23-trip-map-leg-modes.png`,
+  `img/24-trip-map-legs-zoomed.png`.
+* **Inspired by:** docs/22 §1.1/§2 (map with step-card carousel, fit-to-steps camera, transport
+  mode per leg). **Changed:** straight legs (no snap-to-roads), own colour/dash/badge per mode,
+  decorative flight arc, own pin design (numbered circles), no map-style switcher.
+
+## 4b. Leg mode sheet — "Từ A đến B"
+
+* **Opened from:** a leg chip on the Trip detail timeline or the Trip map cards, or a mode badge on
+  the Trip map.
+* **Content:** title "Từ <step> đến <step>", "Bạn di chuyển bằng gì? (N km đường chim bay)", one
+  row per mode (icon in its colour + name: Đi bộ, Xe máy, Ô tô, Xe buýt/xe khách, Tàu hỏa, Máy
+  bay, Thuyền) and "Chưa chọn"; the current choice is marked. Tap → saved at once (R12), sheet
+  closes; swipe down/outside → no change.
+* **Screen:** `img/25-leg-mode-sheet.png`.
+* **Inspired by:** docs/22 (transport mode per leg). **Changed:** own list for Vietnam (xe máy,
+  xe buýt/xe khách), a single bottom sheet instead of a separate screen, no automatic guess.
+
+## 4c. My map — "Bản đồ của tôi"
+
+* **Purpose:** every trip on one map (R14).
+* **Content:** full-screen map; at the top a card with three totals: số chuyến đi, điểm dừng, km
+  (sum of each trip's straight-line distance); at the bottom a carousel of trip cards (colour
+  dot, title, dates, "N điểm dừng · M km"). Each trip is drawn in its own colour; the camera fits
+  all steps between the totals card and the carousel.
+* **Behaviour:** tap a trip's line or dots → that trip is selected (wider line, on top, card
+  scrolled into view and highlighted); tap a card → Trip detail. No trips: "Chưa có chuyến đi nào để
+  hiện trên bản đồ."
+* **Screen:** `img/26-my-map.png`.
+* **Inspired by:** polarsteps' world map of all trips (docs/22). **Changed:** totals limited to
+  what works offline — no countries/provinces (needs geocoding), no world-percentage.
 
 ## 5. Step form — "Điểm dừng mới" / "Sửa điểm dừng"
 
@@ -146,6 +186,27 @@ The picker returns its result to the step form through the previous screen's sav
 * Opened from the step form, images only, up to 30 per pick. Shows "Lữ Trình will only have access
   to the photos you select". **Screen:** `img/07-photo-picker.png`.
 
+## 10. From photos — "Thêm từ ảnh"
+
+* **Opens:** on Android 10+ first the system permission dialog for photo location
+  (`ACCESS_MEDIA_LOCATION`; on Android 14+ the "photos and videos" dialog), then the system
+  **file picker** (multi-select, images) — not the Photo Picker, which hides GPS (06-photos.md).
+  Cancelling the picker with nothing picked returns to the trip. While reading: progress.
+* **Review content:** a 180 dp map with the numbered kept suggestions; "N ảnh → M điểm dừng gợi
+  ý" + hint; one card per suggestion (R13): checkbox (label "Giữ điểm dừng N"), number, editable
+  title ("Điểm dừng N", R5 length check), date · time from the photos (or "Ảnh không có ngày
+  chụp · dùng <R6 date>"), a red "Chụp ngày …, ngoài thời gian chuyến đi · không thể thêm" warning
+  when outside the trip (cannot be kept), place line with "Chọn trên bản đồ" / "Đổi vị trí" → Location picker, thumbnails and
+  "N ảnh". Photos without GPS form the last card "Ảnh không có vị trí", unticked until placed.
+* **Confirm:** bottom button "Tạo N điểm dừng" (disabled while no card is kept or a kept card has
+  no title/place) → imports the kept photos (R11), saves one step per card, back to Trip detail
+  with a toast "Đã tạo N điểm dừng từ ảnh" (+ "Không đọc được M ảnh" when an import failed; such
+  photos are skipped, the step is still made).
+* **Screens:** `img/29-from-photos-review.png`, `img/30-from-photos-result.png`.
+* **Inspired by:** docs/22/16 (steps suggested from photo location/date). **Changed:** the user
+  picks the photos (no gallery scan), an explicit review screen with editable titles, same-day +
+  2 km grouping, no place-name lookup.
+
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
 
 | File | Shows |
@@ -165,21 +226,31 @@ The picker returns its result to the step form through the previous screen's sav
 | 13-step-delete-confirm.png | delete step confirm |
 | 14-photos-after-restart.png | trip detail after force-stop + relaunch: photos still there |
 | 15-trip-list-sample.png | list with the debug sample trips |
-| 16-sample-hagiang-map.png | Hà Giang loop on the map (8 steps) |
+| 16-sample-hagiang-map.png | Hà Giang loop on the map (taken when the sample had 8 steps; it now has 10) |
 | 17-trip-delete-confirm.png | delete trip confirm with counts |
 | 18-trip-list-after-delete.png | list after the trip was deleted |
 | 19-trip-validation.png | "Hãy đặt tên cho chuyến đi" on empty title |
 | 20-trip-map-pins-above-cards.png | Hà Giang trip map fitted above the card carousel |
 | 21-date-picker-vietnamese.png | date picker in Vietnamese on an English-language emulator |
 | 22-photo-exif-rotated-upright.png | 4800×3600 photo with EXIF orientation 6 + GPS, stored and shown upright |
+| 23-trip-map-leg-modes.png | Hà Giang trip map with legs per mode (xe máy, ô tô, máy bay arc, …) and badges |
+| 24-trip-map-legs-zoomed.png | zoomed: dotted walk leg and dashed boat leg |
+| 25-leg-mode-sheet.png | leg mode sheet "Từ … đến …" |
+| 26-my-map.png | "Bản đồ của tôi": all trips in their colours, totals, trip cards |
+| 27-upgrade-before-v1.png | main@b07fcf6 build (database v1) with sample data, before the upgrade |
+| 28-upgrade-after-v2.png | same data after installing the v2 build over it, leg chips "Chọn cách di chuyển" |
+| 29-from-photos-review.png | "Thêm từ ảnh" review: 2 GPS groups + the placed no-GPS group |
+| 30-from-photos-result.png | the trip after "Tạo 3 điểm dừng" |
 
 ## Accessibility and UI tests
 
-* The extended FABs ("Chuyến đi mới", "Thêm điểm dừng") carry their label as content description:
+* The extended FABs ("Chuyến đi mới", "Thêm điểm dừng") and the icon buttons "Thêm từ ảnh" and
+  "Bản đồ của tôi" carry their label as content description:
   Material 3 1.3 exposes no text for them, so TalkBack would only say "Button".
 * Instrumented Compose tests (`app/src/androidTest/.../ui/TripFlowsTest.kt`) drive the real app
   on a device: create trip, edit trip, delete trip, add a step with the "Mã Pí Lèng" quick-place
-  chip. They find nodes by the Vietnamese texts/labels above (changing a string means updating the
+  chip, set a leg's mode to "Xe máy" from the timeline (checked in the database), open "Bản đồ
+  của tôi" from the list. They find nodes by the Vietnamese texts/labels above (changing a string means updating the
   test) and delete every trip whose title starts with `UITEST` afterwards. Run with
   `./gradlew connectedDebugAndroidTest` (needs network for tiles only cosmetically; the picker
   centre updates without tiles).

@@ -121,6 +121,71 @@ the stored copy`, `sample size is the largest power of two that still covers the
 the stored top-left corner where the spec says`, `transpose maps x to y`, `unknown exif values are
 treated as upright`). Decoding/encoding itself is checked on a device (06-photos.md).
 
+## R12 — Leg transport
+
+* A leg is a pair of consecutive steps in R2 order; a trip with *n* steps has *n − 1* legs.
+* The mode is stored on the **arrival** step (`arrivalTransport`); the first step's value is
+  ignored. Choices: Đi bộ, Xe máy, Ô tô, Xe buýt/xe khách, Tàu hỏa, Máy bay, Thuyền, or none
+  ("Chưa chọn", the default — also for every step that existed before database version 2).
+* When the order changes (a step's date changes, a step is inserted or deleted), the mode moves
+  with its arrival step: inserting C between A and B gives A→C "none" and C→B keeps B's mode.
+  The app never guesses a mode.
+* Saving a step from the step form keeps its mode (the form does not edit it). Setting the mode
+  updates the step's `updatedAt`.
+* A leg's distance is the haversine distance (R10) between its two steps, shown as "· N km".
+* Drawing per mode (colour, dash, flight arc, badge): 05-map.md. No road snapping/routing.
+
+*Tests:* `LegsTest.legsFollowTimelineOrderAndTakeTheModeOfTheArrivalStep`,
+`LegsTest.codesRoundTripAndUnknownCodesReadAsNotSet`, `LegsTest.onlyFlightsAreDrawnAsArcs`,
+`LegsTest.setLegTransportUpdatesAndClearsAndSaveStepKeepsIt`,
+`MigrationTest.version1UpgradesToCurrentWithoutDataLoss`; UI: `TripFlowsTest.setLegTransport_fromTheTimeline_showsAndStoresTheMode`.
+*Inspired by* polarsteps docs/22 (transport mode per leg). *Changed:* own mode list (xe máy,
+xe buýt/xe khách for Vietnam), no automatic mode guess, no routed lines.
+
+## R13 — Steps from photos ("Thêm từ ảnh")
+
+For each picked photo the app reads, **before import** (06-photos.md):
+* **date** = EXIF `DateTimeOriginal`, else `DateTimeDigitized`, else `DateTime`
+  (`yyyy:MM:dd HH:mm:ss`, no time zone — like `arrivedAt`); malformed/zero dates = none;
+* **location** = EXIF GPS latitude/longitude; missing, out of range or exactly (0, 0) = none.
+
+Grouping (pure function `PhotoGrouping.group`):
+1. Photos with a location are sorted by date (undated last), then by pick order.
+2. Each photo joins the current group when **all** hold: same calendar day as the group's first
+   photo (or both undated), within **2 km** (haversine) of the group's centroid, and the group has
+   fewer than 30 photos (R8 limit). Otherwise it starts a new group.
+3. Photos without a location form **one** last group (split by 30 if needed).
+4. Group location = centroid (mean latitude/longitude); arrival = earliest photo date, truncated
+   to the minute.
+
+Suggestions (`suggestStepsFrom`): one per group, titled "Điểm dừng N" (N continues after the
+trip's existing steps). Undated groups get the R6 arrival. A group whose date lies outside the
+trip (R5) is flagged "ngoài thời gian chuyến đi" and cannot be kept. The group without a
+location is not kept until the user places it on the map (or it is skipped). The user can edit
+titles and untick groups; "Tạo N điểm dừng" imports each kept group's photos (R11 — the stored
+copies have no GPS) and saves one step per group through the normal step save (R5/R8 apply).
+
+*Tests:* `PhotoGroupingTest.samePlaceSameDayIsOneGroupAndDayOrPlaceChangeSplits`,
+`photosWithoutLocationFormOneLastGroup`, `undatedLocatedPhotosGroupByPlaceAfterDatedOnes`,
+`aGroupNeverExceedsThePhotoLimit`, `exifDatesParseAndRejectGarbage`,
+`suggestionsNumberAfterExistingStepsAndFlagDatesOutsideTheTrip`.
+*Inspired by* polarsteps docs/22/16 (photo-based step suggestions). *Changed:* explicit review
+screen, 2 km / same-day rule, no automatic place names (no geocoding offline).
+
+## R14 — "Bản đồ của tôi" (all trips)
+
+* Totals: số chuyến = all trips; số điểm dừng = all their steps; km = **sum over trips** of each
+  trip's R10 distance (no line between the end of one trip and the start of the next).
+  Provinces are not counted (needs geocoding).
+* Each trip gets a colour from an 8-colour palette by creation order (`createdAt`, then id),
+  wrapping after 8; a newly created trip never changes the colour of older trips (deleting one
+  shifts the later ones).
+* Trips without steps count in "số chuyến" but draw nothing.
+
+*Tests:* `LegsTest.overallStatsSumEachTripSeparately`,
+`LegsTest.tripColoursFollowCreationOrderAndStayWhenTripsAreAdded`; UI:
+`TripFlowsTest.openMyMap_fromTheTripList_showsTotalsAndTrips`.
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

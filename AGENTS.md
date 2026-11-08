@@ -8,7 +8,7 @@ No server, login or API in this phase.
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R11 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R14 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -62,4 +62,17 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   content description (tests and TalkBack rely on it).
 * uiautomator substring matches are greedy ("Bỏ" also matches "Bỏ các thay đổi?") — match exact
   text when tapping dialogs by script.
+* The Android **Photo Picker hides EXIF GPS** (even with `ACCESS_MEDIA_LOCATION`;
+  `setRequireOriginal` throws on picker URIs). "Thêm từ ảnh" therefore uses `ACTION_OPEN_DOCUMENT`
+  + `ACCESS_MEDIA_LOCATION` (docs/06). On API 34+ that permission shows the "photos and videos"
+  dialog; "limited access" first opens a selection sheet. Read GPS **before**
+  `PhotoStorage.import` — the stored copy has none (R11).
+* MapLibre `line-dasharray` is not data-driven: one `LineLayer` per dash kind, filtered by `mode`.
+* Room schema bump = bump `AppDatabase.VERSION`, add `MIGRATION_x_y` to `MIGRATIONS`, commit
+  `app/schemas/.../<v>.json`, extend `MigrationTest` (no destructive fallback, on purpose).
+* `adb shell input text` into a Compose field: wait ~1.5 s after tapping it, select all with
+  `input keycombination 113 29`, then type.
+* Test JPEGs with GPS/date: write the EXIF with a small script (APP1 with IFD0 + Exif + GPS IFDs),
+  `adb push` to `/sdcard/Pictures/…`, then per file
+  `am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/…`; check stored copies via `run-as vn.lutrinh.app cat files/photos/<f>`.
 * Polarsteps analysis docs (`/Volumes/wdblack/workspace/vietmap/vietmap/polarsteps/docs`) are reference only; write our own code and copy.

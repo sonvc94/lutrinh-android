@@ -58,19 +58,65 @@ and MapLibre needs no logo.
 
 | Where | Size | Interactive | Content |
 | --- | --- | --- | --- |
-| Trip detail header | 220 dp tall | no (static preview; expand button opens Trip map) | pins + route |
-| Trip map | full screen | pan + pinch zoom; rotate/tilt off | pins + route, tap pin |
+| Trip detail header | 220 dp tall | no (static preview; expand button opens Trip map) | pins + legs |
+| Trip map | full screen | pan + pinch zoom; rotate/tilt off | pins + legs + mode badges; tap pin → card, tap badge → leg mode sheet |
 | Step form location card | small | no | the step's point |
 | Step detail | card | no | whole trip, this step highlighted |
 | Location picker | full screen | pan + zoom | fixed centre pin, other steps as context pins |
+| Thêm từ ảnh review | 180 dp tall | no | numbered pins of the kept suggestions, no route (R13) |
+| Bản đồ của tôi | full screen | pan + zoom | every trip: one coloured line + stop dots per trip; tap → select, tap the card → open (R14) |
 
 ## Layers (bottom → top)
 
 1. `background` — solid `#EDE7DA`.
 2. `osm` — raster tiles.
-3. `route-casing-layer` — white line, width 7 dp, round joins/caps.
-4. `route-layer` — primary green (`#1F5C45`) line, width 4 dp; GeoJSON LineString of R3 points.
-5. `steps-layer` — symbol layer, one icon per step, `icon-allow-overlap` on so no pin hides.
+3. `route-casing-layer` — white line, width 7 dp, round joins/caps, under every leg.
+4. `route-layer` — solid legs, width 4 dp.
+5. `route-dashed-layer` — dashed legs, width 4 dp, `line-dasharray [2.2, 1.6]` (in line widths).
+6. `route-dotted-layer` — dotted legs, width 4.5 dp, `line-dasharray [0, 1.8]` + round caps (dots).
+7. `leg-badges-layer` — one round mode badge (26 dp) at the middle of each leg that has a mode.
+8. `steps-layer` — symbol layer, one icon per step, `icon-allow-overlap` on so no pin hides.
+
+The route source holds **one LineString feature per leg** (R12), with properties `mode` (code or
+`none`) and `color`. Line colour is data-driven (`get("color")`), but MapLibre's `line-dasharray`
+is **not** data-driven, so each dash kind is a separate layer filtered with
+`["in", ["get", "mode"], [...modes of that kind]]`.
+
+### Legs per transport mode (R12)
+
+| Mode | Colour | Stroke | Icon (Material) |
+| --- | --- | --- | --- |
+| Đi bộ | `#6D4C41` | dotted | DirectionsWalk |
+| Xe máy | `#E65100` | solid | TwoWheeler |
+| Ô tô | `#3949AB` | solid | DirectionsCar |
+| Xe buýt/xe khách | `#8E24AA` | solid | DirectionsBus |
+| Tàu hỏa | `#455A64` | solid | Train |
+| Máy bay | `#039BE5` | dashed **arc** | Flight |
+| Thuyền | `#00897B` | dashed | DirectionsBoat |
+| none | primary green `#1F5C45` | solid | — (no badge) |
+
+One table (`map/TransportStyle.kt`) serves the map, the timeline chips and the mode sheet. Badges:
+white disc, mode-coloured inner disc, white icon, drawn into bitmaps in code. Tapping a badge on the
+full trip map opens the leg's mode sheet.
+
+**Flight arc** (`Legs.arc`, unit-tested): a quadratic Bézier in plain lat/lng space from A to B,
+control point at the midpoint moved sideways (to the left of A→B) by `0.2 ×` the A–B length;
+25 points. Other modes are straight lines between the two steps (no routing). The camera fit uses
+the steps only, so a strongly bent arc may touch the padding edge — accepted.
+
+Screenshots: `img/23-trip-map-leg-modes.png` (Hà Giang sample: xe máy, ô tô, đi bộ, thuyền, and the Mèo Vạc → Du Già leg set to Máy bay by hand to show the arc),
+`img/24-trip-map-legs-zoomed.png`, `img/25-leg-mode-sheet.png`.
+
+### All trips ("Bản đồ của tôi", R14)
+
+`map/AllTripsMap.kt`: one GeoJSON LineString per trip with ≥ 2 steps (R3 order; flight legs
+drawn as the same arc, every other leg straight; no dashes or badges — the colour identifies the
+trip) and one point per step.
+Layers: `trips-casing-layer` (white, 6 dp; 9 dp when selected), `trips-layer` (trip colour,
+3.5 dp; 5.5 dp when selected), `trip-stops-layer` (circles, radius 4.5 dp / 6 dp selected, trip
+colour, white 2 dp stroke). The selected trip is sorted on top. A tap within 18 dp of a line or dot selects
+that trip; the camera fits all steps of all trips (same rules as above).
+Screenshot: `img/26-my-map.png`.
 
 Pins are bitmaps drawn in code (no font glyphs or sprite sheet needed): a filled circle (28 dp,
 34 dp when highlighted) with a white ring and the step number (R2 position, 1-based) in white.
@@ -90,7 +136,8 @@ picker = clay `#B85C2E`.
 The camera is fitted once per change of the step list — or of the bottom padding, i.e. when the
 carousel is first measured — after the view has its size; the user's own panning is not reset
 while both stay the same. A single step is centred in the whole view (well above the cards).
-Screenshot: `img/20-trip-map-pins-above-cards.png` (Hà Giang sample, 8 pins, all above the cards).
+Screenshot: `img/20-trip-map-pins-above-cards.png` (Hà Giang sample when it had 8 steps, all
+pins above the cards).
 
 *Inspired by* polarsteps docs/22 §2.4 (single point zoom 11, fit-to-points with padding and max
 zoom 14). *Changed:* zoom 12 for a single point (village scale suits rural Vietnam better), no
@@ -111,5 +158,6 @@ tap-to-move the pin; neighbour steps are drawn there as a dotted line, here as s
 ## Not done (later)
 
 Offline packs, vector style, dark map, clustering for trips with many steps, road-following
-routes (snap-to-roads / OSRM), current-location button (needs location permission; tracking is
+routes (snap-to-roads / OSRM — legs stay straight or arcs), great-circle flight paths (the arc is
+decorative), current-location button (needs location permission; tracking is
 out of scope).

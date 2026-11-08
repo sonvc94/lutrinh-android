@@ -34,6 +34,21 @@ the first photo (by position) of the first step in timeline order (R2), or none.
 | createdAt | Instant | no | tie-breaker for ordering (R2) |
 | updatedAt | Instant | no | |
 | photos | list of Photo | — | 0..30, ordered by `position` |
+| arrivalTransport | TransportMode | yes | how the traveller reached this step from the previous one (R12); null = not set; ignored on the first step |
+
+### TransportMode
+
+Stored as a short code; unknown codes (e.g. written by a newer app version) read as null.
+
+| Code | Vietnamese label | Code | Vietnamese label |
+| --- | --- | --- | --- |
+| `walk` | Đi bộ | `train` | Tàu hỏa |
+| `motorbike` | Xe máy | `plane` | Máy bay |
+| `car` | Ô tô | `boat` | Thuyền |
+| `bus` | Xe buýt/xe khách | (null) | Chưa chọn |
+
+A **leg** is not stored: it is the pair (step *i*, step *i+1*) of a trip in R2 order, and its mode
+is `arrivalTransport` of step *i+1* (R12).
 
 ## Photo
 
@@ -45,17 +60,32 @@ the first photo (by position) of the first step in timeline order (R2), or none.
 | position | Int | no | 0-based display order; position 0 = step cover |
 | createdAt | Instant | no | |
 
-## Storage (Android: SQLite via Room, database `lutrinh.db`, version 1)
+## Storage (Android: SQLite via Room, database `lutrinh.db`, version 2)
 
 | Table | Columns | Keys / indexes |
 | --- | --- | --- |
 | `trips` | id TEXT PK, title, description, start_date TEXT `yyyy-MM-dd`, end_date TEXT nullable, created_at INTEGER, updated_at INTEGER | — |
-| `steps` | id TEXT PK, trip_id TEXT, title, note, latitude REAL, longitude REAL, arrived_at TEXT `yyyy-MM-dd'T'HH:mm`, created_at, updated_at | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id), (trip_id, arrived_at) |
+| `steps` | id TEXT PK, trip_id TEXT, title, note, latitude REAL, longitude REAL, arrived_at TEXT `yyyy-MM-dd'T'HH:mm`, created_at, updated_at, transport_mode TEXT nullable (v2) | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id), (trip_id, arrived_at) |
 | `photos` | id TEXT PK, step_id TEXT, file_name TEXT, position INTEGER, created_at INTEGER | FK step_id → steps.id ON DELETE CASCADE; index (step_id); UNIQUE (file_name) |
 
 Dates are stored as ISO-8601 text so that text order equals time order (used by `ORDER BY` and by
-the step date range query) and the values are readable in any SQLite browser. The exported schema
-is in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/1.json`.
+the step date range query) and the values are readable in any SQLite browser. The exported schemas
+are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json, 2.json).
+
+### Migrations (user data must survive every upgrade)
+
+| From → to | Change | SQL |
+| --- | --- | --- |
+| 1 → 2 | leg transport (R12) | `ALTER TABLE steps ADD COLUMN transport_mode TEXT` (existing steps: null = not set) |
+
+* There is **no destructive fallback**: a missing migration crashes on open instead of wiping
+  the user's trips. Each version bump adds `MIGRATION_x_y` to `AppDatabase.MIGRATIONS`, bumps
+  `AppDatabase.VERSION`, commits the exported schema JSON and extends `MigrationTest`.
+* `MigrationTest.version1UpgradesToCurrentWithoutDataLoss` builds a real version-1 file from the
+  SQL in `1.json`, fills a trip, steps and a photo, opens it with the current Room database and
+  checks that every row survives; `everySchemaVersionHasAnExportedFileAndAMigration` checks the
+  chain 1 → current. Also checked by hand: the main@b07fcf6 build with sample data, then the v2
+  build installed over it (`img/27-upgrade-before-v1.png`, `img/28-upgrade-after-v2.png`).
 
 Photo files live outside the database in `<app private files>/photos/<uuid>.<ext>` (`jpg` for
 re-encoded photos, `png` when transparent, otherwise the picked format — R11); the database
@@ -81,5 +111,6 @@ Several errors can be returned at once; the form shows each next to its field.
 
 ## Not modelled yet (on purpose)
 
-Visibility/privacy, travel buddies, transport mode, drafts, likes/comments, planned steps, sync
-state and tombstones, photo EXIF/GPS, videos. See 03-screens.md "Intentional changes".
+Visibility/privacy, travel buddies, drafts, likes/comments, planned steps, sync state and
+tombstones, videos. Photo EXIF date/GPS is read once when steps are made from photos (R13) and
+never stored (the stored copies have no GPS, R11). See 03-screens.md "Intentional changes".
