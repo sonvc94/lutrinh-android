@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Landscape
 import androidx.compose.material.icons.outlined.Luggage
+import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -94,6 +95,7 @@ fun TripListScreen(
     onCreate: () -> Unit,
     onOpen: (String) -> Unit,
     onEdit: (String) -> Unit,
+    onOpenMyMap: () -> Unit,
     vm: TripListViewModel = viewModel(factory = factory { c, _ -> TripListViewModel(c) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -120,6 +122,7 @@ fun TripListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenMyMap) { Icon(Icons.Outlined.Public, stringResource(R.string.my_map_title)) }
                     if (BuildConfig.DEBUG) {
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))

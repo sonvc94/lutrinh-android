@@ -26,6 +26,12 @@
     <string name="trip_counts">%1$d điểm dừng · %2$d ảnh</string>
     <string name="trip_open_ended">từ %1$s</string>
 
+    <!-- My map (R14) -->
+    <string name="my_map_title">Bản đồ của tôi</string>
+    <string name="my_map_trips">chuyến đi</string>
+    <string name="my_map_empty">Chưa có chuyến đi nào để hiện trên bản đồ.</string>
+    <string name="my_map_trip_line">%1$d điểm dừng · %2$s km</string>
+
     <!-- Trip edit -->
     <string name="trip_create_title">Tạo chuyến đi</string>
     <string name="trip_edit_title">Sửa chuyến đi</string>

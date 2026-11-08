@@ -18,10 +18,12 @@ import vn.lutrinh.app.ui.trips.TripDetailScreen
 import vn.lutrinh.app.ui.trips.TripEditScreen
 import vn.lutrinh.app.ui.trips.TripListScreen
 import vn.lutrinh.app.ui.trips.TripMapScreen
+import vn.lutrinh.app.ui.trips.MyMapScreen
 
 /** Route table — mirrored in docs/03-screens.md. */
 object Routes {
     const val TRIPS = "trips"
+    const val MY_MAP = "myMap"
     const val TRIP_EDIT = "tripEdit?tripId={tripId}"
     const val TRIP = "trip/{tripId}"
     const val TRIP_MAP = "trip/{tripId}/map"
@@ -64,7 +66,11 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onCreate = { nav.navigate(Routes.tripEdit()) },
                 onOpen = { nav.navigate(Routes.trip(it)) },
                 onEdit = { nav.navigate(Routes.tripEdit(it)) },
+                onOpenMyMap = { nav.navigate(Routes.MY_MAP) },
             )
+        }
+        composable(Routes.MY_MAP) {
+            MyMapScreen(onBack = { nav.popBackStack() }, onOpenTrip = { nav.navigate(Routes.trip(it)) })
         }
         composable(Routes.TRIP_EDIT, arguments = listOf(optional("tripId"))) {
             TripEditScreen(
