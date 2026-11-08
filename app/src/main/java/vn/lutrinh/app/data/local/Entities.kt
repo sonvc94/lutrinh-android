@@ -43,6 +43,8 @@ data class StepEntity(
     @ColumnInfo(name = "arrived_at") val arrivedAt: LocalDateTime,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    /** TransportMode.code of the leg ending here, or null (added in DB version 2). */
+    @ColumnInfo(name = "transport_mode") val transportMode: String? = null,
 )
 
 @Entity(

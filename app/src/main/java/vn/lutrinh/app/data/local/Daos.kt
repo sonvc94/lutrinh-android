@@ -68,6 +68,13 @@ interface StepDao {
     @Query("DELETE FROM steps WHERE id = :id")
     suspend fun delete(id: String)
 
+    @Transaction
+    @Query("SELECT * FROM steps ORDER BY trip_id, arrived_at, created_at, id")
+    fun observeAll(): Flow<List<StepWithPhotos>>
+
+    @Query("UPDATE steps SET transport_mode = :mode, updated_at = :now WHERE id = :id")
+    suspend fun setTransportMode(id: String, mode: String?, now: Long): Int
+
     @Query("SELECT file_name FROM photos WHERE step_id = :stepId")
     suspend fun photoFiles(stepId: String): List<String>
 

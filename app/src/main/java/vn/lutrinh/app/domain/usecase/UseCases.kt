@@ -2,6 +2,7 @@ package vn.lutrinh.app.domain.usecase
 
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.repository.Clock
 import vn.lutrinh.app.domain.repository.IdGenerator
@@ -79,6 +80,8 @@ class SaveStep(
             createdAt = existing?.createdAt ?: now,
             updatedAt = now,
             photos = photos,
+            // Not part of the step form: the leg transport is set from the timeline/map (R12).
+            arrivalTransport = existing?.arrivalTransport,
         )
         val removed = steps.saveStep(step)
         files.delete(removed)
@@ -91,4 +94,10 @@ class DeleteStep(private val steps: StepRepository, private val files: PhotoFile
     suspend operator fun invoke(stepId: String) {
         files.delete(steps.deleteStep(stepId))
     }
+}
+
+/** R12: sets (or clears with null) the transport of the leg that ends at [toStepId]. */
+class SetLegTransport(private val steps: StepRepository, private val clock: Clock) {
+    suspend operator fun invoke(toStepId: String, mode: TransportMode?): Boolean =
+        steps.setArrivalTransport(toStepId, mode, clock.nowMillis())
 }

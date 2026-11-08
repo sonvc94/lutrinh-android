@@ -3,6 +3,7 @@ package vn.lutrinh.app.data.local
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
 
@@ -26,6 +27,7 @@ fun StepWithPhotos.toDomain() = Step(
     createdAt = step.createdAt,
     updatedAt = step.updatedAt,
     photos = photos.sortedWith(compareBy<PhotoEntity> { it.position }.thenBy { it.createdAt }).map { it.toDomain() },
+    arrivalTransport = TransportMode.fromCode(step.transportMode),
 )
 
 fun Step.toEntity() = StepEntity(
@@ -38,4 +40,5 @@ fun Step.toEntity() = StepEntity(
     arrivedAt = arrivedAt,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    transportMode = arrivalTransport?.code,
 )

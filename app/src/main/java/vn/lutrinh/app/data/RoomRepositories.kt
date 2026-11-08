@@ -7,6 +7,7 @@ import vn.lutrinh.app.data.local.AppDatabase
 import vn.lutrinh.app.data.local.toDomain
 import vn.lutrinh.app.data.local.toEntity
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
 import vn.lutrinh.app.domain.repository.StepRepository
@@ -66,4 +67,10 @@ class RoomStepRepository(private val db: AppDatabase) : StepRepository {
         dao.delete(id)
         files
     }
+
+    override fun observeAllSteps(): Flow<List<Step>> =
+        dao.observeAll().map { rows -> rows.map { it.toDomain() } }
+
+    override suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean =
+        dao.setTransportMode(stepId, mode?.code, now) > 0
 }

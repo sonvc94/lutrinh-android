@@ -47,7 +47,32 @@ data class Step(
     val updatedAt: Long,
     /** Ordered by [Photo.position]; first photo = step cover. */
     val photos: List<Photo> = emptyList(),
+    /**
+     * How the traveller got here from the previous step in timeline order (the leg that ENDS at
+     * this step), or null = not set. Ignored for the first step of a trip (R12).
+     */
+    val arrivalTransport: TransportMode? = null,
 )
+
+/**
+ * Transport mode of a leg (step N -> step N+1). [code] is the stored value (docs/02); never
+ * rename a code, only add new ones.
+ */
+enum class TransportMode(val code: String) {
+    WALK("walk"),
+    MOTORBIKE("motorbike"),
+    CAR("car"),
+    BUS("bus"),
+    TRAIN("train"),
+    PLANE("plane"),
+    BOAT("boat"),
+    ;
+
+    companion object {
+        /** Unknown codes (e.g. written by a newer app version) read as "not set". */
+        fun fromCode(code: String?): TransportMode? = entries.firstOrNull { it.code == code }
+    }
+}
 
 data class Photo(
     val id: String,

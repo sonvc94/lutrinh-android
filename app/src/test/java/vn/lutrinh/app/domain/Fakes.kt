@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
 import vn.lutrinh.app.domain.repository.Clock
@@ -60,6 +61,16 @@ class FakeStore : TripRepository, StepRepository {
         val s = steps.value[id] ?: return emptyList()
         steps.value = steps.value - id
         return s.photos.map { it.fileName }
+    }
+
+    override fun observeAllSteps() = steps.map { all ->
+        all.values.groupBy { it.tripId }.toSortedMap().values.flatMap { it.inTimelineOrder() }
+    }
+
+    override suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean {
+        val s = steps.value[stepId] ?: return false
+        steps.value = steps.value + (stepId to s.copy(arrivalTransport = mode, updatedAt = now))
+        return true
     }
 }
 

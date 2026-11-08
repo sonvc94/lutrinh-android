@@ -3,6 +3,7 @@ package vn.lutrinh.app.domain.repository
 import kotlinx.coroutines.flow.Flow
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
 import java.time.LocalDate
@@ -40,6 +41,12 @@ interface StepRepository {
 
     /** Deletes the step and its photo rows. Returns the photo files that belonged to it. */
     suspend fun deleteStep(id: String): List<String>
+
+    /** Steps of every trip (grouped by trip, timeline order inside a trip), for "Bản đồ của tôi". */
+    fun observeAllSteps(): Flow<List<Step>>
+
+    /** Sets the transport of the leg ending at [stepId] (null = clear). False when the step does not exist. */
+    suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean
 }
 
 /** Owns the photo files in app-private storage. */
