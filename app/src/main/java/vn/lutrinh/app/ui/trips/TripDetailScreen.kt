@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -133,6 +134,7 @@ fun TripDetailScreen(
     onEdit: () -> Unit,
     onOpenMap: () -> Unit,
     onAddStep: () -> Unit,
+    onAddFromPhotos: () -> Unit,
     onOpenStep: (String) -> Unit,
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
 ) {
@@ -173,7 +175,11 @@ fun TripDetailScreen(
         },
         floatingActionButton = {
             val fabLabel = stringResource(R.string.trip_add_step)
-            if (detail != null) {
+            if (detail != null) Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SmallFloatingActionButton(
+                    onClick = onAddFromPhotos,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                ) { Icon(Icons.Outlined.AddPhotoAlternate, stringResource(R.string.from_photos_title)) }
                 ExtendedFloatingActionButton(
                     onClick = onAddStep,
                     icon = { Icon(Icons.Filled.AddLocationAlt, null) },

@@ -1,6 +1,7 @@
 package vn.lutrinh.app
 
 import android.content.Context
+import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
 import vn.lutrinh.app.data.RoomStepRepository
 import vn.lutrinh.app.data.RoomTripRepository
@@ -28,6 +29,7 @@ class AppContainer(context: Context) {
     val trips = RoomTripRepository(db)
     val steps = RoomStepRepository(db)
     val photos = PhotoStorage(context)
+    val photoMeta = PhotoMetaReader(context)
 
     val saveTrip = SaveTrip(trips, steps, clock, ids)
     val deleteTrip = DeleteTrip(trips, photos)

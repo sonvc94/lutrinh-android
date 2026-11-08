@@ -1,6 +1,8 @@
 package vn.lutrinh.app.ui
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavHostController
@@ -9,9 +11,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.ui.photos.PhotoViewerScreen
 import vn.lutrinh.app.ui.picker.LocationPickerScreen
+import vn.lutrinh.app.ui.steps.FromPhotosScreen
 import vn.lutrinh.app.ui.steps.StepDetailScreen
 import vn.lutrinh.app.ui.steps.StepEditScreen
 import vn.lutrinh.app.ui.trips.TripDetailScreen
@@ -31,6 +35,7 @@ object Routes {
     const val STEP = "trip/{tripId}/step/{stepId}"
     const val PICKER = "trip/{tripId}/pick?stepId={stepId}&lat={lat}&lng={lng}"
     const val PHOTOS = "trip/{tripId}/step/{stepId}/photos?index={index}"
+    const val FROM_PHOTOS = "trip/{tripId}/fromPhotos"
 
     fun tripEdit(tripId: String? = null) = if (tripId == null) "tripEdit" else "tripEdit?tripId=$tripId"
     fun trip(tripId: String) = "trip/$tripId"
@@ -45,6 +50,7 @@ object Routes {
         if (at != null) params += listOf("lat=${at.latitude}", "lng=${at.longitude}")
         append(params.joinToString("&"))
     }
+    fun fromPhotos(tripId: String) = "trip/$tripId/fromPhotos"
     fun photos(tripId: String, stepId: String, index: Int) = "trip/$tripId/step/$stepId/photos?index=$index"
 }
 
@@ -89,6 +95,7 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onEdit = { nav.navigate(Routes.tripEdit(tripId)) },
                 onOpenMap = { nav.navigate(Routes.tripMap(tripId)) },
                 onAddStep = { nav.navigate(Routes.stepEdit(tripId)) },
+                onAddFromPhotos = { nav.navigate(Routes.fromPhotos(tripId)) },
                 onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
             )
         }
@@ -107,6 +114,23 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onBack = { nav.popBackStack() },
                 onSaved = { nav.popBackStack() },
                 onDeleted = { nav.popBackStack(Routes.TRIP, inclusive = false) },
+            )
+        }
+        composable(Routes.FROM_PHOTOS, arguments = listOf(required("tripId"))) { entry ->
+            val tripId = entry.arguments?.getString("tripId")!!
+            val context = LocalContext.current
+            val picked by entry.savedStateHandle.getStateFlow<String?>(PICKED_LOCATION, null).collectAsState()
+            FromPhotosScreen(
+                pickedLocation = picked?.split(',')?.let { GeoPoint(it[0].toDouble(), it[1].toDouble()) },
+                onPickedConsumed = { entry.savedStateHandle[PICKED_LOCATION] = null },
+                onPickLocation = { at -> nav.navigate(Routes.picker(tripId, null, at)) },
+                onBack = { nav.popBackStack() },
+                onDone = { created ->
+                    if (created > 0) {
+                        Toast.makeText(context, context.getString(R.string.from_photos_created, created), Toast.LENGTH_SHORT).show()
+                    }
+                    nav.popBackStack()
+                },
             )
         }
         composable(Routes.STEP, arguments = listOf(required("tripId"), required("stepId"))) { entry ->

@@ -130,4 +130,18 @@
     <string name="step_detail_no_note">Chưa có ghi chú.</string>
     <string name="photo_viewer_counter">%1$d / %2$d</string>
     <string name="photo_missing">Không tìm thấy tệp ảnh</string>
+    <!-- Steps from photos (R13) -->
+    <string name="from_photos_title">Thêm từ ảnh</string>
+    <string name="from_photos_pick">Chọn ảnh</string>
+    <string name="from_photos_pick_hint">Chọn nhiều ảnh: ảnh có vị trí và ngày chụp sẽ được gom thành các điểm dừng gợi ý.</string>
+    <string name="from_photos_default_title">Điểm dừng %1$d</string>
+    <string name="from_photos_summary">%1$d ảnh → %2$d điểm dừng gợi ý</string>
+    <string name="from_photos_summary_hint">Gom theo ngày chụp và vị trí (cách nhau dưới 2 km). Sửa tên, bỏ chọn nhóm không cần, đặt vị trí cho ảnh không có vị trí.</string>
+    <string name="from_photos_keep">Giữ điểm dừng %1$d</string>
+    <string name="from_photos_no_date">Ảnh không có ngày chụp · dùng %1$s</string>
+    <string name="from_photos_outside_trip">Chụp ngày %1$s, ngoài thời gian chuyến đi · không thể thêm</string>
+    <string name="from_photos_no_location">Ảnh không có vị trí</string>
+    <string name="from_photos_count">%1$d ảnh</string>
+    <string name="from_photos_confirm">Tạo %1$d điểm dừng</string>
+    <string name="from_photos_created">Đã tạo %1$d điểm dừng từ ảnh</string>
 </resources>
