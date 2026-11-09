@@ -3,7 +3,7 @@
 ## Goals
 
 1. **Local first.** All data lives on the device. There is no account and no API call; the only
-   network traffic is map tiles (see 05-map.md).
+   network traffic is the map style and its tiles, fonts and icons (see 05-map.md).
 2. **Portable domain.** Business rules live in a layer without platform types (no Android, no UI,
    no database), so the iOS app can port them line by line and run the same unit tests.
 3. **Server later without touching the UI.** Screens talk to use cases; use cases talk to
@@ -30,7 +30,7 @@
 │   sample data seeder (debug only)                             │
 ├──────────────────────────────────────────────────────────────┤
 │ Map adapter                                                   │  MapLibre / MapLibre iOS
-│   tile config (one place), map views, marker bitmaps          │
+│   basemap config (one place), map views, route layers, pins   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -47,7 +47,7 @@ concrete classes by hand (no DI framework), so the iOS app can use a plain `stru
 | `domain/usecase` | `Validation.kt` (limits, inputs, error enums, validators), `Ordering.kt` (comparators, route, distance, stats, new-step defaults), `UseCases.kt` |
 | `data/local` | Database entities, DAOs, type converters, mappers |
 | `data` | `RoomTripRepository`, `RoomStepRepository`, `PhotoStorage`, `SampleData` |
-| `map` | `MapConfig` (tile URL, attribution, User-Agent, zooms), `MapSetup`, `MapViews` |
+| `map` | `MapConfig` (style URL, basemap tuning, attribution, User-Agent, zooms), `MapSetup`, `MapViews`, `RouteLayers`, `Pins`, `CameraMath` |
 | `ui/*` | One file per screen + view model; `ui/common` holds shared widgets and dialogs |
 | `AppContainer`, `LuTrinhApp`, `MainActivity` | Composition root, app start, single activity |
 

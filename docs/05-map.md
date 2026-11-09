@@ -2,126 +2,188 @@
 
 ## Choice
 
-* **Data / tiles:** OpenStreetMap raster tiles (256 px PNG, zoom 0–19), free, no API key.
+* **Data:** OpenStreetMap, served as **vector tiles** by OpenFreeMap (OpenMapTiles schema), free,
+  no API key, no registration.
 * **Renderer:** MapLibre Native (Android `org.maplibre.gl:android-sdk` 11.x). Reasons: open
   source (BSD), same engine and style format on iOS (MapLibre Native iOS), GPU rendering, GeoJSON
-  sources + line/symbol layers for route and pins, and a path to vector tiles or offline packs
-  later without changing renderer. osmdroid was the alternative: Android-only, so the iOS port
-  would need a second mental model.
-* **Style:** built in code (`MapConfig.styleJson()`), no style URL to fetch:
-  one `background` layer (`#EDE7DA`, shown while tiles load or when they fail) + one `raster`
-  layer from source `osm`.
+  sources + line/symbol layers for route and pins, vector styles we can repaint at runtime.
+  osmdroid was the alternative: Android-only, raster only.
+* **Style:** OpenFreeMap **Positron** (a light, low-contrast style made to put data on top),
+  loaded from its URL, then repainted at runtime in Lữ Trình's warm colours (see "Basemap
+  tuning"). Positron, not `liberty`/`bright`: those are full-colour "general" maps where a route
+  has to compete with roads and POI icons.
 
-## Tile server — the one place to change it
+Before/after comparison of the route redraw (main@55b3966 raster OSM vs. now), Hà Giang sample:
+`img/route-redraw/before-*.png` and `after-*.png` (country, region, city zoom, flight leg,
+selected step, trip detail, Bản đồ của tôi; plus `after-leg-selected.png`).
+
+## Basemap — the one place to change it
 
 `map/MapConfig.kt`:
 
 | Constant | Value |
 | --- | --- |
-| `TILE_URL` | `https://tile.openstreetmap.de/{z}/{x}/{y}.png` |
-| `TILE_URL_OSM_ORG` | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` (alternative) |
-| `ATTRIBUTION` | `© OpenStreetMap contributors` |
+| `STYLE_URL` | `https://tiles.openfreemap.org/styles/positron` |
+| `ATTRIBUTION` | `OpenFreeMap © OpenMapTiles © OpenStreetMap contributors` |
 | `USER_AGENT` | `LuTrinh/<versionName> (Android; vn.lutrinh.app)` |
-| `MAX_ZOOM` | 19 |
+| `MAX_ZOOM` | 19 (vector tiles stop at z14 and are over-zoomed; streets stay sharp) |
+| `BACKGROUND` | `#F3EFE6` — painted while the style loads and if it fails (never a black map) |
+| `BASEMAP_TUNING`, `LABEL_*` | runtime repaint, below |
 
-Why `.de`: on 2026-11-09 every `*.openstreetmap.org` host (tile server and website) reset the
-TLS connection from the development network in Vietnam, while `tile.openstreetmap.de` (the German
-OSM community server, same OSM data, OSM-Carto-like style) returned tiles:
+The style pulls everything from `tiles.openfreemap.org`: TileJSON `/planet`, vector tiles, fonts
+(`/fonts/{fontstack}/{range}.pbf`), sprite (`/sprites/ofm_f384/ofm`) and a Natural Earth shaded
+relief raster for z0–6. Reachability from the development network in Vietnam, 2026-11-09:
 
 ```
-curl https://tile.openstreetmap.org/1/1/0.png  → curl: (35) Recv failure: Connection reset by peer
-curl https://tile.openstreetmap.de/1/1/0.png   → 200
+curl -sI https://tiles.openfreemap.org/styles/positron  → HTTP/2 200 (content-type: application/json)
+curl https://tile.openstreetmap.org/1/1/0.png            → (35) Recv failure: Connection reset by peer
 ```
 
-Check this again from users' networks before release; switching back is a one-line change.
+(`*.openstreetmap.org` resets TLS there; the previous raster source was `tile.openstreetmap.de`.)
 
-**Usage policy.** Community tile servers are donated capacity. Their policy
-(https://operations.osmfoundation.org/policies/tiles/, followed by the .de server) requires a
-valid identifying User-Agent, visible attribution, honouring cache headers and no bulk/offline
-download. That is fine for development and a small beta, **not for a production app**. Before
-release: a paid OSM-based provider (e.g. MapTiler, Stadia, Thunderforest) or a self-hosted tile
-server / vector tiles (OpenMapTiles + MapLibre style). Only `TILE_URL` (or `styleJson`) changes.
+**Usage.** OpenFreeMap is a donated public instance with no key and no published limits, asking
+for attribution; it is fine for development and a beta. For production either self-host the
+same OpenMapTiles data (OpenFreeMap is open source) or move to a paid OSM-based provider
+(MapTiler, Stadia…): only `STYLE_URL` and `ATTRIBUTION` change; tuning entries for layer ids the
+new style lacks are skipped.
 
 **User-Agent.** MapLibre downloads through OkHttp; at app start `MapSetup.init` installs an
 OkHttp client whose network interceptor sets `User-Agent: MapConfig.USER_AGENT`. No personal
-data is sent. On iOS set the header via `MLNNetworkConfiguration` (session configuration
-`httpAdditionalHeaders`).
+data is sent. On iOS set the header via `MLNNetworkConfiguration`.
 
-**Attribution.** Every map shows the text "© OpenStreetMap contributors" in its bottom-right
-corner (a small label on a translucent white background, drawn by the app). The MapLibre logo
-and the (i) attribution button are hidden because the label already gives the required credit
-and MapLibre needs no logo.
+**Attribution.** Every map shows `MapConfig.ATTRIBUTION` in its bottom-right corner (9 sp,
+`#4A524E`, on white at 75 % opacity, drawn by the app). The MapLibre logo and the (i) button
+are hidden because the label already gives the required credit.
 
-**Caching.** MapLibre keeps its default ambient HTTP cache; no tiles are pre-downloaded.
+**Caching.** MapLibre keeps its default ambient HTTP cache; nothing is pre-downloaded.
+
+### Basemap tuning (runtime, after the style loads — `RouteLayers.kt` `tuneBasemap`)
+
+| Positron layer | Property | Colour |
+| --- | --- | --- |
+| `background` | background-color | `#F3EFE6` warm cream |
+| `park` | fill-color | `#E4E9DC` |
+| `landcover_wood` | fill-color | `#DFE6D7` |
+| `landuse_residential` | fill-color | `#EDE8DD` |
+| `water` | fill-color | `#BFD4DC` |
+| `waterway` | line-color | `#B3CBD4` |
+| `building` | fill / outline | `#EAE5DA` / `#DDD7CB` |
+| `boundary_2` / `boundary_3` | line-color | `#B9B2A6` / `#CFC8BC` |
+
+Labels: every symbol layer whose id starts with `label_`, `water_name`, `waterway_line_label`,
+`highway-name` or `airport` gets `text-field = coalesce(name:vi, name:latin, name)` (Vietnamese
+first — the tiles carry `name:vi`), text colour `#5F6661` and halo `#F7F4EE`. Roads keep
+Positron's light greys. Result: the land is quiet and the route is the darkest thing on the map.
 
 ## Map surfaces
 
 | Where | Size | Interactive | Content |
 | --- | --- | --- | --- |
 | Trip detail header | 220 dp tall | no (static preview; expand button opens Trip map) | pins + legs |
-| Trip map | full screen | pan + pinch zoom; rotate/tilt off | pins + legs + mode badges; tap pin → card, tap badge → leg mode sheet |
+| Trip map | full screen | pan + pinch zoom; rotate/tilt off | pins + legs + mode badges; tap pin → card, tap badge or leg → leg mode sheet |
 | Step form location card | small | no | the step's point |
 | Step detail | card | no | whole trip, this step highlighted |
 | Location picker | full screen | pan + zoom | fixed centre pin, other steps as context pins |
 | Thêm từ ảnh review | 180 dp tall | no | numbered pins of the kept suggestions, no route (R13) |
 | Bản đồ của tôi | full screen | pan + zoom | every trip: one coloured line + stop dots per trip; tap → select, tap the card → open (R14) |
 
-## Layers (bottom → top)
+## Data prep per leg
 
-1. `background` — solid `#EDE7DA`.
-2. `osm` — raster tiles.
-3. `route-casing-layer` — white line, width 7 dp, round joins/caps, under every leg.
-4. `route-layer` — solid legs, width 4 dp.
-5. `route-dashed-layer` — dashed legs, width 4 dp, `line-dasharray [2.2, 1.6]` (in line widths).
-6. `route-dotted-layer` — dotted legs, width 4.5 dp, `line-dasharray [0, 1.8]` + round caps (dots).
-7. `leg-badges-layer` — one round mode badge (26 dp) at the middle of each leg that has a mode.
-8. `steps-layer` — symbol layer, one icon per step, `icon-allow-overlap` on so no pin hides.
+The route source holds **one LineString feature per leg** (R12) with properties `mode` (code or
+`none`), `kind` (stroke kind, below), `selected` (the leg whose mode sheet is open) and `to`
+(arrival step id, for taps).
 
-The route source holds **one LineString feature per leg** (R12), with properties `mode` (code or
-`none`) and `color`. Line colour is data-driven (`get("color")`), but MapLibre's `line-dasharray`
-is **not** data-driven, so each dash kind is a separate layer filtered with
-`["in", ["get", "mode"], [...modes of that kind]]`.
+1. **Geometry** — `LegGeometry.path` (`domain/usecase/Legs.kt`): ground/water/walk legs are a
+   straight segment between the two steps (no routing). A **flight** is
+   * a **great circle** A→B: spherical linear interpolation of the two unit vectors, ends exact,
+     longitudes unwrapped (never a 360° jump across the antimeridian); one point per 20 km,
+     at least 25, at most 129 (`arcPointCount`);
+   * plus a decorative **sideways lift**: each interior point is moved to the **left** of the
+     travel direction by `0.2 × 4t(1 − t) × chord`, measured in Web Mercator (x = lon,
+     y = Mercator y in degrees) so the bow looks round at any latitude — 0 at both ends,
+     `0.2 × chord` at mid-leg. Reason: at Vietnam scale a pure great circle is visually a
+     straight line, and a flight must read as "by air".
+2. **Simplification** — `Polyline.simplify` (Douglas–Peucker, ε = 2·10⁻⁴°, ≈ 22 m) before
+   drawing; ends always kept, ≤ 2-point lines unchanged. Today it only thins flight arcs; it is
+   there for future GPS/road geometry.
+3. **Badge position** — `Polyline.pointAt(path, 0.5)`: the point at half the drawn length
+   (length in a cos(lat)-scaled plane), so it sits on the arc, not on the chord.
+
+Tests: `RouteGeometryTest` (great-circle ends/spacing/antimeridian, lift at ends/mid/quarter,
+left side, point count, DP tolerance/corners/short lines, simplified arc, `pointAt`),
+`LegsTest.onlyFlightsAreDrawnAsArcs`.
+
+## Layers (bottom → top, `RouteLayers.kt` `addRouteLayers`)
+
+Widths are dp and interpolate linearly with zoom between the stops z5 / z9 / z13 (clamped
+outside); "→" gives the selected-leg value. Colour = route green `#1F5C45` (theme primary), the
+selected leg rice gold `#E0A526`. Selected features have `line-sort-key` 2 (drawn on top).
+
+| # | Layer id | Filter `kind` | Paint |
+| --- | --- | --- | --- |
+| 1–55 | Positron basemap (tuned) | | |
+| 56 | `route-shadow` | `ground` | `#0E2A20`, width 5 / 8 / 16, blur 3 → 8 (z5 → z13), opacity 0.28 → 0.16, translate (0, 1 dp), round cap/join |
+| 57 | `route-casing` | `ground` | white, width 4.6 / 6.6 / 9 → 6 / 8.6 / 12, round cap/join |
+| 58 | `route-ground` | `ground` | route colour, width 2.2 / 3.4 / 5 → 3.4 / 5 / 7.5, round cap/join |
+| 59 | `route-walk` | `walk` | route colour, dots: dasharray `[0, 2.2]` + round cap, width 1.8 / 2.8 / 4 → 2.6 / 4 / 5.5, no casing |
+| 60 | `route-boat` | `boat` | route colour, dots: dasharray `[0, 1.7]` + round cap, width 2.6 / 3.8 / 5.2 → 3.6 / 5.2 / 7.5, no casing |
+| 61 | `route-flight` | `flight` | route colour, dashes `[2.4, 1.6]` (in line widths) + butt cap, width 2 / 3 / 4.2 → 3 / 4.5 / 6.5, no casing/shadow |
+| 62 | `leg-badges-layer` | | symbol, mode badge at `pointAt(0.5)`; `icon-allow-overlap` **off** (badges give way to pins and each other, so short legs drop theirs at low zoom), `symbol-sort-key` = order (selected first), `symbol-avoid-edges` |
+| 63 | `steps-layer` | | symbol, step pins; `icon-allow-overlap` on (no pin ever hides), `symbol-sort-key` puts the selected pin, then start/end, on top |
+
+Pins and badges scale with zoom: `icon-size` 0.75 at z4, 0.9 at z8, 1 from z10.
+MapLibre's `line-dasharray` is **not** data-driven, so each stroke kind is its own layer
+filtered with `["==", ["get", "kind"], "<kind>"]`.
 
 ### Legs per transport mode (R12)
 
-| Mode | Colour | Stroke | Icon (Material) |
+| Mode | Stroke kind | Icon colour | Icon (Material) |
 | --- | --- | --- | --- |
-| Đi bộ | `#6D4C41` | dotted | DirectionsWalk |
-| Xe máy | `#E65100` | solid | TwoWheeler |
-| Ô tô | `#3949AB` | solid | DirectionsCar |
-| Xe buýt/xe khách | `#8E24AA` | solid | DirectionsBus |
-| Tàu hỏa | `#455A64` | solid | Train |
-| Máy bay | `#039BE5` | dashed **arc** | Flight |
-| Thuyền | `#00897B` | dashed | DirectionsBoat |
-| none | primary green `#1F5C45` | solid | — (no badge) |
+| Đi bộ | `walk` — thin dots | `#6D4C41` | DirectionsWalk |
+| Xe máy | `ground` | `#E65100` | TwoWheeler |
+| Ô tô | `ground` | `#3949AB` | DirectionsCar |
+| Xe buýt/xe khách | `ground` | `#8E24AA` | DirectionsBus |
+| Tàu hỏa | `ground` | `#455A64` | Train |
+| Máy bay | `flight` — dashed great-circle arc | `#039BE5` | Flight |
+| Thuyền | `boat` — dots | `#00897B` | DirectionsBoat |
+| none | `ground` | — | — (no badge) |
 
-One table (`map/TransportStyle.kt`) serves the map, the timeline chips and the mode sheet. Badges:
-white disc, mode-coloured inner disc, white icon, drawn into bitmaps in code. Tapping a badge on the
-full trip map opens the leg's mode sheet.
+The line itself is always route green (gold when selected): the mode reads from the stroke kind
+and the badge. The mode colours of `map/TransportStyle.kt` (one table for map, timeline chips
+and mode sheet) tint the badge icon, the chips and the sheet.
 
-**Flight arc** (`Legs.arc`, unit-tested): a quadratic Bézier in plain lat/lng space from A to B,
-control point at the midpoint moved sideways (to the left of A→B) by `0.2 ×` the A–B length;
-25 points. Other modes are straight lines between the two steps (no routing). The camera fit uses
-the steps only, so a strongly bent arc may touch the padding edge — accepted.
+**Badges** (`rememberTransportBadges`, bitmaps drawn in code): 24 dp white disc with a soft
+shadow, a 1.5 dp ring in the mode colour at 55 % alpha, the icon (60 % of the disc) in the mode
+colour. Selected leg: 28 dp disc filled with the mode colour, white ring, white icon.
+Tapping a badge — or the leg line itself, within 11 dp, for legs that dropped their badge —
+opens the leg's mode sheet.
 
-Screenshots: `img/23-trip-map-leg-modes.png` (Hà Giang sample: xe máy, ô tô, đi bộ, thuyền, and the Mèo Vạc → Du Già leg set to Máy bay by hand to show the arc),
-`img/24-trip-map-legs-zoomed.png`, `img/25-leg-mode-sheet.png`.
+## Step pins (`map/Pins.kt`)
+
+Bitmaps drawn in code (no font glyphs or sprite sheet), each with a soft drop shadow, the step
+number (R2 position, 1-based) in bold:
+
+| Kind | Used for | Look |
+| --- | --- | --- |
+| START | first step of a route | 28 dp **white** disc, 3 dp route-green ring, green number |
+| STEP | other steps; every pin when the route is hidden (Thêm từ ảnh) | 24 dp route-green disc, 2 dp white ring, white number |
+| END | last step of a route | 28 dp **clay** `#B85C2E` disc, 2.5 dp white ring, white number |
+| CONTEXT | other steps in the location picker | 22 dp clay disc, white ring |
+| selected / highlighted | tapped pin; step in Step detail / Step form | same pin ×1.3, rice-gold ring, on a 54 dp translucent gold halo |
+
+No clustering: overlapping pins stay visible (a Hà Giang loop at country zoom is a tight group).
 
 ### All trips ("Bản đồ của tôi", R14)
 
 `map/AllTripsMap.kt`: one GeoJSON LineString per trip with ≥ 2 steps (R3 order; flight legs
-drawn as the same arc, every other leg straight; no dashes or badges — the colour identifies the
-trip) and one point per step.
-Layers: `trips-casing-layer` (white, 6 dp; 9 dp when selected), `trips-layer` (trip colour,
-3.5 dp; 5.5 dp when selected), `trip-stops-layer` (circles, radius 4.5 dp / 6 dp selected, trip
-colour, white 2 dp stroke). The selected trip is sorted on top. A tap within 18 dp of a line or dot selects
-that trip; the camera fits all steps of all trips (same rules as above).
+drawn as the same arc, every other leg straight; simplified like above; no dashes or badges — the
+colour identifies the trip) and one point per step.
+Layers (dp at z5 / z9 / z13, "→" selected): `trips-shadow-layer` (same soft shadow as
+`route-shadow`), `trips-casing-layer` (white, 4 / 6.4 / 9 → 5.6 / 8.6 / 12), `trips-layer` (trip
+colour, 2 / 3.2 / 5 → 3.2 / 5 / 7.5), `trip-stops-layer` (circles in the trip colour, radius
+3 / 4.5 / 6 → 4 / 6 / 7.5, white stroke 1.5 → 2.5). The selected trip is sorted on top. A tap
+within 18 dp of a line or dot selects that trip; the camera fits all trips.
 Screenshot: `img/26-my-map.png`.
-
-Pins are bitmaps drawn in code (no font glyphs or sprite sheet needed): a filled circle (28 dp,
-34 dp when highlighted) with a white ring and the step number (R2 position, 1-based) in white.
-Normal colour = primary green, highlighted/selected = rice gold `#E0A526`; context pins in the
-picker = clay `#B85C2E`.
 
 ## Camera rules
 
@@ -129,19 +191,24 @@ picker = clay `#B85C2E`.
 | --- | --- |
 | No steps | centre (16.0, 106.0) — Vietnam overview — zoom 5 |
 | One step | centre on it, zoom 12 |
-| Two or more | fit the bounds of all steps inside the padded area, then cap zoom at 14. Padding: 40 dp on embedded maps; full trip map 48 dp on each side **plus the measured height of the card carousel (incl. its 24 dp offset and the navigation bar) at the bottom**, so no pin is drawn under the cards |
+| Two or more | fit the bounds of **every drawn point** (steps and flight-arc points, so an arc never leaves the screen) inside the padded area, cap zoom at 14. Padding: 40 dp on the trip detail header and step detail (36 dp Thêm từ ảnh, 56 dp default); full trip map 48 dp on each side **plus the measured height of the card carousel at the bottom**, so no pin is drawn under the cards |
+| Step selected (pin or card tap, full trip map) | animate to the step at zoom `max(current, 11)` capped at 14 (never zooms the user out), keeping the carousel padding so the step sits above the cards |
+| Leg selected (mode sheet open) | animate to fit the leg's path, zoom ≤ 13, bottom padding = max(carousel padding, 55 % of the map height) so the leg stays visible above the sheet |
 | Picker opening | target point at zoom 13 (see R6 for which point); overview at zoom 5 when none |
 | Quick-place chip | animate to the place at zoom 13 |
 
-The camera is fitted once per change of the step list — or of the bottom padding, i.e. when the
-carousel is first measured — after the view has its size; the user's own panning is not reset
-while both stay the same. A single step is centred in the whole view (well above the cards).
-Screenshot: `img/20-trip-map-pins-above-cards.png` (Hà Giang sample when it had 8 steps, all
-pins above the cards).
+Animation length (`CameraMath.flyDurationMs`, tested in `CameraMathTest`):
+`350 ms + 1.5 ms/km + 160 ms per zoom level`, clamped to 450–1600 ms.
 
-*Inspired by* polarsteps docs/22 §2.4 (single point zoom 11, fit-to-points with padding and max
-zoom 14). *Changed:* zoom 12 for a single point (village scale suits rural Vietnam better), no
-pitch/bearing.
+The route is fitted once per change of the step list/modes — or of the bottom padding, until
+the user has selected something — after the view has its size; a selection is not undone by a
+later re-measure of the carousel, and the user's own panning is not reset. A single step is
+centred in the whole view (well above the cards).
+Screenshots: `img/20-trip-map-pins-above-cards.png` (step 3 selected), `img/23-trip-map-leg-modes.png`.
+
+*Inspired by* polarsteps docs/22 §2.4 and docs/23 §6 (fit-to-points with padding, max zoom 14,
+animated focus). *Changed:* zoom 12 for a single point (village scale suits rural Vietnam
+better), no pitch/bearing, own durations.
 
 ## Location picker behaviour
 
@@ -149,15 +216,14 @@ pitch/bearing.
   label updates when the camera stops (camera-idle event), 5 decimals (~1 m).
 * "Dùng vị trí này" returns the centre point. Back returns nothing (step keeps its old point).
 * No geocoding: the user types the place name; the app does not call Nominatim/LocationIQ in this
-  phase (would be a network call; Nominatim's policy also forbids autocomplete-style use).
-  Quick-place chips cover the main northern destinations offline.
+  phase. Quick-place chips cover the main northern destinations offline.
 
 *Changed from the reference:* polarsteps docs/22 §1.3/§2.6 search places through LocationIQ and
 tap-to-move the pin; neighbour steps are drawn there as a dotted line, here as small context pins.
 
 ## Not done (later)
 
-Offline packs, vector style, dark map, clustering for trips with many steps, road-following
-routes (snap-to-roads / OSRM — legs stay straight or arcs), great-circle flight paths (the arc is
-decorative), current-location button (needs location permission; tracking is
-out of scope).
+Offline packs, dark map, clustering for trips with many steps, road-following routes
+(snap-to-roads / OSRM — legs stay straight or arcs), photo thumbnails inside pins, current-location
+button (needs location permission; tracking is out of scope), a self-hosted or paid tile source
+for production.

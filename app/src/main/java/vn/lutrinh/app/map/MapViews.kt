@@ -1,11 +1,7 @@
 package vn.lutrinh.app.map
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
 import android.graphics.RectF
-import android.graphics.Typeface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -32,11 +28,10 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
-import org.maplibre.android.style.layers.LineLayer
-import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
@@ -46,8 +41,11 @@ import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.TransportMode
+import vn.lutrinh.app.domain.usecase.Geo
 import vn.lutrinh.app.domain.usecase.LegGeometry
+import vn.lutrinh.app.domain.usecase.Polyline
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
+
 
 /** One numbered pin on the map. */
 data class MapMarker(val id: String, val label: String, val point: GeoPoint, val highlighted: Boolean = false)
@@ -55,24 +53,25 @@ data class MapMarker(val id: String, val label: String, val point: GeoPoint, val
 private const val SRC_STEPS = "steps-src"
 private const val SRC_ROUTE = "route-src"
 private const val LAYER_STEPS = "steps-layer"
-private const val LAYER_ROUTE = "route-layer"
-private const val LAYER_ROUTE_DASHED = "route-dashed-layer"
-private const val LAYER_ROUTE_DOTTED = "route-dotted-layer"
-private const val LAYER_ROUTE_CASING = "route-casing-layer"
 private const val SRC_LEG_BADGES = "leg-badges-src"
 private const val LAYER_LEG_BADGES = "leg-badges-layer"
 
 /** Value of the "mode" feature property for a leg without a transport mode. */
 private const val NO_MODE = "none"
 
-private fun modesWith(dash: LineDash): Array<String> =
-    TransportMode.entries.filter { TransportStyle.of(it).dash == dash }.map { it.code }.toTypedArray()
+/** Fraction of the map height kept free at the bottom while a leg's mode sheet is open. */
+private const val LEG_FOCUS_BOTTOM = 0.55
 
 /** Creates a MapView bound to the composition's lifecycle. */
 @Composable
 internal fun rememberMapView(): MapView {
     val context = LocalContext.current
-    val mapView = remember { MapView(context).apply { onCreate(null) } }
+    val mapView = remember {
+        // Basemap colour while the style and tiles load (instead of MapLibre's grey).
+        val options = MapLibreMapOptions.createFromAttributes(context)
+            .foregroundLoadColor(android.graphics.Color.parseColor(MapConfig.BACKGROUND))
+        MapView(context, options).apply { onCreate(null) }
+    }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle, mapView) {
         var started = false
@@ -112,15 +111,16 @@ internal fun MapLibreMap.applyCommonSettings(interactive: Boolean) {
     setMaxZoomPreference(MapConfig.MAX_ZOOM)
 }
 
-/** Required "© OpenStreetMap contributors" label, shown on every map. */
+
+/** Required basemap credit (MapConfig.ATTRIBUTION), shown on every map. */
 @Composable
 fun OsmAttribution(modifier: Modifier = Modifier) {
     Text(
         text = MapConfig.ATTRIBUTION,
-        fontSize = 10.sp,
-        color = Color(0xFF333333),
+        fontSize = 9.sp,
+        color = Color(0xFF4A524E),
         modifier = modifier
-            .background(Color.White.copy(alpha = 0.8f))
+            .background(Color.White.copy(alpha = 0.75f))
             .padding(horizontal = 4.dp, vertical = 1.dp),
     )
 }
@@ -128,7 +128,9 @@ fun OsmAttribution(modifier: Modifier = Modifier) {
 /**
  * Trip map: numbered step pins + one line per leg joining them in the given order, styled by
  * the leg's transport mode ([legModes][i] = mode of markers[i] -> markers[i+1], R12).
- * The camera fits all pins whenever the set of pins changes (docs/05-map.md).
+ * The camera fits the whole route whenever the set of pins changes (docs/05-map.md); on an
+ * interactive map, selecting a pin ([MapMarker.highlighted]) or a leg ([selectedLegTo]) flies
+ * the camera to it.
  */
 @Composable
 fun TripMap(
@@ -140,17 +142,18 @@ fun TripMap(
     fitPaddingDp: Int = 56,
     /** Extra room at the bottom for UI drawn over the map (e.g. a card carousel), in dp. */
     fitExtraBottomDp: Int = 0,
+    /** Id of the marker where the selected leg ends (its mode sheet is open), or null. */
+    selectedLegTo: String? = null,
     onMarkerClick: ((String) -> Unit)? = null,
     /** Tap on a leg's mode badge; receives the id of the marker where the leg ends. */
     onLegClick: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val mapView = rememberMapView()
-    val routeColor = MaterialTheme.colorScheme.primary
-    val pinColor = MaterialTheme.colorScheme.primary.toArgb()
-    val highlightColor = MaterialTheme.colorScheme.tertiary.toArgb()
+    val scheme = MaterialTheme.colorScheme
     val state = remember { TripMapState() }
-    state.noModeColor = routeColor.hex()
+    state.pinColors = PinColors(scheme.primary.toArgb(), scheme.secondary.toArgb(), scheme.tertiary.toArgb(), scheme.secondary.toArgb())
+    val routeColors = RouteColors(scheme.primary.hex(), scheme.tertiary.hex())
     val badges = rememberTransportBadges()
     val clickHandler = rememberUpdatedState(onMarkerClick)
     val legClickHandler = rememberUpdatedState(onLegClick)
@@ -160,66 +163,37 @@ fun TripMap(
             factory = {
                 mapView.getMapAsync { map ->
                     map.applyCommonSettings(interactive)
-                    map.setStyle(Style.Builder().fromJson(MapConfig.styleJson())) { style ->
+                    map.loadBasemap { style ->
                         style.addSource(GeoJsonSource(SRC_ROUTE))
                         style.addSource(GeoJsonSource(SRC_LEG_BADGES))
                         style.addSource(GeoJsonSource(SRC_STEPS))
-                        badges.forEach { (mode, bmp) -> style.addImage(mode.badgeId(), bmp) }
-                        style.addLayer(
-                            LineLayer(LAYER_ROUTE_CASING, SRC_ROUTE).withProperties(
-                                PropertyFactory.lineColor(android.graphics.Color.WHITE),
-                                PropertyFactory.lineWidth(7f),
-                                PropertyFactory.lineOpacity(0.9f),
-                                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-                                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                            ),
-                        )
-                        // Line dash patterns are not data-driven in MapLibre Native: one layer per dash kind.
-                        style.addLayer(
-                            LineLayer(LAYER_ROUTE, SRC_ROUTE).withProperties(
-                                PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
-                                PropertyFactory.lineWidth(4f),
-                                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-                                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                            ).withFilter(
-                                Expression.`in`(Expression.get("mode"), Expression.literal(modesWith(LineDash.SOLID) + NO_MODE)),
-                            ),
-                        )
-                        style.addLayer(
-                            LineLayer(LAYER_ROUTE_DASHED, SRC_ROUTE).withProperties(
-                                PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
-                                PropertyFactory.lineWidth(4f),
-                                PropertyFactory.lineDasharray(arrayOf(2.2f, 1.6f)),
-                                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
-                            ).withFilter(Expression.`in`(Expression.get("mode"), Expression.literal(modesWith(LineDash.DASHED)))),
-                        )
-                        style.addLayer(
-                            LineLayer(LAYER_ROUTE_DOTTED, SRC_ROUTE).withProperties(
-                                PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
-                                PropertyFactory.lineWidth(4.5f),
-                                // Zero-length dashes with round caps = dots.
-                                PropertyFactory.lineDasharray(arrayOf(0f, 1.8f)),
-                                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
-                            ).withFilter(Expression.`in`(Expression.get("mode"), Expression.literal(modesWith(LineDash.DOTTED)))),
-                        )
+                        badges.forEach { (id, bmp) -> style.addImage(id, bmp) }
+                        style.addRouteLayers(SRC_ROUTE, routeColors)
+                        // Badges give way to pins and to each other (short legs lose theirs).
                         style.addLayer(
                             SymbolLayer(LAYER_LEG_BADGES, SRC_LEG_BADGES).withProperties(
                                 PropertyFactory.iconImage(Expression.get("icon")),
-                                PropertyFactory.iconAllowOverlap(true),
-                                PropertyFactory.iconIgnorePlacement(true),
+                                PropertyFactory.iconSize(SYMBOL_SIZE_BY_ZOOM),
+                                PropertyFactory.iconAllowOverlap(false),
+                                PropertyFactory.iconIgnorePlacement(false),
+                                PropertyFactory.iconPadding(1f),
+                                PropertyFactory.symbolSortKey(Expression.get("order")),
+                                PropertyFactory.symbolAvoidEdges(true),
                             ),
                         )
+                        // Pins never hide each other, but they do hide basemap labels and badges.
                         style.addLayer(
                             SymbolLayer(LAYER_STEPS, SRC_STEPS).withProperties(
                                 PropertyFactory.iconImage(Expression.get("icon")),
+                                PropertyFactory.iconSize(SYMBOL_SIZE_BY_ZOOM),
                                 PropertyFactory.iconAllowOverlap(true),
-                                PropertyFactory.iconIgnorePlacement(true),
+                                PropertyFactory.iconIgnorePlacement(false),
                                 PropertyFactory.symbolSortKey(Expression.get("order")),
                             ),
                         )
                         state.map = map
                         state.style = style
-                        state.render(context, mapView, pinColor, highlightColor, fitPaddingDp, fitExtraBottomDp)
+                        state.render(context, mapView, fitPaddingDp, fitExtraBottomDp, interactive)
                     }
                     map.addOnMapClickListener { latLng ->
                         val handler = clickHandler.value ?: return@addOnMapClickListener false
@@ -233,7 +207,10 @@ fun TripMap(
                             return@addOnMapClickListener true
                         }
                         val legHandler = legClickHandler.value ?: return@addOnMapClickListener false
+                        // A badge first, else the leg line itself (a short leg may have lost its badge).
                         val to = map.queryRenderedFeatures(box, LAYER_LEG_BADGES).firstOrNull()?.getStringProperty("to")
+                            ?: map.queryRenderedFeatures(RectF(p.x - r / 2, p.y - r / 2, p.x + r / 2, p.y + r / 2), *RouteLayerIds.ALL)
+                                .firstOrNull()?.getStringProperty("to")
                             ?: return@addOnMapClickListener false
                         legHandler(to)
                         true
@@ -245,7 +222,8 @@ fun TripMap(
                 state.markers = markers
                 state.legModes = legModes
                 state.showRoute = showRoute
-                state.render(context, mapView, pinColor, highlightColor, fitPaddingDp, fitExtraBottomDp)
+                state.selectedLegTo = selectedLegTo
+                state.render(context, mapView, fitPaddingDp, fitExtraBottomDp, interactive)
             },
         )
         OsmAttribution(Modifier.align(Alignment.BottomEnd))
@@ -257,64 +235,145 @@ private class TripMapState {
     var style: Style? = null
     var markers: List<MapMarker> = emptyList()
     var legModes: List<TransportMode?> = emptyList()
-    var noModeColor: String = "#1F5C45"
     var showRoute: Boolean = true
+    var selectedLegTo: String? = null
+    var pinColors = PinColors(0, 0, 0, 0)
     private var fittedKey: Pair<List<GeoPoint>, Int>? = null
+    private var padding = intArrayOf(0, 0, 0, 0)
+    private var focusedStep: String? = null
+    private var focusedLeg: String? = null
+    private var userFocused = false
 
-    fun render(context: Context, mapView: MapView, pinColor: Int, highlightColor: Int, paddingDp: Int, extraBottomDp: Int) {
+    fun render(context: Context, mapView: MapView, paddingDp: Int, extraBottomDp: Int, interactive: Boolean) {
         val map = map ?: return
         val style = style ?: return
         if (!style.isFullyLoaded) return
+        val routed = showRoute && markers.size >= 2
         val features = markers.mapIndexed { index, m ->
-            val icon = "pin-${m.label}-${m.highlighted}"
-            if (style.getImage(icon) == null) {
-                style.addImage(icon, pinBitmap(context, m.label, if (m.highlighted) highlightColor else pinColor, m.highlighted))
+            val kind = when {
+                !routed -> PinKind.STEP
+                index == 0 -> PinKind.START
+                index == markers.lastIndex -> PinKind.END
+                else -> PinKind.STEP
             }
+            val icon = pinImageId(m.label, kind, m.highlighted)
+            if (style.getImage(icon) == null) style.addImage(icon, pinBitmap(context, m.label, kind, m.highlighted, pinColors))
             Feature.fromGeometry(Point.fromLngLat(m.point.longitude, m.point.latitude)).apply {
                 addStringProperty("id", m.id)
                 addStringProperty("icon", icon)
-                addNumberProperty("order", if (m.highlighted) markers.size + 1 else index)
+                // Later steps on top; start/end above the rest; the selected pin above all.
+                val order = when {
+                    m.highlighted -> markers.size + 2
+                    kind == PinKind.START || kind == PinKind.END -> markers.size + 1
+                    else -> index
+                }
+                addNumberProperty("order", order)
             }
         }
         style.getSourceAs<GeoJsonSource>(SRC_STEPS)?.setGeoJson(FeatureCollection.fromFeatures(features))
         val legs = if (showRoute) markers.zipWithNext() else emptyList()
         val lines = mutableListOf<Feature>()
         val badges = mutableListOf<Feature>()
+        val paths = mutableListOf<List<GeoPoint>>()
         legs.forEachIndexed { i, (from, to) ->
             val mode = legModes.getOrNull(i)
-            val path = LegGeometry.path(from.point, to.point, mode)
+            val selected = to.id == selectedLegTo
+            val path = Polyline.simplify(LegGeometry.path(from.point, to.point, mode))
+            paths += path
             lines += Feature.fromGeometry(LineString.fromLngLats(path.map { Point.fromLngLat(it.longitude, it.latitude) })).apply {
                 addStringProperty("mode", mode?.code ?: NO_MODE)
-                addStringProperty("color", mode?.let { TransportStyle.of(it).hex } ?: noModeColor)
+                addStringProperty("kind", mode.legLine().code)
+                addBooleanProperty("selected", selected)
                 addStringProperty("to", to.id)
             }
             if (mode != null) {
-                val mid = path[path.size / 2].takeIf { path.size > 2 }
-                    ?: GeoPoint((from.point.latitude + to.point.latitude) / 2, (from.point.longitude + to.point.longitude) / 2)
+                val mid = Polyline.pointAt(path, 0.5)
                 badges += Feature.fromGeometry(Point.fromLngLat(mid.longitude, mid.latitude)).apply {
-                    addStringProperty("icon", mode.badgeId())
+                    addStringProperty("icon", mode.badgeId(selected))
                     addStringProperty("to", to.id)
+                    // The selected badge is placed first so it never gives way.
+                    addNumberProperty("order", if (selected) -1 else i)
                 }
             }
         }
         style.getSourceAs<GeoJsonSource>(SRC_ROUTE)?.setGeoJson(FeatureCollection.fromFeatures(lines))
         style.getSourceAs<GeoJsonSource>(SRC_LEG_BADGES)?.setGeoJson(FeatureCollection.fromFeatures(badges))
-        // Re-fit when the pins change or when the bottom overlay is first measured / resized.
-        val points = markers.map { it.point }
+
+        val density = context.resources.displayMetrics.density
+        // Re-fit when the route changes or when the bottom overlay is first measured / resized.
+        val points = if (paths.isEmpty()) markers.map { it.point } else paths.flatten()
         val key = points to extraBottomDp
+        val selectedStep = markers.firstOrNull { it.highlighted }?.id
         if (key != fittedKey) {
+            val routeChanged = key.first != fittedKey?.first
             fittedKey = key
-            val density = context.resources.displayMetrics.density
             val p = (paddingDp * density).toInt()
-            val padding = intArrayOf(p, p, p, p + (extraBottomDp * density).toInt())
-            mapView.doOnLayout { fitCamera(map, points, padding) }
+            padding = intArrayOf(p, p, p, p + (extraBottomDp * density).toInt())
+            // A new route always re-fits; a new bottom overlay height (the carousel is measured, or
+            // changes height while scrolling) only until the user has selected something.
+            if (routeChanged || !userFocused) {
+                val pad = padding.copyOf()
+                mapView.doOnLayout { fitCamera(map, points, pad) }
+            }
+            if (routeChanged) {
+                focusedStep = selectedStep
+                focusedLeg = selectedLegTo
+                userFocused = false
+                return
+            }
+        }
+        if (!interactive) return
+        // Selecting a step or a leg flies the camera there (only on a change, never on the first fit).
+        if (selectedStep != focusedStep) {
+            focusedStep = selectedStep
+            val m = markers.firstOrNull { it.id == selectedStep }
+            if (m != null) {
+                userFocused = true
+                focusStep(map, m.point, padding)
+            }
+        }
+        if (selectedLegTo != focusedLeg) {
+            focusedLeg = selectedLegTo
+            val i = legs.indexOfFirst { it.second.id == selectedLegTo }
+            if (i >= 0) {
+                userFocused = true
+                val p = (paddingDp * density).toInt()
+                val bottom = maxOf(padding[3], (mapView.height * LEG_FOCUS_BOTTOM).toInt())
+                focusPoints(map, paths[i], intArrayOf(p, p, p, bottom), MapConfig.LEG_FOCUS_MAX_ZOOM)
+            }
         }
     }
 }
 
+/** Flies to [point] at CameraMath.focusZoom, centred in the area left free by [padding]. */
+internal fun focusStep(map: MapLibreMap, point: GeoPoint, padding: IntArray) {
+    val from = map.cameraPosition
+    val zoom = CameraMath.focusZoom(from.zoom)
+    val target = CameraPosition.Builder()
+        .target(LatLng(point.latitude, point.longitude))
+        .zoom(zoom)
+        .padding(padding.map { it.toDouble() }.toDoubleArray())
+        .build()
+    val km = from.target?.let { Geo.distanceKm(GeoPoint(it.latitude, it.longitude), point) } ?: 0.0
+    map.animateCamera(CameraUpdateFactory.newCameraPosition(target), CameraMath.flyDurationMs(km, from.zoom, zoom))
+}
+
+/** Flies so that all [points] fit inside the area left free by [padding], zoom at most [maxZoom]. */
+internal fun focusPoints(map: MapLibreMap, points: List<GeoPoint>, padding: IntArray, maxZoom: Double) {
+    if (points.size < 2) return
+    val bounds = LatLngBounds.Builder().includes(points.map { LatLng(it.latitude, it.longitude) }).build()
+    val pos = map.getCameraForLatLngBounds(bounds, padding) ?: return
+    val from = map.cameraPosition
+    val zoom = pos.zoom.coerceAtMost(maxZoom)
+    val target = CameraPosition.Builder(pos).zoom(zoom).padding(padding.map { it.toDouble() }.toDoubleArray()).build()
+    val km = from.target?.let { t -> pos.target?.let { Geo.distanceKm(GeoPoint(t.latitude, t.longitude), GeoPoint(it.latitude, it.longitude)) } } ?: 0.0
+    map.animateCamera(CameraUpdateFactory.newCameraPosition(target), CameraMath.flyDurationMs(km, from.zoom, zoom))
+}
+
 /**
  * Camera rule C1-C3 (docs/05-map.md). [padding] = left, top, right, bottom in px; the visible
- * area is the map minus this padding, so pins never sit under overlays.
+ * area is the map minus this padding, so the route never sits under overlays. [points] = every
+ * point drawn (steps and flight arcs).
  */
 internal fun fitCamera(map: MapLibreMap, points: List<GeoPoint>, padding: IntArray) {
     when (points.size) {
@@ -340,27 +399,6 @@ internal fun fitCamera(map: MapLibreMap, points: List<GeoPoint>, padding: IntArr
     }
 }
 
-/** Round numbered pin drawn in code (no image assets). */
-private fun pinBitmap(context: Context, label: String, color: Int, big: Boolean): Bitmap {
-    val d = context.resources.displayMetrics.density
-    val size = ((if (big) 34 else 28) * d).toInt()
-    val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-    val c = Canvas(bmp)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    val r = size / 2f
-    paint.color = android.graphics.Color.WHITE
-    c.drawCircle(r, r, r, paint)
-    paint.color = color
-    c.drawCircle(r, r, r - 2.5f * d, paint)
-    paint.color = android.graphics.Color.WHITE
-    paint.typeface = Typeface.DEFAULT_BOLD
-    paint.textAlign = Paint.Align.CENTER
-    paint.textSize = (if (label.length > 2) 10 else 13) * d * (if (big) 1.15f else 1f)
-    val y = r - (paint.descent() + paint.ascent()) / 2
-    c.drawText(label, r, y, paint)
-    return bmp
-}
-
 /**
  * Location picker map: the user pans the map under a fixed centre pin (drawn by the caller).
  * [onCenterChanged] fires whenever the camera stops moving.
@@ -377,7 +415,8 @@ fun PickerMap(
     val context = LocalContext.current
     val mapView = rememberMapView()
     val callback = rememberUpdatedState(onCenterChanged)
-    val pinColor = MaterialTheme.colorScheme.secondary.toArgb()
+    val scheme = MaterialTheme.colorScheme
+    val pinColors = PinColors(scheme.primary.toArgb(), scheme.secondary.toArgb(), scheme.tertiary.toArgb(), scheme.secondary.toArgb())
     val state = remember { PickerState() }
     Box(modifier) {
         AndroidView(
@@ -387,14 +426,14 @@ fun PickerMap(
                     map.moveCamera(
                         CameraUpdateFactory.newLatLngZoom(LatLng(initial.latitude, initial.longitude), initialZoom),
                     )
-                    map.setStyle(Style.Builder().fromJson(MapConfig.styleJson())) { style ->
+                    map.loadBasemap { style ->
                         style.addSource(
                             GeoJsonSource(
                                 SRC_STEPS,
                                 FeatureCollection.fromFeatures(
                                     contextMarkers.map { m ->
-                                        val icon = "ctx-${m.label}"
-                                        if (style.getImage(icon) == null) style.addImage(icon, pinBitmap(context, m.label, pinColor, false))
+                                        val icon = pinImageId(m.label, PinKind.CONTEXT, false)
+                                        if (style.getImage(icon) == null) style.addImage(icon, pinBitmap(context, m.label, PinKind.CONTEXT, false, pinColors))
                                         Feature.fromGeometry(Point.fromLngLat(m.point.longitude, m.point.latitude)).apply {
                                             addStringProperty("icon", icon)
                                         }

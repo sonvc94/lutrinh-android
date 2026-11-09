@@ -27,6 +27,7 @@ import org.maplibre.geojson.Point
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.usecase.LegGeometry
+import vn.lutrinh.app.domain.usecase.Polyline
 
 /** One trip on the overall map: its steps in timeline order and the mode of each leg. */
 data class MapTrip(
@@ -39,6 +40,7 @@ data class MapTrip(
 
 private const val SRC_TRIPS = "trips-src"
 private const val SRC_TRIP_STOPS = "trip-stops-src"
+private const val LAYER_TRIPS_SHADOW = "trips-shadow-layer"
 private const val LAYER_TRIPS_CASING = "trips-casing-layer"
 private const val LAYER_TRIPS = "trips-layer"
 private const val LAYER_TRIP_STOPS = "trip-stops-layer"
@@ -67,14 +69,26 @@ fun AllTripsMap(
             factory = {
                 mapView.getMapAsync { map ->
                     map.applyCommonSettings(true)
-                    map.setStyle(Style.Builder().fromJson(MapConfig.styleJson())) { style ->
+                    map.loadBasemap { style ->
                         style.addSource(GeoJsonSource(SRC_TRIPS))
                         style.addSource(GeoJsonSource(SRC_TRIP_STOPS))
-                        val selected = Expression.get("selected")
+                        val selected = isSelected()
+                        // Same recipe as a trip's ground legs: soft shadow, white casing, coloured core.
+                        style.addLayer(
+                            LineLayer(LAYER_TRIPS_SHADOW, SRC_TRIPS).withProperties(
+                                PropertyFactory.lineColor("#0E2A20"),
+                                PropertyFactory.lineWidth(byZoom(4f to 4f, 9f to 8f, 13f to 16f)),
+                                PropertyFactory.lineBlur(byZoom(4f to 3f, 13f to 8f)),
+                                PropertyFactory.lineOpacity(byZoom(4f to 0.25f, 13f to 0.15f)),
+                                PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+                                PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+                                PropertyFactory.lineTranslate(arrayOf(0f, 1f)),
+                            ),
+                        )
                         style.addLayer(
                             LineLayer(LAYER_TRIPS_CASING, SRC_TRIPS).withProperties(
                                 PropertyFactory.lineColor(android.graphics.Color.WHITE),
-                                PropertyFactory.lineWidth(Expression.switchCase(selected, Expression.literal(9f), Expression.literal(6f))),
+                                PropertyFactory.lineWidth(byZoomAndSelection(Triple(4f, 4f, 5.6f), Triple(9f, 6.4f, 8.6f), Triple(13f, 9f, 12f))),
                                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                                 PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                             ),
@@ -82,7 +96,7 @@ fun AllTripsMap(
                         style.addLayer(
                             LineLayer(LAYER_TRIPS, SRC_TRIPS).withProperties(
                                 PropertyFactory.lineColor(Expression.toColor(Expression.get("color"))),
-                                PropertyFactory.lineWidth(Expression.switchCase(selected, Expression.literal(5.5f), Expression.literal(3.5f))),
+                                PropertyFactory.lineWidth(byZoomAndSelection(Triple(4f, 2f, 3.2f), Triple(9f, 3.2f, 5f), Triple(13f, 5f, 7.5f))),
                                 PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
                                 PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                             ),
@@ -90,9 +104,10 @@ fun AllTripsMap(
                         style.addLayer(
                             CircleLayer(LAYER_TRIP_STOPS, SRC_TRIP_STOPS).withProperties(
                                 PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
-                                PropertyFactory.circleRadius(Expression.switchCase(selected, Expression.literal(6f), Expression.literal(4.5f))),
+                                PropertyFactory.circleRadius(byZoomAndSelection(Triple(4f, 3f, 4f), Triple(9f, 4.5f, 6f), Triple(13f, 6f, 7.5f))),
                                 PropertyFactory.circleStrokeColor(android.graphics.Color.WHITE),
-                                PropertyFactory.circleStrokeWidth(2f),
+                                PropertyFactory.circleStrokeWidth(byZoom(4f to 1.5f, 10f to 2.5f)),
+                                PropertyFactory.circleSortKey(Expression.switchCase(selected, Expression.literal(1f), Expression.literal(0f))),
                             ),
                         )
                         state.map = map
@@ -140,10 +155,12 @@ private class AllTripsState {
         // The selected trip is drawn last so it sits on top of the others.
         val ordered = trips.sortedBy { it.id == selectedId }
         val lines = ordered.filter { it.points.size >= 2 }.map { t ->
-            val path = t.points.zipWithNext().flatMapIndexed { i, (a, b) ->
-                val leg = LegGeometry.path(a, b, t.legModes.getOrNull(i))
-                if (i == 0) leg else leg.drop(1)
-            }
+            val path = Polyline.simplify(
+                t.points.zipWithNext().flatMapIndexed { i, (a, b) ->
+                    val leg = LegGeometry.path(a, b, t.legModes.getOrNull(i))
+                    if (i == 0) leg else leg.drop(1)
+                },
+            )
             Feature.fromGeometry(LineString.fromLngLats(path.map { Point.fromLngLat(it.longitude, it.latitude) })).apply {
                 addStringProperty("trip", t.id)
                 addStringProperty("color", t.color.hex())
@@ -161,7 +178,11 @@ private class AllTripsState {
         }
         style.getSourceAs<GeoJsonSource>(SRC_TRIPS)?.setGeoJson(FeatureCollection.fromFeatures(lines))
         style.getSourceAs<GeoJsonSource>(SRC_TRIP_STOPS)?.setGeoJson(FeatureCollection.fromFeatures(stops))
-        val points = trips.flatMap { it.points }
+        // Fit the whole drawn route (flight arcs included), not only the steps.
+        val points = trips.flatMap { t ->
+            if (t.points.size < 2) t.points
+            else t.points.zipWithNext().flatMapIndexed { i, (a, b) -> LegGeometry.path(a, b, t.legModes.getOrNull(i)) }
+        }
         val key = points to padding.toList()
         if (key != fittedKey) {
             fittedKey = key

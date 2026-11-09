@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Only for map tiles (MapLibre + OpenStreetMap). No other network use. -->
+    <!-- Only for the map style + tiles (MapLibre + OpenFreeMap/OpenStreetMap). No other network use. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- No storage/media read permission: step photos come from the system Photo Picker.
          "Thêm từ ảnh" (R13) opens the system file picker and needs this permission to read the

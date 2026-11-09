@@ -96,19 +96,25 @@ The picker returns its result to the step form through the previous screen's sav
 
 ## 4. Trip map — full screen
 
-* **Content:** map with all pins + legs styled per mode with a mode badge at each leg's middle
-  (05-map.md), fitted to all steps (camera rules) in the area above the card carousel, so no pin
-  hides under a card; a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
+* **Content:** map (muted OpenFreeMap vector basemap, Vietnamese labels) with all pins + legs
+  styled per stroke kind with a mode badge at each leg's middle (05-map.md), fitted to the whole
+  route (camera rules) in the area above the card carousel, so no pin hides under a card; first
+  pin white with a green ring (start), last pin clay (end); a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
   date · time; from card 2 on, the chip of the leg that arrives at this step).
-* **Behaviour:** tapping a pin selects it (gold) and scrolls the carousel to its card; tapping a
-  card opens Step detail; tapping a badge or a card's leg chip opens the Leg mode sheet. Empty
+* **Behaviour:** tapping a pin selects it (larger, gold ring + halo) and scrolls the carousel to
+  its card; tapping a card selects its step, tapping the selected card opens Step detail; each
+  selection flies the camera to that step (zoom ≥ 11, never zooming the user out); tapping a badge, a leg line or a
+  card's leg chip opens the Leg mode sheet, and the leg turns gold and is framed above the sheet. Empty
   trip: message "Chuyến đi chưa có điểm dừng nào để hiển thị."
 * **Screens:** `img/09-trip-map-route.png`, `img/16-sample-hagiang-map.png`,
   `img/20-trip-map-pins-above-cards.png`, `img/23-trip-map-leg-modes.png`,
-  `img/24-trip-map-legs-zoomed.png`.
+  `img/24-trip-map-legs-zoomed.png`; before/after the route redraw: `img/route-redraw/`.
 * **Inspired by:** docs/22 §1.1/§2 (map with step-card carousel, fit-to-steps camera, transport
-  mode per leg). **Changed:** straight legs (no snap-to-roads), own colour/dash/badge per mode,
-  decorative flight arc, own pin design (numbered circles), no map-style switcher.
+  mode per leg) and docs/23 (route rendering: casing + shadow on ground legs, zoom-dependent
+  widths, flight arc, simplification). **Changed:** straight legs (no snap-to-roads), one route
+  colour (deep green, gold when selected) instead of colour per trip, own stroke/badge per mode,
+  great-circle flight arc with a sideways lift, own pin design (numbered discs, distinct
+  start/end), no map-style switcher.
 
 ## 4b. Leg mode sheet — "Từ A đến B"
 
@@ -127,8 +133,8 @@ The picker returns its result to the step form through the previous screen's sav
 * **Purpose:** every trip on one map (R14).
 * **Content:** full-screen map; at the top a card with three totals: số chuyến đi, điểm dừng, km
   (sum of each trip's straight-line distance); at the bottom a carousel of trip cards (colour
-  dot, title, dates, "N điểm dừng · M km"). Each trip is drawn in its own colour; the camera fits
-  all steps between the totals card and the carousel.
+  dot, title, dates, "N điểm dừng · M km"). Each trip is drawn in its own colour on a white
+  casing with a soft shadow; the camera fits all trips between the totals card and the carousel.
 * **Behaviour:** tap a trip's line or dots → that trip is selected (wider line, on top, card
   scrolled into view and highlighted); tap a card → Trip detail. No trips: "Chưa có chuyến đi nào để
   hiện trên bản đồ."
@@ -215,28 +221,29 @@ The picker returns its result to the step form through the previous screen's sav
 | 02-trip-create.png | create form filled in |
 | 03-trip-edit.png | edit form with changed title, delete button |
 | 04-trip-list.png | list after create/edit and an app restart, cover from step photo |
-| 05-location-picker.png | picker with OSM tiles, pin on Đà Lạt |
+| 05-location-picker.png | picker on the OpenFreeMap basemap, pin near Du Già |
 | 06-step-create.png | new step with map-picked location, date, note and 3 photos |
 | 07-photo-picker.png | Android Photo Picker with 3 selected |
-| 08-trip-detail.png | detail: header map with route, stats, timeline with photos |
-| 09-trip-map-route.png | full trip map, numbered pins joined by the route, card carousel |
+| 08-trip-detail.png | detail: header map with route (cased green line, start/end pins), stats, timeline |
+| 09-trip-map-route.png | full trip map, numbered pins joined by the route, card carousel (old raster basemap, before the route redraw) |
 | 10-step-detail.png | step detail with photo, mini map |
 | 11-step-edit.png | edit step: new name, re-picked location |
 | 12-photo-viewer.png | full-screen viewer 2 / 3 |
 | 13-step-delete-confirm.png | delete step confirm |
 | 14-photos-after-restart.png | trip detail after force-stop + relaunch: photos still there |
 | 15-trip-list-sample.png | list with the debug sample trips |
-| 16-sample-hagiang-map.png | Hà Giang loop on the map (taken when the sample had 8 steps; it now has 10) |
+| 16-sample-hagiang-map.png | Hà Giang loop at country zoom (pins/badges shrink, short legs drop their badges) |
 | 17-trip-delete-confirm.png | delete trip confirm with counts |
 | 18-trip-list-after-delete.png | list after the trip was deleted |
 | 19-trip-validation.png | "Hãy đặt tên cho chuyến đi" on empty title |
-| 20-trip-map-pins-above-cards.png | Hà Giang trip map fitted above the card carousel |
+| 20-trip-map-pins-above-cards.png | step 3 selected: camera flew to it above the cards, larger pin with gold halo |
 | 21-date-picker-vietnamese.png | date picker in Vietnamese on an English-language emulator |
 | 22-photo-exif-rotated-upright.png | 4800×3600 photo with EXIF orientation 6 + GPS, stored and shown upright |
-| 23-trip-map-leg-modes.png | Hà Giang trip map with legs per mode (xe máy, ô tô, máy bay arc, …) and badges |
-| 24-trip-map-legs-zoomed.png | zoomed: dotted walk leg and dashed boat leg |
-| 25-leg-mode-sheet.png | leg mode sheet "Từ … đến …" |
+| 23-trip-map-leg-modes.png | Hà Giang trip map fitted above the cards: cased ground legs, dotted walk, dashed flight arc, badges |
+| 24-trip-map-legs-zoomed.png | zoomed to town scale: wider cased lines, dotted walk leg 4→5 |
+| 25-leg-mode-sheet.png | leg mode sheet "Từ … đến …"; the leg (gold) framed above it |
 | 26-my-map.png | "Bản đồ của tôi": all trips in their colours, totals, trip cards |
+| route-redraw/before-*.png, after-*.png | the same Hà Giang views on main@55b3966 (raster OSM) and after the route redraw: country, region, city, flight, selected, trip-detail, mymap (+ after-leg-selected) |
 | 27-upgrade-before-v1.png | main@b07fcf6 build (database v1) with sample data, before the upgrade |
 | 28-upgrade-after-v2.png | same data after installing the v2 build over it, leg chips "Chọn cách di chuyển" |
 | 29-from-photos-review.png | "Thêm từ ảnh" review: 2 GPS groups + the placed no-GPS group |

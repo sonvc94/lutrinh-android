@@ -133,11 +133,12 @@ treated as upright`). Decoding/encoding itself is checked on a device (06-photos
 * Saving a step from the step form keeps its mode (the form does not edit it). Setting the mode
   updates the step's `updatedAt`.
 * A leg's distance is the haversine distance (R10) between its two steps, shown as "· N km".
-* Drawing per mode (colour, dash, flight arc, badge): 05-map.md. No road snapping/routing.
+* Drawing per mode (stroke kind, great-circle flight arc, badge): 05-map.md. No road snapping/routing.
 
 *Tests:* `LegsTest.legsFollowTimelineOrderAndTakeTheModeOfTheArrivalStep`,
 `LegsTest.codesRoundTripAndUnknownCodesReadAsNotSet`, `LegsTest.onlyFlightsAreDrawnAsArcs`,
-`LegsTest.setLegTransportUpdatesAndClearsAndSaveStepKeepsIt`,
+`LegsTest.setLegTransportUpdatesAndClearsAndSaveStepKeepsIt`, drawing maths: `RouteGeometryTest` (flight arc,
+simplification, badge midpoint), `CameraMathTest`,
 `MigrationTest.version1UpgradesToCurrentWithoutDataLoss`; UI: `TripFlowsTest.setLegTransport_fromTheTimeline_showsAndStoresTheMode`.
 *Inspired by* polarsteps docs/22 (transport mode per leg). *Changed:* own mode list (xe máy,
 xe buýt/xe khách for Vietnam), no automatic mode guess, no routed lines.

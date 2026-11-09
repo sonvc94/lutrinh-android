@@ -97,6 +97,8 @@ fun TripMapScreen(
                 fitPaddingDp = 48,
                 // Cards height + their bottom offset, so the fit keeps every pin above the cards.
                 fitExtraBottomDp = carouselDp,
+                // The leg whose mode sheet is open is highlighted and framed above the sheet.
+                selectedLegTo = editLegTo,
                 onMarkerClick = { selected = it },
                 onLegClick = { editLegTo = it },
             )

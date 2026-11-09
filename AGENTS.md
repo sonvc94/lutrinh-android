@@ -18,7 +18,8 @@ screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 app/src/main/java/vn/lutrinh/app/
   domain/   models, repository interfaces, validation, ordering, use cases (pure Kotlin)
   data/     Room DB, repositories, PhotoStorage (import: EXIF/downscale/GPS strip), data/photo/ (pure maths), sample data
-  map/      MapConfig.kt (the ONLY place for tile URL/attribution/User-Agent), MapLibre views
+  map/      MapConfig.kt (the ONLY place for style URL/basemap tuning/attribution/User-Agent),
+            RouteLayers.kt (route layer stack), Pins.kt, MapLibre views
   ui/       screens + view models; ui/common/Common.kt has formatters and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
@@ -52,8 +53,12 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
 
 * zsh does not word-split `ADB="adb -s emulator-5580"`; call the full adb path with `-s`.
 * `adb shell input text` cannot type Vietnamese diacritics (use ASCII, or Compose tests, which can).
-* `*.openstreetmap.org` resets TLS from this network → tiles come from `tile.openstreetmap.de`
-  (`MapConfig.TILE_URL`).
+* `*.openstreetmap.org` resets TLS from this network → the basemap is the OpenFreeMap vector
+  style (`MapConfig.STYLE_URL`, `curl -sI` it first). Runtime repaint ids in `BASEMAP_TUNING` are
+  Positron layer ids; another style needs its own ids.
+* Map screenshots by script: pinch needs root; zoom in with a double tap
+  (`input tap x y; sleep 0.1; input tap x y` — without the sleep it is two single taps) and out
+  with a quick-scale (`input motionevent DOWN/UP/DOWN`, MOVE upwards, UP).
 * MapLibre merges location permissions into the manifest → removed with `tools:node="remove"`.
 * A Compose `Dialog` re-provides `LocalConfiguration`/`LocalContext`: locale overrides must go
   **inside** dialog content (see `VietnameseLocale`). Don't wrap the whole app: MapLibre's
