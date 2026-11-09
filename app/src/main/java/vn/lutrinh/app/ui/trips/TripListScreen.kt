@@ -26,6 +26,10 @@ import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.Restore
+import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -79,6 +83,7 @@ import vn.lutrinh.app.ui.common.LocalPhoto
 import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.ui.common.factory
+import vn.lutrinh.app.ui.transfer.rememberTransfer
 
 class TripListViewModel(private val c: AppContainer) : ViewModel() {
     val state: StateFlow<Loadable<List<TripSummary>>> = c.trips.observeTripSummaries()
@@ -109,6 +114,7 @@ fun TripListScreen(
     val scope = rememberCoroutineScope()
     var menuOpen by remember { mutableStateOf(false) }
     var toDelete by remember { mutableStateOf<TripSummary?>(null) }
+    val transfer = rememberTransfer(snackbar, onOpenTrip = onOpen)
     val seededMsg = stringResource(R.string.trips_seeded)
     val seed: () -> Unit = {
         scope.launch {
@@ -136,6 +142,21 @@ fun TripListScreen(
                             text = { Text(stringResource(R.string.offline_title)) },
                             leadingIcon = { Icon(Icons.Outlined.DownloadForOffline, null) },
                             onClick = { menuOpen = false; onOpenOffline() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.gpx_import)) },
+                            leadingIcon = { Icon(Icons.Outlined.FileOpen, null) },
+                            onClick = { menuOpen = false; transfer.importGpx() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.backup_title)) },
+                            leadingIcon = { Icon(Icons.Outlined.Backup, null) },
+                            onClick = { menuOpen = false; transfer.backup() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.backup_restore)) },
+                            leadingIcon = { Icon(Icons.Outlined.Restore, null) },
+                            onClick = { menuOpen = false; transfer.restore() },
                         )
                         if (BuildConfig.DEBUG) {
                             DropdownMenuItem(
@@ -183,7 +204,7 @@ fun TripListScreen(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(s.value, key = { it.trip.id }) { summary ->
-                        TripCard(summary, onOpen = { onOpen(summary.trip.id) }, onEdit = { onEdit(summary.trip.id) }, onShare = { onShare(summary.trip.id) }, onDelete = { toDelete = summary })
+                        TripCard(summary, onOpen = { onOpen(summary.trip.id) }, onEdit = { onEdit(summary.trip.id) }, onShare = { onShare(summary.trip.id) }, onExportGpx = { transfer.exportGpx(summary.trip.id) }, onDelete = { toDelete = summary })
                     }
                 }
             }
@@ -203,7 +224,7 @@ fun TripListScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Unit, onShare: () -> Unit, onDelete: () -> Unit) {
+private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Unit, onShare: () -> Unit, onExportGpx: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = { menu = true }),
@@ -264,6 +285,11 @@ private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Uni
                         text = { Text(stringResource(R.string.share_trip)) },
                         leadingIcon = { Icon(Icons.Outlined.Share, null) },
                         onClick = { menu = false; onShare() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.gpx_export)) },
+                        leadingIcon = { Icon(Icons.Outlined.Route, null) },
+                        onClick = { menu = false; onExportGpx() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.action_delete)) },

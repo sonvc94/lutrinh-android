@@ -135,6 +135,9 @@ interface TrackDao {
     @Insert
     suspend fun insertPoint(point: TrackPointEntity)
 
+    @Insert
+    suspend fun insertPoints(points: List<TrackPointEntity>)
+
     @Query("DELETE FROM track_points WHERE track_id = :trackId")
     suspend fun deletePoints(trackId: String)
 

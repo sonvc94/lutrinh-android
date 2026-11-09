@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test fixture (R25): metadata, waypoints with/without time and name, a track with two
+     segments (one point without a time), a route, an extension and a foreign namespace. -->
+<gpx version="1.1" creator="Fixture" xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:x="http://example.com/ext">
+  <metadata>
+    <name>Hà Giang &amp; Cao Bằng</name>
+    <desc>Vòng cung "đá" &lt;3 ngày&gt;</desc>
+    <author><name>Not the trip name</name></author>
+  </metadata>
+  <wpt lat="22.8233" lon="104.9836">
+    <ele>110</ele>
+    <time>2025-10-20T01:00:00Z</time>
+    <name>TP Hà Giang</name>
+    <desc>Xuất phát</desc>
+  </wpt>
+  <wpt lat="23.0712" lon="105.0333">
+    <time>2025-10-20T05:30:00+07:00</time>
+    <cmt>Chỉ có cmt</cmt>
+  </wpt>
+  <wpt lat="23.2531" lon="105.2506">
+    <name>Đèo Mã Pí Lèng</name>
+  </wpt>
+  <rte>
+    <name>Tuyến</name>
+    <rtept lat="22.9" lon="105.1"><time>2025-10-21T02:00:00Z</time></rtept>
+    <rtept lat="22.95" lon="105.15"><time>2025-10-21T03:00:00Z</time></rtept>
+  </rte>
+  <trk>
+    <name>Ghi GPS</name>
+    <trkseg>
+      <trkpt lat="22.8233" lon="104.9836"><ele>110.5</ele><time>2025-10-20T01:00:00Z</time></trkpt>
+      <trkpt lat="22.8500" lon="104.9900"><time>2025-10-20T01:10:00Z</time><extensions><x:speed>12</x:speed></extensions></trkpt>
+      <trkpt lat="22.8800" lon="105.0000"></trkpt>
+    </trkseg>
+    <trkseg/>
+    <trkseg>
+      <trkpt lat="23.0000" lon="105.0300"><time>2025-10-22T09:00:00.500Z</time></trkpt>
+      <trkpt lat="23.0500" lon="105.0333"><time>2025-10-22T09:20:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

@@ -39,6 +39,9 @@ class TripExporter(context: Context, private val photos: PhotoStorage) {
     private val context = context.applicationContext
     private val dir: File get() = File(context.cacheDir, DIR).apply { mkdirs() }
 
+    /** The share cache (exposed through the FileProvider); also holds GPX exports (R25). */
+    val shareDir: File get() = dir
+
     /** The trip map for the summary image (also embedded in the page). */
     suspend fun map(input: StaticTripMap.Input): StaticTripMap.Output = StaticTripMap.render(
         context, input, SummaryImage.MAP_WIDTH, SummaryImage.MAP_HEIGHT, SummaryImage.MAP_PIXEL_RATIO, SummaryImage.MAP_PADDING,

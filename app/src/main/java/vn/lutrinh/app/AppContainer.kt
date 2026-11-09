@@ -1,12 +1,14 @@
 package vn.lutrinh.app
 
 import android.content.Context
+import vn.lutrinh.app.data.BackupManager
 import vn.lutrinh.app.data.GalleryReader
 import vn.lutrinh.app.data.LocalPrefs
 import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
 import vn.lutrinh.app.data.PlaceIndex
 import vn.lutrinh.app.data.RoomStepRepository
+import vn.lutrinh.app.data.RoomTripImportRepository
 import vn.lutrinh.app.data.RoomStopDecisionRepository
 import vn.lutrinh.app.data.RoomTrackRepository
 import vn.lutrinh.app.data.RoomTripRepository
@@ -16,6 +18,8 @@ import vn.lutrinh.app.domain.repository.IdGenerator
 import vn.lutrinh.app.domain.usecase.DeleteStep
 import vn.lutrinh.app.domain.usecase.DeleteTrack
 import vn.lutrinh.app.domain.usecase.DeleteTrip
+import vn.lutrinh.app.domain.usecase.ExportGpx
+import vn.lutrinh.app.domain.usecase.ImportGpx
 import vn.lutrinh.app.domain.usecase.SaveStep
 import vn.lutrinh.app.domain.usecase.SaveTrip
 import vn.lutrinh.app.domain.usecase.PublishStep
@@ -74,4 +78,11 @@ class AppContainer(context: Context) {
 
     /** "Chia sẻ chuyến đi" (R18): summary image + page export. */
     val exporter = TripExporter(context, photos)
+
+    /** GPX export/import of one trip (R25). */
+    val exportGpx = ExportGpx(trips, steps, tracks, clock)
+    val importGpx = ImportGpx(RoomTripImportRepository(db), clock, ids)
+
+    /** Local backup/restore of all user data (R26). */
+    val backup = BackupManager(context, db, photos.photoDir, BuildConfig.VERSION_NAME)
 }

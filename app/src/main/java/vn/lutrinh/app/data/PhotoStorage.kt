@@ -28,6 +28,9 @@ class PhotoStorage(context: Context) : PhotoFileStore {
 
     fun fileFor(fileName: String): File = File(dir, fileName)
 
+    /** The folder of every stored photo (backup/restore, R26). */
+    val photoDir: File get() = dir
+
     /**
      * Imports one picked item; returns the new file name, or null when it cannot be read.
      * The bytes are first copied to a temp file, then processed (docs/06-photos.md):

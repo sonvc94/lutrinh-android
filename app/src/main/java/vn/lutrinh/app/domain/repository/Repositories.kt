@@ -97,6 +97,12 @@ interface StopDecisionRepository {
     suspend fun saveDecision(decision: StopDecision)
 }
 
+/** Stores a whole trip made outside the app (R25 GPX import). */
+interface TripImportRepository {
+    /** Inserts [trip], its [steps] and [tracks] with their points in ONE transaction: all or nothing. */
+    suspend fun insertTrip(trip: Trip, steps: List<Step>, tracks: List<Pair<Track, List<TrackPoint>>>)
+}
+
 /** Owns the photo files in app-private storage. */
 interface PhotoFileStore {
     suspend fun delete(fileNames: Collection<String>)

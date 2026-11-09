@@ -67,5 +67,8 @@ object DisplayFormat {
     fun dayWithYear(d: LocalDate): String = d.format(DAY_YEAR).replaceFirstChar { it.titlecase(VI) }
 
     /** Name of a step made without one (from a stop suggestion or from photos): "Điểm dừng 09:05" of its arrival. */
+    /** A clock time: "09:05". */
+    fun time(t: java.time.LocalTime): String = t.format(TIME)
+
     fun defaultStepTitle(arrival: LocalDateTime): String = "Điểm dừng ${arrival.format(TIME)}"
 }

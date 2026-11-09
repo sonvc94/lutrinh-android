@@ -132,6 +132,10 @@ import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.ui.common.displayDay
 import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.factory
+import vn.lutrinh.app.ui.transfer.rememberTransfer
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material.icons.outlined.Route
 import java.time.temporal.ChronoUnit
 
 /** LazyColumn item indexes of [TripDetailContent]: map, header, GPS card, then the timeline. */
@@ -288,6 +292,8 @@ fun TripDetailScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var editLegTo by remember { mutableStateOf<String?>(null) }
     var pickCover by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val transfer = rememberTransfer(snackbar)
     LaunchedEffect(deleted) { if (deleted) onBack() }
     val detail = (state as? Loadable.Ready)?.value
     val listState = rememberLazyListState()
@@ -330,6 +336,11 @@ fun TripDetailScreen(
                                 onClick = { menu = false; pickCover = true },
                             )
                             DropdownMenuItem(
+                                text = { Text(stringResource(R.string.gpx_export)) },
+                                leadingIcon = { Icon(Icons.Outlined.Route, null) },
+                                onClick = { menu = false; detail?.trip?.id?.let(transfer.exportGpx) },
+                            )
+                            DropdownMenuItem(
                                 text = { Text(stringResource(R.string.trip_delete_button)) },
                                 leadingIcon = { Icon(Icons.Outlined.Delete, null) },
                                 onClick = { menu = false; confirmDelete = true },
@@ -366,6 +377,7 @@ fun TripDetailScreen(
                 }
             }
         },
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         when (val s = state) {
             Loadable.Loading -> LoadingState(Modifier.padding(padding))
