@@ -9,13 +9,16 @@ import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.StopPhotos
 import vn.lutrinh.app.domain.usecase.StopSuggestions
 import vn.lutrinh.app.map.StopMarker
-import vn.lutrinh.app.ui.tracks.StopSuggestionSection
 import java.time.ZoneId
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,11 +30,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
@@ -58,12 +64,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -96,8 +105,10 @@ import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.usecase.DistanceSource
 import vn.lutrinh.app.domain.usecase.Leg
 import vn.lutrinh.app.domain.usecase.TrackMath
+import vn.lutrinh.app.domain.usecase.TrackRules
 import vn.lutrinh.app.domain.usecase.TripStats
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
 import vn.lutrinh.app.domain.usecase.legsOf
@@ -105,8 +116,7 @@ import vn.lutrinh.app.domain.usecase.statsOf
 import vn.lutrinh.app.map.MapMarker
 import vn.lutrinh.app.map.TrackLine
 import vn.lutrinh.app.map.TripMap
-import vn.lutrinh.app.ui.tracks.RecordTrackControl
-import vn.lutrinh.app.ui.tracks.TrackList
+import vn.lutrinh.app.ui.tracks.GpsCard
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
@@ -118,6 +128,10 @@ import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.factory
 import java.time.temporal.ChronoUnit
 
+/** LazyColumn item indexes of [TripDetailContent]: map, header, GPS card, then the timeline. */
+private const val ITEM_HEADER = 1
+private const val ITEM_GPS = 2
+
 data class TripDetail(
     val trip: Trip,
     val steps: List<Step>,
@@ -128,6 +142,8 @@ data class TripDetail(
     val trackLines: List<TrackLine> = emptyList(),
     /** Places a finished track stayed without a step yet (R17), oldest first. */
     val stopSuggestions: List<StopSuggestion> = emptyList(),
+    /** R16: false for a trip that ended before today (no "Ghi hành trình", only "Tạo chuyến mới và ghi"). */
+    val canRecord: Boolean = true,
 ) {
     /** legs[i] = steps[i] -> steps[i+1] (R12). */
     val legs: List<Leg> = legsOf(steps)
@@ -169,7 +185,7 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
                 Loadable.Missing
             } else {
                 val ordered = steps.inTimelineOrder()
-                Loadable.Ready(TripDetail(trip, ordered, statsOf(trip, ordered), tracks, lines, suggestions))
+                Loadable.Ready(TripDetail(trip, ordered, statsOf(trip, ordered, tracks), tracks, lines, suggestions, TrackRules.canRecordOn(trip, c.clock.today())))
             }
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
@@ -234,6 +250,10 @@ fun TripDetailScreen(
     onAddFromStop: (Dwell, String) -> Unit,
     onAddFromPhotos: () -> Unit,
     onOpenStep: (String) -> Unit,
+    /** "Tạo chuyến mới và ghi" (R16, ended trips): the new-trip form, then recording on the new trip. */
+    onNewTripAndRecord: () -> Unit = {},
+    /** Opened by "Tạo chuyến mới và ghi": start recording on arrival. */
+    autoRecord: Boolean = false,
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -245,22 +265,38 @@ fun TripDetailScreen(
         onPauseOrDispose { }
     }
     var menu by remember { mutableStateOf(false) }
+    var fabMenu by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var editLegTo by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(deleted) { if (deleted) onBack() }
     val detail = (state as? Loadable.Ready)?.value
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    // Collapsing top bar: the title is in the header until that scrolls away, then it moves up.
+    val titleOffsetPx = with(LocalDensity.current) { 40.dp.roundToPx() }
+    val showBarTitle by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > ITEM_HEADER ||
+                (listState.firstVisibleItemIndex == ITEM_HEADER && listState.firstVisibleItemScrollOffset > titleOffsetPx)
+        }
+    }
+    // The FAB shrinks to its icon as soon as the map has scrolled away.
+    val fabExpanded by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(detail?.trip?.title ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = {
+                    AnimatedVisibility(showBarTitle && detail != null, enter = fadeIn(), exit = fadeOut()) {
+                        Text(detail?.trip?.title ?: "", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
                 },
                 actions = {
                     if (detail != null) {
                         IconButton(onClick = onShare) { Icon(Icons.Outlined.Share, stringResource(R.string.share_trip)) }
-                        IconButton(onClick = onOpenMap) { Icon(Icons.Outlined.Map, stringResource(R.string.trip_open_map)) }
                         IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more)) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             DropdownMenuItem(
@@ -279,19 +315,30 @@ fun TripDetailScreen(
             )
         },
         floatingActionButton = {
-            val fabLabel = stringResource(R.string.trip_add_step)
-            if (detail != null) Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SmallFloatingActionButton(
-                    onClick = onAddFromPhotos,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                ) { Icon(Icons.Outlined.AddPhotoAlternate, stringResource(R.string.from_photos_title)) }
+            // One FAB (it used to be two stacked ones over the cards' own buttons): it collapses
+            // on scroll and opens a menu with the two ways to add a step.
+            val fabLabel = stringResource(R.string.trip_fab_add)
+            if (detail != null) Box {
                 ExtendedFloatingActionButton(
-                    onClick = onAddStep,
-                    icon = { Icon(Icons.Filled.AddLocationAlt, null) },
+                    onClick = { fabMenu = true },
+                    expanded = fabExpanded,
+                    icon = { Icon(Icons.Filled.Add, null) },
                     text = { Text(fabLabel) },
                     // M3 1.3 exposes no text for the extended FAB; label it for TalkBack and UI tests.
                     modifier = Modifier.semantics { contentDescription = fabLabel },
                 )
+                DropdownMenu(expanded = fabMenu, onDismissRequest = { fabMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.trip_add_step)) },
+                        leadingIcon = { Icon(Icons.Filled.AddLocationAlt, null) },
+                        onClick = { fabMenu = false; onAddStep() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.from_photos_title)) },
+                        leadingIcon = { Icon(Icons.Outlined.AddPhotoAlternate, null) },
+                        onClick = { fabMenu = false; onAddFromPhotos() },
+                    )
+                }
             }
         },
     ) { padding ->
@@ -300,22 +347,21 @@ fun TripDetailScreen(
             Loadable.Missing -> MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
             is Loadable.Failed -> MessageState(Icons.Outlined.ErrorOutline, stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
             is Loadable.Ready -> TripDetailContent(
-                s.value, padding, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it },
-                tracksSection = {
-                    Column(Modifier.padding(horizontal = 16.dp)) {
-                        RecordTrackControl(
-                            tripId = s.value.trip.id, active = recording,
-                            onPause = { vm.pauseRecording() }, onResume = { vm.resumeRecording() }, onStop = { vm.stopRecording() },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        TrackList(s.value.tracks, onDelete = { vm.deleteTrack(it) })
-                        StopSuggestionSection(
-                            s.value.stopSuggestions,
-                            galleryCounts = galleryCounts,
-                            onAdd = { sg, title -> onAddFromStop(sg.dwell, title) },
-                            onDismiss = { vm.dismissStop(it) },
-                        )
-                    }
+                s.value, padding, listState, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it },
+                gpsCard = {
+                    GpsCard(
+                        tripId = s.value.trip.id, tracks = s.value.tracks, suggestions = s.value.stopSuggestions,
+                        steps = s.value.steps, galleryCounts = galleryCounts, recording = recording,
+                        ended = !s.value.canRecord, autoStart = autoRecord,
+                        onPause = { vm.pauseRecording() }, onResume = { vm.resumeRecording() }, onStop = { vm.stopRecording() },
+                        onNewTripAndRecord = onNewTripAndRecord,
+                        onDeleteTrack = { vm.deleteTrack(it) },
+                        onAddFromStop = { sg, title -> onAddFromStop(sg.dwell, title) },
+                        onDismissStop = { vm.dismissStop(it) },
+                        // Scroll the opened card to the top so its buttons are not under the FAB.
+                        onOpened = { scope.launch { listState.animateScrollToItem(ITEM_GPS) } },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
                 },
             )
         }
@@ -339,18 +385,20 @@ fun TripDetailScreen(
 private fun TripDetailContent(
     d: TripDetail,
     padding: PaddingValues,
+    listState: LazyListState,
     onOpenMap: () -> Unit,
     onAddStep: () -> Unit,
     onOpenStep: (String) -> Unit,
     onEditLeg: (toStepId: String) -> Unit,
-    tracksSection: @Composable () -> Unit,
+    gpsCard: @Composable () -> Unit,
 ) {
     LazyColumn(
+        state = listState,
         contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 104.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
-            Box(Modifier.fillMaxWidth().height(220.dp)) {
+            Box(Modifier.fillMaxWidth().height(180.dp)) {
                 TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize(), tracks = d.trackLines,
                     stopSuggestions = d.stopMarkers(),
                 )
@@ -363,7 +411,7 @@ private fun TripDetailContent(
             }
         }
         item { TripHeader(d) }
-        item(key = "tracks") { tracksSection() }
+        item(key = "gps") { gpsCard() }
         if (d.steps.isEmpty()) {
             item {
                 MessageState(
@@ -410,21 +458,28 @@ private fun TripHeader(d: TripDetail) {
             Text(d.trip.description, style = MaterialTheme.typography.bodyMedium)
         }
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Stat("${d.stats.stepCount}", stringResource(R.string.stat_steps), Modifier.weight(1f))
-            Stat("${d.stats.photoCount}", stringResource(R.string.stat_photos), Modifier.weight(1f))
-            Stat(DisplayFormat.kmNumber(d.stats.distanceKm), stringResource(R.string.stat_km), Modifier.weight(1.4f))
-            d.stats.days?.let { Stat("$it", stringResource(R.string.stat_days), Modifier.weight(1f)) }
+        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val tile = Modifier.fillMaxHeight()
+            Stat("${d.stats.stepCount}", stringResource(R.string.stat_steps), tile.weight(1f))
+            Stat("${d.stats.photoCount}", stringResource(R.string.stat_photos), tile.weight(1f))
+            Stat(
+                DisplayFormat.kmNumber(d.stats.distanceKm), stringResource(R.string.stat_km), tile.weight(1.4f),
+                note = stringResource(if (d.stats.distanceSource == DistanceSource.GPS) R.string.stat_km_gps else R.string.stat_km_straight),
+            )
+            d.stats.days?.let { Stat("$it", stringResource(R.string.stat_days), tile.weight(1f)) }
         }
     }
 }
 
 @Composable
-private fun Stat(value: String, label: String, modifier: Modifier) {
+private fun Stat(value: String, label: String, modifier: Modifier, note: String? = null) {
     Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(12.dp), modifier = modifier) {
         Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val on = MaterialTheme.colorScheme.onPrimaryContainer
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = on)
+            // Labels wrap (1.3× font) instead of ending in "…"; a note sits on its own second line.
+            Text(label, style = MaterialTheme.typography.labelSmall, color = on)
+            if (note != null) Text(note, style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.75f))
         }
     }
 }

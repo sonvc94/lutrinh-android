@@ -2,7 +2,23 @@ package vn.lutrinh.app.ui
 
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import vn.lutrinh.app.LuTrinhApp
+import vn.lutrinh.app.domain.usecase.StopOutcome
+import vn.lutrinh.app.domain.usecase.TrackFormat
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
@@ -32,8 +48,8 @@ import vn.lutrinh.app.ui.trips.MyMapScreen
 object Routes {
     const val TRIPS = "trips"
     const val MY_MAP = "myMap"
-    const val TRIP_EDIT = "tripEdit?tripId={tripId}"
-    const val TRIP = "trip/{tripId}"
+    const val TRIP_EDIT = "tripEdit?tripId={tripId}&record={record}"
+    const val TRIP = "trip/{tripId}?record={record}"
     const val TRIP_MAP = "trip/{tripId}/map"
     const val STEP_EDIT =
         "trip/{tripId}/stepEdit?stepId={stepId}&stopTrack={stopTrack}&stopStart={stopStart}&stopEnd={stopEnd}" +
@@ -46,7 +62,10 @@ object Routes {
     const val SHARE = "trip/{tripId}/share"
 
     fun tripEdit(tripId: String? = null) = if (tripId == null) "tripEdit" else "tripEdit?tripId=$tripId"
-    fun trip(tripId: String) = "trip/$tripId"
+
+    /** "Tạo chuyến mới và ghi" (R16): the new-trip form; once saved, the new trip opens and starts recording. */
+    fun tripEditAndRecord() = "tripEdit?record=true"
+    fun trip(tripId: String, record: Boolean = false) = if (record) "trip/$tripId?record=true" else "trip/$tripId"
     fun tripMap(tripId: String) = "trip/$tripId/map"
     fun share(tripId: String) = "trip/$tripId/share"
     fun stepEdit(tripId: String, stepId: String? = null) =
@@ -80,6 +99,29 @@ private fun required(name: String) = navArgument(name) { type = NavType.StringTy
 
 @Composable
 fun AppNavigation(nav: NavHostController = rememberNavController()) {
+    // One snackbar for the whole app: a recording is also stopped from its notification (R16).
+    val context = LocalContext.current
+    val recorder = (context.applicationContext as LuTrinhApp).container.recorder
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(recorder) {
+        coroutineScope {
+            recorder.stopped.collect { outcome ->
+                val text = when (outcome) {
+                    is StopOutcome.Saved -> context.getString(R.string.track_saved, TrackFormat.distance(outcome.track.distanceM))
+                    is StopOutcome.Dropped -> context.getString(R.string.track_dropped)
+                }
+                launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(text) }
+            }
+        }
+    }
+    Box(Modifier.fillMaxSize()) {
+        NavGraph(nav)
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp))
+    }
+}
+
+@Composable
+private fun NavGraph(nav: NavHostController) {
     NavHost(navController = nav, startDestination = Routes.TRIPS) {
         composable(Routes.TRIPS) {
             TripListScreen(
@@ -97,17 +139,18 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
         composable(Routes.MY_MAP) {
             MyMapScreen(onBack = { nav.popBackStack() }, onOpenTrip = { nav.navigate(Routes.trip(it)) })
         }
-        composable(Routes.TRIP_EDIT, arguments = listOf(optional("tripId"))) {
+        composable(Routes.TRIP_EDIT, arguments = listOf(optional("tripId"), optional("record"))) { entry ->
+            val record = entry.arguments?.getString("record") == "true"
             TripEditScreen(
                 onBack = { nav.popBackStack() },
                 onSaved = { id, created ->
                     nav.popBackStack()
-                    if (created) nav.navigate(Routes.trip(id))
+                    if (created) nav.navigate(Routes.trip(id, record))
                 },
                 onDeleted = { nav.popBackStack(Routes.TRIPS, inclusive = false) },
             )
         }
-        composable(Routes.TRIP, arguments = listOf(required("tripId"))) { entry ->
+        composable(Routes.TRIP, arguments = listOf(required("tripId"), optional("record"))) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!
             TripDetailScreen(
                 onBack = { nav.popBackStack() },
@@ -118,6 +161,8 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onAddFromStop = { dwell, title -> nav.navigate(Routes.stepFromStop(tripId, dwell, title)) },
                 onAddFromPhotos = { nav.navigate(Routes.fromPhotos(tripId)) },
                 onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
+                onNewTripAndRecord = { nav.navigate(Routes.tripEditAndRecord()) },
+                autoRecord = entry.arguments?.getString("record") == "true",
             )
         }
         composable(Routes.SHARE, arguments = listOf(required("tripId"))) {
@@ -129,6 +174,7 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onBack = { nav.popBackStack() },
                 onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
                 onOpenOffline = { nav.navigate(Routes.offline(tripId)) },
+                onNewTripAndRecord = { nav.navigate(Routes.tripEditAndRecord()) },
             )
         }
         composable(

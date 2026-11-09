@@ -6,7 +6,11 @@ import org.junit.Test
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.model.Track
+import vn.lutrinh.app.domain.model.TrackStatus
+import vn.lutrinh.app.domain.usecase.DistanceSource
 import vn.lutrinh.app.domain.usecase.Geo
+import vn.lutrinh.app.domain.usecase.nearestStep
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
 import vn.lutrinh.app.domain.usecase.TripOrder
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
@@ -55,6 +59,31 @@ class OrderingTest {
         assertEquals(4L, s.days)
         assertEquals(1, s.stepCount)
         assertNull(statsOf(trip.copy(endDate = null), emptyList()).days)
+    }
+
+    private fun track(km: Double, status: TrackStatus = TrackStatus.ENDED) =
+        Track("k", "t", status, 0, null, 0, null, 0, km * 1000, 10, false, 0, 0)
+
+    @Test fun distanceIsTheStraightLineUnlessGpsTracksCoverTheRoute() {
+        val steps = listOf(step("a", "2026-10-20T08:00", lat = 22.8), step("b", "2026-10-21T08:00", lat = 23.8)) // ≈ 111 km
+        val straight = statsOf(trip, steps)
+        assertEquals(DistanceSource.STRAIGHT_LINE, straight.distanceSource)
+        // 51,5 km recorded on one day of a 111 km route: not the trip's length.
+        assertEquals(DistanceSource.STRAIGHT_LINE, statsOf(trip, steps, listOf(track(51.5))).distanceSource)
+        // tracks as long as the route (open ones never count): the real road is shown.
+        val gps = statsOf(trip, steps, listOf(track(70.0), track(60.0), track(500.0, TrackStatus.RECORDING)))
+        assertEquals(DistanceSource.GPS, gps.distanceSource)
+        assertEquals(130.0, gps.distanceKm, 0.001)
+        // no steps to compare with: any recorded distance is the best number there is
+        assertEquals(DistanceSource.GPS, statsOf(trip, emptyList(), listOf(track(5.0))).distanceSource)
+    }
+
+    @Test fun nearestStepGivesTheClosestStepAndItsDistance() {
+        val steps = listOf(step("far", "2026-10-20T08:00", lat = 24.0), step("near", "2026-10-20T09:00", lat = 23.01))
+        val (s, km) = nearestStep(GeoPoint(23.0, 105.0), steps)!!
+        assertEquals("near", s.id)
+        assertEquals(1.1, km, 0.1)
+        assertNull(nearestStep(GeoPoint(23.0, 105.0), emptyList()))
     }
 
     @Test fun newStepDefaultsToNowWhenTravellingToday() {

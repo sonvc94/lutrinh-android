@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -106,6 +107,11 @@ fun RecordTrackControl(
     modifier: Modifier = Modifier,
     /** Over a map: no explanatory text, a floating surface. */
     compact: Boolean = false,
+    /** R16: the trip ended before today: no "Ghi hành trình", only [onNewTripAndRecord]. */
+    ended: Boolean = false,
+    onNewTripAndRecord: () -> Unit = {},
+    /** Start the recording as soon as the control is shown (once): "Tạo chuyến mới và ghi". */
+    autoStart: Boolean = false,
 ) {
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<TrackDialog?>(null) }
@@ -129,6 +135,14 @@ fun RecordTrackControl(
     }
     val onStart = {
         if (context.granted(Manifest.permission.ACCESS_FINE_LOCATION)) askNotificationsThenStart() else dialog = TrackDialog.RATIONALE
+    }
+
+    var autoStarted by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(autoStart) {
+        if (autoStart && !autoStarted && active == null && !ended) {
+            autoStarted = true
+            onStart()
+        }
     }
 
     val mine = active?.takeIf { it.tripId == tripId }
@@ -177,6 +191,21 @@ fun RecordTrackControl(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             )
+            ended -> Column(Modifier.padding(if (compact) 4.dp else 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (!compact) {
+                    Text(
+                        stringResource(R.string.track_trip_ended),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
+                FilledTonalButton(onClick = onNewTripAndRecord) {
+                    Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = TrackRed)
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.track_new_trip_and_record))
+                }
+            }
             else -> Row(
                 Modifier.padding(if (compact) 4.dp else 12.dp),
                 verticalAlignment = Alignment.CenterVertically,

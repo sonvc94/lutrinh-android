@@ -2,7 +2,10 @@ package vn.lutrinh.app.domain.usecase
 
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.LocationFix
+import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackPoint
+import vn.lutrinh.app.domain.model.Trip
+import java.time.LocalDate
 
 /** Sampling and filter constants of a recording (R16, docs/04-business-rules.md). */
 object TrackRules {
@@ -23,6 +26,30 @@ object TrackRules {
 
     /** Douglas–Peucker tolerance for drawing a track (≈ 5.5 m): keeps the bends of mountain roads. */
     const val DISPLAY_EPSILON_DEG = 5e-5
+
+    /** A stopped track with fewer points than this draws nothing and is dropped. */
+    const val MIN_KEEP_POINTS = 2
+
+    /** A stopped track shorter than this (GPS jitter while standing still) is dropped. */
+    const val MIN_KEEP_DISTANCE_M = 50.0
+
+    /** R16 "Stop": an ended track is kept only with ≥ 2 points and ≥ 50 m. */
+    fun isWorthKeeping(pointCount: Int, distanceM: Double): Boolean =
+        pointCount >= MIN_KEEP_POINTS && distanceM >= MIN_KEEP_DISTANCE_M
+
+    fun isWorthKeeping(t: Track): Boolean = isWorthKeeping(t.pointCount, t.distanceM)
+
+    /** R16 "Start": recording is offered unless the trip ended before [today]; open-ended trips always qualify. */
+    fun canRecordOn(trip: Trip, today: LocalDate): Boolean = trip.endDate?.isBefore(today) != true
+}
+
+/** What happened to the recording when it was stopped (shown as a snackbar). */
+sealed interface StopOutcome {
+    /** Kept: [track] has its final distance and duration. */
+    data class Saved(val track: Track) : StopOutcome
+
+    /** Too short ([TrackRules.isWorthKeeping]): deleted with its points. */
+    data class Dropped(val track: Track) : StopOutcome
 }
 
 /** Why a fix was kept or dropped. */

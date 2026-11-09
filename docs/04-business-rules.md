@@ -99,11 +99,15 @@ storage only holds files referenced by a row.
 
 ## R10 — Stats
 
-*Tests:* `OrderingTest.haversineHaGiangToNinhBinh`, `OrderingTest.statsCountDaysInclusive`.
+*Tests:* `OrderingTest.haversineHaGiangToNinhBinh`, `OrderingTest.statsCountDaysInclusive`,
+`OrderingTest.distanceIsTheStraightLineUnlessGpsTracksCoverTheRoute`.
 
 Shown on Trip detail: number of steps, number of photos, distance = sum of great-circle
 (haversine, Earth radius 6371.0088 km) distances between consecutive route points (R3), labelled
-"km (đường chim bay)" because it is not a road distance; days = `endDate − startDate + 1` (only
+"km" with the second line "đường chim bay" because it is not a road distance. When the **ended
+tracks** of the trip add up to at least that straight-line distance (and more than 0), the tile
+shows the track total instead, second line "đã ghi GPS" (`TripStats.distanceSource`); a shorter
+track total (a partial recording) never lowers the figure. Days = `endDate − startDate + 1` (only
 when the trip has an end date).
 
 ## R11 — Photo import processing
@@ -258,7 +262,10 @@ Constants live in `domain/usecase/TrackLogic.kt` (`TrackRules`); the iOS port co
   never created or moved by a track on their own (a user can add a step from a stop suggestion,
   R17), and a track is never snapped to roads.
 * **Start.** Only from the UI, by "Ghi hành trình" on the trip detail or the trip map, for that
-  trip. **One recording in the whole app**: while a track is open (recording or paused) other
+  trip, **and only while the trip has not ended** (`TrackRules.canRecordOn`: no end date, or end
+  date today or later). For a trip whose end date is before today both screens show "Tạo chuyến
+  mới và ghi" instead (opens the trip form; the saved trip opens and starts recording). The
+  recorder itself still accepts any existing trip. **One recording in the whole app**: while a track is open (recording or paused) other
   trips show "Đang ghi hành trình cho chuyến đi khác" instead of the button; a deleted trip
   cannot be recorded (`TripNotFound`). Starting creates the track (`recording`, segment 0) before
   the first fix arrives.
@@ -299,8 +306,11 @@ Constants live in `domain/usecase/TrackLogic.kt` (`TrackRules`); the iOS port co
   `activeMs` (+ `now − resumedAt` while recording). Shown as "850 m" (< 1 km), "2,4 km" (< 100 km,
   Vietnamese decimal comma), "125 km"; a running timer as "m:ss" or "h:mm:ss", a finished track's duration in words ("6 giờ 45 phút"); see 03-screens.md "Display conventions".
 * **Stop.** Ends the track (`ended`, `endedAt = now`, open segment closed), stops the GPS and
-  removes the notification. A track with 0 or 1 point is kept (it shows in the list, draws
-  nothing) so the user decides whether to delete it.
+  removes the notification. A track with **fewer than 2 points or under 50 m** in total
+  (`TrackRules.MIN_KEEP_POINTS`, `MIN_KEEP_DISTANCE_M`, `isWorthKeeping`) is **deleted** instead
+  of kept; every stop emits a `StopOutcome` (`Saved` / `Dropped`) and the app shows a snackbar
+  "Đã lưu hành trình 12,3 km" or "Hành trình quá ngắn (dưới 50 m) nên không được lưu". (A track
+  ended by process death, see below, is kept as before.)
 * **Process death.** Every accepted point is stored at once, together with the track's distance /
   count / `updatedAt`, in one transaction: nothing accepted is lost. If the app process dies
   while a track is open (force-stop, crash, low-memory kill of the service), the system does not
@@ -327,7 +337,9 @@ excludes pauses and distance only joins points of one segment`, `filtered fixes 
 `only one recording at a time and only for an existing trip`, `process death ends the open track
 with its saved points`, `a paused track interrupted keeps the time before the pause`, `delete
 removes an ended track and its points but never the open one`, `deleting the trip stops its
-recording`, `a track deleted under the recorder ends the recording instead of crashing`);
+recording`, `a track deleted under the recorder ends the recording instead of crashing`, `stopping
+drops a track with fewer than 2 points or under 50 m and says so`, `the keep rule needs 2 points
+and 50 m`, `recording is offered unless the trip ended before today`);
 `MigrationTest.version2UpgradesWithTrackTablesAndKeepsTripsAndSteps`; UI:
 `TripFlowsTest.tripDetail_showsTheRecordTrackControl`. Recording with simulated GPS, screen off,
 force-stop and offline drawing are checked by hand on the emulator (AGENTS.md "GPS on the

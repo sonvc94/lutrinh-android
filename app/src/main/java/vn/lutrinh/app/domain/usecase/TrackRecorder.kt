@@ -1,7 +1,10 @@
 package vn.lutrinh.app.domain.usecase
 
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -31,6 +34,11 @@ class TrackRecorder(
 
     /** The open track (RECORDING or PAUSED) of this process, or null. */
     val active: StateFlow<Track?> = _active.asStateFlow()
+
+    private val _stopped = MutableSharedFlow<StopOutcome>(extraBufferCapacity = 4)
+
+    /** One event per [stop] (screen or notification), for a snackbar. Not replayed. */
+    val stopped: SharedFlow<StopOutcome> = _stopped.asSharedFlow()
 
     private var last: TrackPoint? = null
 
@@ -72,14 +80,20 @@ class TrackRecorder(
         save(t.copy(status = TrackStatus.RECORDING, resumedAt = now, segment = t.segment + 1, updatedAt = now))
     }
 
-    /** Ends the open track; returns it as stored, or null when nothing was recording. */
+    /**
+     * Ends the open track and returns it, or null when nothing was recording. A track with fewer
+     * than 2 points or under 50 m ([TrackRules.isWorthKeeping]) is deleted at once; the returned
+     * track is then the one that was dropped. Either way [stopped] emits.
+     */
     suspend fun stop(): Track? = mutex.withLock {
         val t = _active.value ?: return null
         val now = clock.nowMillis()
         val ended = t.copy(status = TrackStatus.ENDED, activeMs = t.durationMs(now), resumedAt = null, endedAt = now, updatedAt = now)
-        runCatching { tracks.updateTrack(ended) }
+        val keep = TrackRules.isWorthKeeping(ended)
+        runCatching { if (keep) tracks.updateTrack(ended) else tracks.deleteTrack(ended.id) }
         _active.value = null
         last = null
+        _stopped.tryEmit(if (keep) StopOutcome.Saved(ended) else StopOutcome.Dropped(ended))
         ended
     }
 

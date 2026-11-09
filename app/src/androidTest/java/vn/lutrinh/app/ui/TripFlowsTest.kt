@@ -76,6 +76,7 @@ class TripFlowsTest {
     fun tripDetail_showsTheRecordTrackControl() {
         createTrip(title)
         waitForText("Chưa có điểm dừng")
+        openGpsCard()
         rule.waitUntil(TIMEOUT) { clickable("Ghi hành trình").fetchSemanticsNodes().isNotEmpty() }
         clickable("Ghi hành trình").onFirst().assertExists()
     }
@@ -111,6 +112,7 @@ class TripFlowsTest {
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
         rule.onAllNodesWithText(title).onFirst().performClick()
 
+        openGpsCard()
         waitForText("Gợi ý điểm dừng (3)")
         clickable("Bỏ qua").onFirst().performClick()
         waitForText("Gợi ý điểm dừng (2)")
@@ -136,8 +138,9 @@ class TripFlowsTest {
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
         rule.onAllNodesWithText(title).onFirst().performClick()
 
+        openGpsCard()
         waitForText("Gợi ý điểm dừng (3)")
-        clickable("Thêm điểm dừng").onFirst().performClick()
+        clickable("Tạo điểm dừng ở đây").onFirst().performClick()
         waitForText("Điểm dừng mới")
         // The bottom "Lưu" (first in the tree) is below the fold since R19's section: scroll to it.
         clickable("Lưu").onFirst().performScrollTo().performClick()
@@ -180,11 +183,11 @@ class TripFlowsTest {
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
         rule.onAllNodesWithText(title).onFirst().performClick()
 
+        openGpsCard()
         waitForText("Gợi ý điểm dừng (3)")
-        waitForText("ảnh trong máy") // R19 count on the card, only shown with access
-        // The card's button can lie under the "Thêm điểm dừng" FAB (same text, AGENTS.md): a touch
-        // would hit the FAB, so run the button's own click action.
-        clickable("Thêm điểm dừng").onFirst().performSemanticsAction(SemanticsActions.OnClick)
+        // The "N ảnh trong thư viện" line only shows a non-zero count, so it is not waited for here.
+        // The card may sit low on the screen: run the button's own click action.
+        clickable("Tạo điểm dừng ở đây").onFirst().performSemanticsAction(SemanticsActions.OnClick)
         waitForText("Điểm dừng mới")
         waitForText("Ảnh chụp trong lúc dừng")
         rule.onNodeWithText("Ảnh chụp trong lúc dừng").performScrollTo().assertIsDisplayed()
@@ -334,6 +337,12 @@ class TripFlowsTest {
         rule.onNodeWithContentDescription("Chuyến đi mới").performClick()
         rule.onNode(hasSetTextAction() and hasText("Tên chuyến đi")).performTextInput(name)
         clickable("Tạo chuyến đi").onFirst().performClick() // the button, not the top bar title
+    }
+
+    /** The GPS card starts collapsed (docs/03 "Trip detail"): open it to reach the record button and the suggestions. */
+    private fun openGpsCard() {
+        rule.waitUntil(TIMEOUT) { clickable("Hành trình GPS").fetchSemanticsNodes().isNotEmpty() }
+        clickable("Hành trình GPS").onFirst().performClick()
     }
 
     private fun clickable(text: String, substring: Boolean = false) =

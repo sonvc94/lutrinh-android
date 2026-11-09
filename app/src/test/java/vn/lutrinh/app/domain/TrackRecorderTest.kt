@@ -1,5 +1,9 @@
 package vn.lutrinh.app.domain
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,11 +17,14 @@ import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.usecase.DeleteTrack
 import vn.lutrinh.app.domain.usecase.DeleteTrip
 import vn.lutrinh.app.domain.usecase.FixVerdict
+import vn.lutrinh.app.domain.usecase.StopOutcome
 import vn.lutrinh.app.domain.usecase.TrackMath
 import vn.lutrinh.app.domain.usecase.TrackRecorder
+import vn.lutrinh.app.domain.usecase.TrackRules
 import java.time.LocalDate
 
 /** R16: start → pause/resume → stop, duration without pauses, process-death recovery. */
+@OptIn(ExperimentalCoroutinesApi::class)
 class TrackRecorderTest {
     private val store = FakeStore()
     private val tracks = FakeTrackStore()
@@ -128,6 +135,8 @@ class TrackRecorderTest {
         val delete = DeleteTrack(tracks, recorder)
         val id = (recorder.start("t1") as TrackRecorder.StartResult.Started).track.id
         recorder.onFix(fix(0.0))
+        advance(30)
+        recorder.onFix(fix(0.001))
         assertFalse(delete(id))
         recorder.stop()
         assertTrue(delete(id))
@@ -149,5 +158,48 @@ class TrackRecorderTest {
         tracks.deleteTrack(id)
         assertEquals(FixVerdict.IGNORED, recorder.onFix(fix(0.0)))
         assertNull(recorder.active.value)
+    }
+
+    @Test fun `stopping drops a track with fewer than 2 points or under 50 m and says so`() = runTest {
+        trip()
+        val events = mutableListOf<StopOutcome>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) { recorder.stopped.toList(events) }
+
+        // one point
+        recorder.start("t1"); recorder.onFix(fix(0.0))
+        val onePoint = recorder.stop()!!
+        assertTrue(tracks.tracks.value.isEmpty())
+        // two points 33 m apart (0.0003°)
+        recorder.start("t1"); recorder.onFix(fix(0.0)); advance(30); recorder.onFix(fix(0.0003))
+        recorder.stop()
+        assertTrue(tracks.tracks.value.isEmpty())
+        // two points 111 m apart are kept
+        val keptId = (recorder.start("t1") as TrackRecorder.StartResult.Started).track.id
+        recorder.onFix(fix(0.0)); advance(30); recorder.onFix(fix(0.001))
+        val kept = recorder.stop()!!
+
+        assertEquals(setOf(keptId), tracks.tracks.value.keys)
+        assertEquals(3, events.size)
+        assertTrue(events[0] is StopOutcome.Dropped && (events[0] as StopOutcome.Dropped).track.id == onePoint.id)
+        assertTrue(events[1] is StopOutcome.Dropped)
+        assertEquals(StopOutcome.Saved(kept), events[2])
+        job.cancel()
+    }
+
+    @Test fun `the keep rule needs 2 points and 50 m`() {
+        assertFalse(TrackRules.isWorthKeeping(0, 0.0))
+        assertFalse(TrackRules.isWorthKeeping(1, 500.0))
+        assertFalse(TrackRules.isWorthKeeping(2, 49.9))
+        assertTrue(TrackRules.isWorthKeeping(2, 50.0))
+    }
+
+    @Test fun `recording is offered unless the trip ended before today`() {
+        val today = LocalDate.of(2026, 11, 9)
+        fun trip(end: LocalDate?) = Trip("t", "x", "", LocalDate.of(2025, 10, 20), end, 0, 0)
+        assertTrue(TrackRules.canRecordOn(trip(null), today))
+        assertTrue(TrackRules.canRecordOn(trip(today), today))
+        assertTrue(TrackRules.canRecordOn(trip(today.plusDays(3)), today))
+        assertFalse(TrackRules.canRecordOn(trip(today.minusDays(1)), today))
+        assertFalse(TrackRules.canRecordOn(trip(LocalDate.of(2025, 10, 23)), today))
     }
 }

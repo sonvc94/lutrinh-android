@@ -26,6 +26,7 @@ ported 1:1 from `DisplayFormatTest`); no screen formats km, durations or in-trip
 | Day inside a trip (timeline, suggestions, tracks, step detail, trip map cards) | weekday + dd/MM | "Thứ Hai, 20/10"; with the time "Thứ Hai, 20/10 · 08:10" |
 | Trip dates (list, header, pickers, errors) | "d MMM, yyyy" with year | "20 thg 10 – 23 thg 10, 2025" |
 | Shared page (leaves the app) | weekday + dd/MM/yyyy | "Thứ Hai, 20/10/2025" |
+| Km tile (trip detail) | label "km", a second line names the source: "đường chim bay" (straight line through the steps) or "đã ghi GPS" (sum of the finished tracks, used when it is at least the straight line, R10) | "139 / km / đường chim bay" |
 | Stat order (trip detail, share image, share page; My map keeps its own set in the same order) | điểm dừng, ảnh, km, ngày (My map: chuyến đi, điểm dừng, km) | |
 
 Theme: the app is light-only. The system bars are forced to the light style (dark icons) so the
@@ -34,6 +35,11 @@ clock and icons stay readable on the cream app bar when the device is in dark mo
 bar icons to light while it is open). A dark palette is a separate decision. Library strings (sheet
 "Đóng trang tính", drag handle "Nút kéo", pickers) are Vietnamese whatever the device language
 (`MainActivity.attachBaseContext` sets a Vietnamese configuration on the activity's resources).
+Typography: titles (display, headline and title styles) use **Be Vietnam Pro** (SIL OFL 1.1,
+Regular/Medium/SemiBold/Bold TTFs bundled in `res/font/`, licence in
+`assets/licenses/BeVietnamPro-OFL.txt`; no downloadable-font call, the app is offline); body and
+label styles stay Roboto. Android: `ui/theme/Type.kt` (`AppTypography`); on iOS bundle the same
+TTFs and use them for the title text styles only.
 Every `surfaceContainer*` role of the colour scheme is defined from the palette (cream, limestone), so no card falls back to
 the Material lavender default.
 
@@ -45,14 +51,14 @@ Trip list ──FAB "Chuyến đi mới"─────────────�
    ├──────────────────────────────────────────▶ Trip detail ◀─────────────┘
    │  card ⋮ / long-press → Sửa                  │  ⋮ Sửa ─▶ Trip form (edit) ─save/back─▶ back
    ├──────────────────────────────▶ Trip form    │  ⋮ Xóa ─▶ confirm ─▶ back to list
-   │  card ⋮ → Xóa → confirm                     │  map icon / header expand ─▶ Trip map
-   ├─ globe "Bản đồ của tôi" ─▶ My map           │  FAB "Thêm điểm dừng" ─▶ Step form (create)
-   │       └─ tap trip card ─▶ Trip detail       │  small FAB "Thêm từ ảnh" ─▶ From photos
+   │  card ⋮ → Xóa → confirm                     │  header map / expand ─▶ Trip map
+   ├─ globe "Bản đồ của tôi" ─▶ My map           │  FAB "Thêm" ─▶ "Thêm điểm dừng" ─▶ Step form
+   │       └─ tap trip card ─▶ Trip detail       │            └ "Thêm từ ảnh" ─▶ From photos
    ├─ ⋮ "Bản đồ offline" ─▶ Offline maps         │  tap leg chip ─▶ Leg mode sheet
    ├─ card ⋮ → Chia sẻ chuyến đi ─▶ Share trip   │  share icon "Chia sẻ chuyến đi" ─▶ Share trip
    └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │
                                                  │  tap step ─▶ Step detail
-                                                 │  suggestion "Thêm điểm dừng" ─▶ Step form (create, prefilled)
+                                                 │  suggestion "Tạo điểm dừng ở đây" ─▶ Step form (prefilled)
 From photos ── file picker ─▶ review ── "Chọn trên bản đồ" ─▶ Location picker ─▶ back with point
 From photos ── "Tạo N điểm dừng" ─▶ back to Trip detail (toast "Đã tạo N điểm dừng từ ảnh")
 Step form ── "Chọn trên bản đồ"/"Đổi vị trí" ──▶ Location picker ── "Dùng vị trí này" ─▶ back with point
@@ -63,7 +69,7 @@ Trip map ── top-bar icon "Bản đồ offline" ─▶ Offline maps (with thi
 Share trip ── "Chia sẻ" ─▶ system share sheet │ "Lưu vào máy" ─▶ snackbar "Đã lưu vào …"
 ```
 
-Route strings (Android, kept for deep links later): `trips`, `tripEdit?tripId=`, `trip/{tripId}`,
+Route strings (Android, kept for deep links later): `trips`, `tripEdit?tripId=&record=` (`record=true` after "Tạo chuyến mới và ghi": the saved trip opens and starts recording), `trip/{tripId}?record=`,
 `trip/{tripId}/map`, `trip/{tripId}/stepEdit?stepId=&stopTrack=&stopStart=&stopEnd=&lat=&lng=&title=` (the stop-suggestion arguments are optional, R17), `trip/{tripId}/step/{stepId}`,
 `trip/{tripId}/pick?stepId=&lat=&lng=`, `trip/{tripId}/step/{stepId}/photos?index=`, `myMap`,
 `trip/{tripId}/fromPhotos`, `offline?tripId=`, `trip/{tripId}/share`. The leg mode sheet is a bottom sheet, not a route.
@@ -110,29 +116,53 @@ The picker returns its result to the step form through the previous screen's sav
 ## 3. Trip detail
 
 * **Purpose:** one trip as a timeline.
-* **Content:** header map (220 dp) with numbered pins and the route (R3) and an expand button;
-  title, date range, description; four stat tiles: điểm dừng, ảnh, km (đường chim bay = straight
-  line, R10), ngày; timeline grouped by day ("Ngày 2 · Thứ Bảy, 07/11"), each step with its number,
-  time, note preview and up to a row of photo thumbnails. Between two steps a **leg chip** (mode
-  icon + name in the mode colour, or "Chọn cách di chuyển" when not set, then "· N km") sits on
-  the timeline connector (R12); the header map draws the legs per mode (05-map.md) and the
-  recorded tracks (crimson, 05-map.md "Recorded tracks"). Below the stats, the **"Ghi hành
-  trình" section** (§3b).
-* **Actions:** share icon (label "Chia sẻ chuyến đi") → Share trip (§3d); map icon → Trip map; ⋮ → Sửa / Xóa; tap step → Step detail; tap a leg chip → Leg
-  mode sheet; FAB "Thêm điểm dừng"; small FAB above it (photo icon, label "Thêm từ ảnh") → From
-  photos.
+* **Order (top to bottom):** header map preview (180 dp, numbered pins, route R3, expand button);
+  title, date range, description; four stat tiles; the collapsed **"Hành trình GPS" card** (§3b);
+  then the timeline, so "Ngày 1" is on the first screen without scrolling.
+* **Content:** stat tiles điểm dừng, ảnh, km, ngày; the km tile's label is "km" with its source
+  on a second line ("đường chim bay", or "đã ghi GPS" when finished tracks cover the trip, R10).
+  Timeline grouped by day ("Ngày 2 · Thứ Bảy, 07/11"), each step with its number, time, note
+  preview and up to a row of photo thumbnails. Between two steps a **leg chip** (mode icon + name
+  in the mode colour, or "Chọn cách di chuyển" when not set, then "· N km") sits on the timeline
+  connector (R12); the header map draws the legs per mode (05-map.md) and the recorded tracks
+  (crimson, 05-map.md "Recorded tracks").
+* **Top bar:** back, share icon ("Chia sẻ chuyến đi") and ⋮. The trip title appears in the bar only
+  after the header has scrolled away (it is not shown twice); there is one entry to the Trip map
+  (the header map and its expand button), no map icon in the bar.
+* **Actions:** share icon → Share trip (§3d); header map / expand → Trip map; ⋮ → Sửa / Xóa; tap
+  step → Step detail; tap a leg chip → Leg mode sheet; **one FAB** "Thêm" that shrinks to "+" when
+  the list scrolls down and opens a small menu: "Thêm điểm dừng" → Step form, "Thêm từ ảnh" → From
+  photos. The FAB floats over the list, so while scrolling it can pass over a card; at rest at the
+  top of the list it covers no button.
 * **Empty:** "Chưa có điểm dừng" + text + button "Thêm điểm dừng"; the map shows Vietnam overview.
-* **Screens:** `img/03` (empty state is the same layout), `img/08-trip-detail.png`,
-  `img/14-photos-after-restart.png`, `img/28-upgrade-after-v2.png` (leg chips),
-  `img/30-from-photos-result.png` (both FABs).
+* **Screens:** `img/trip-detail-declutter/trip-detail-collapsed.png` (timeline first, collapsed GPS
+  card, km tile), `img/trip-detail-declutter/gps-card-expanded.png`,
+  `img/trip-detail-declutter/gps-card-scrolled.png` (title in the bar, FAB as "+"),
+  `img/03` (empty state), `img/08-trip-detail.png` (older layout), `img/14-photos-after-restart.png`,
+  `img/28-upgrade-after-v2.png` (leg chips), `img/30-from-photos-result.png` (older two-FAB layout).
 * **Inspired by:** docs/22 §1.1 (trip opens on its map with step cards, drawer with stats).
   **Changed:** a scrolling timeline with the map as a header instead of a map-first screen with a
-  drawer; day numbers are computed from the trip start date.
+  drawer; day numbers are computed from the trip start date; GPS tools are folded into one card
+  so the timeline leads.
 
 ## 3b. Record a track — "Ghi hành trình" (R16)
 
-* **Where:** a section of the Trip detail right under the stats, and a compact floating control
-  at the top right of the Trip map (§4). Both drive the same recording.
+* **Where:** the **"Hành trình GPS" card** of the Trip detail (under the stats, above the
+  timeline), and a compact floating control at the top right of the Trip map (§4). Both drive the
+  same recording.
+* **The card:** collapsed by default (chevron toggles; it opens by itself when the user arrives
+  from "Tạo chuyến mới và ghi"). The header shows "Hành trình GPS" and one summary line: live
+  "Đang ghi · 0:45 · 120 m" while recording, "Chưa ghi" when it has nothing, else counts
+  "N hành trình · N gợi ý" (zero parts omitted). Opening it scrolls the card to the top of the screen (so the FAB stays clear of its buttons). Expanded it holds, in order, the record control,
+  the track list and the stop suggestions (§3c).
+* **Ended trips (R16):** when the trip's end date is before today there is no "Ghi hành trình"
+  (detail card and Trip map); a hint "Chuyến đi đã kết thúc: không ghi thêm hành trình vào chuyến
+  này." and the tonal button **"Tạo chuyến mới và ghi"** take its place → Trip form (create) →
+  on save the new trip opens and recording starts (the usual permission flow). Ongoing trips (no
+  end date) and trips ending today or later can record.
+* **Stop feedback:** every stop (button or notification action) shows a snackbar, app-wide: "Đã
+  lưu hành trình 12,3 km", or, when the track had fewer than 2 points or under 50 m, "Hành trình
+  quá ngắn (dưới 50 m) nên không được lưu", and that track is deleted (R16).
 * **Idle:** a short hint ("Bấm "Ghi hành trình" khi lên đường: …", detail only) and the tonal
   button **"Ghi hành trình"** (route icon). Tap → permission flow of R16: explanation dialog
   "Ghi hành trình bằng GPS" (Tiếp tục / Hủy) → system location prompt → (Android 13+)
@@ -151,7 +181,9 @@ The picker returns its result to the step form through the previous screen's sav
   ("Đang ghi" / "Tạm dừng" in red, "Dừng do ứng dụng bị đóng khi đang ghi" for an interrupted
   track). Ended tracks have a delete icon ("Xóa hành trình") → confirm "Xóa hành trình này?" with
   time, distance and point count → deleted with its points. The open track cannot be deleted.
-* **Screens:** `img/gps-track/01-recording-notification.png`,
+* **Screens:** `img/trip-detail-declutter/gps-card-expanded.png` (ended trip: hint + "Tạo chuyến
+  mới và ghi", track row, suggestions), `img/trip-detail-declutter/trip-map-ended.png`,
+  `img/gps-track/01-recording-notification.png`,
   `img/gps-track/02-trip-detail-recording.png`, `img/gps-track/03-trip-map-track.png`,
   `img/gps-track/04-airplane-trip-map-track.png`, `img/gps-track/05-track-list-interrupted.png`,
   `img/gps-track/06-my-map-track.png`.
@@ -162,18 +194,20 @@ The picker returns its result to the step form through the previous screen's sav
 
 ## 3c. Stop suggestions — "Gợi ý điểm dừng" (R17)
 
-* **Where:** Trip detail, in the "Ghi hành trình" section right under the track list ("Hành trình
-  đã ghi"); hidden when there is nothing to suggest. On the Trip detail header map and the Trip
+* **Where:** Trip detail, inside the "Hành trình GPS" card (§3b) right under the track list
+  ("Hành trình đã ghi"), counted in the card's header; hidden when there is nothing to suggest. On the Trip detail header map and the Trip
   map each suggestion is also a marker: a white dot with a crimson ring on a soft crimson halo
   (track colour, so it reads as "from the track", distinct from the numbered step pins;
   05-map.md). Markers are not tappable.
 * **Content:** "Gợi ý điểm dừng (N)", the hint "Nơi hành trình đã dừng từ 20 phút trở lên mà
   chưa có điểm dừng.", then one card per suggestion, oldest first: pin icon,
-  "<day> · HH:mm–HH:mm", "Dừng 35 phút · 2 ảnh chụp lúc này" (or "Không có ảnh chụp lúc này"),
-  then " · N ảnh trong máy" when the app may read the phone's gallery (R19: gallery photos of the
-  stop window not yet in the trip; "0 ảnh trong máy" too; nothing without access),
-  the coordinates; buttons "Bỏ qua" (text) and "Thêm điểm dừng" (tonal).
-* **Thêm điểm dừng:** opens the Step form (§5) as a new step prefilled with "Điểm dừng HH:mm",
+  "<day> · HH:mm–HH:mm", "Dừng 35 phút · 2 ảnh chụp lúc này" (only non-zero counts are shown),
+  then " · N ảnh trong thư viện" when the app may read the phone's gallery (R19: gallery photos of
+  the stop window not yet in the trip; omitted at 0 or without access), the place line
+  "gần <nearest step title>, 9,7 km" (track-distance format; the coordinates only when the trip
+  has no step); a neutral outline (not the track red); buttons "Bỏ qua" (text) and
+  "Tạo điểm dừng ở đây" (tonal).
+* **Tạo điểm dừng ở đây:** opens the Step form (§5) as a new step prefilled with "Điểm dừng HH:mm",
   the stay's date/time and centre (shown on the location card; "Đổi vị trí" opens the picker there),
   plus the section "Ảnh chụp trong lúc dừng" (§5, R19).
   Saving adds the step to the timeline as usual and the card disappears (a stored `added`
@@ -433,7 +467,11 @@ The picker returns its result to the step form through the previous screen's sav
 | 05-location-picker.png | picker on the OpenFreeMap basemap, pin near Du Già |
 | 06-step-create.png | the empty new-step form (name, location, date and time, note, photos) |
 | 07-photo-picker.png | Android Photo Picker with 3 selected |
-| 08-trip-detail.png | detail: header map with route, stats (điểm dừng, ảnh, km, ngày), track row, suggestions |
+| 08-trip-detail.png | detail: header map with route, stats (điểm dừng, ảnh, km, ngày), track row, suggestions (layout before the declutter batch) |
+| trip-detail-declutter/trip-detail-collapsed.png | Hà Giang detail: stats with "km / đường chim bay", collapsed "Hành trình GPS · 1 hành trình · 2 gợi ý", "Ngày 1" visible, one FAB "Thêm", Be Vietnam Pro title |
+| trip-detail-declutter/gps-card-expanded.png | the card open on an ended trip: hint, "Tạo chuyến mới và ghi", track row, suggestions |
+| trip-detail-declutter/gps-card-scrolled.png | card just opened (scrolled to the top): title in the bar, FAB shrunk to "+", suggestion cards "gần TP Hà Giang, 9,7 km" with "Tạo điểm dừng ở đây" |
+| trip-detail-declutter/trip-map-ended.png | Hà Giang trip map: "Tạo chuyến mới và ghi" instead of "Ghi hành trình" |
 | 09-trip-map-route.png | full trip map, numbered pins joined by the route, legs and track, card carousel |
 | 10-step-detail.png | step detail with photo, mini map |
 | 11-step-edit.png | edit step: mini map, location, date and time, note, photo with cover label |

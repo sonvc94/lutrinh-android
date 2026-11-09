@@ -56,12 +56,15 @@
     <!-- Trip detail -->
     <string name="trip_detail_steps">Hành trình</string>
     <string name="trip_open_map">Xem bản đồ</string>
+    <string name="trip_fab_add">Thêm</string>
     <string name="trip_add_step">Thêm điểm dừng</string>
     <string name="trip_no_steps_title">Chưa có điểm dừng</string>
     <string name="trip_no_steps_body">Thêm nơi bạn đã ghé — chọn vị trí trên bản đồ, ghi chú và đính kèm ảnh.</string>
     <string name="stat_steps">điểm dừng</string>
     <string name="stat_photos">ảnh</string>
-    <string name="stat_km">km (đường chim bay)</string>
+    <string name="stat_km">km</string>
+    <string name="stat_km_straight">đường chim bay</string>
+    <string name="stat_km_gps">đã ghi GPS</string>
     <string name="stat_days">ngày</string>
     <string name="day_label">Ngày %1$d · %2$s</string>
 
@@ -190,6 +193,16 @@
     <string name="track_section_empty">Bấm \"Ghi hành trình\" khi lên đường: Lữ Trình vẽ lại đường bạn đi bằng GPS, kể cả khi tắt màn hình.</string>
     <string name="track_interrupted">Dừng do ứng dụng bị đóng khi đang ghi</string>
     <string name="track_points">%1$d điểm GPS</string>
+    <string name="gps_card_title">Hành trình GPS</string>
+    <string name="gps_card_expand">Mở Hành trình GPS</string>
+    <string name="gps_card_collapse">Thu gọn Hành trình GPS</string>
+    <string name="gps_card_empty">Chưa ghi</string>
+    <string name="gps_card_tracks">%1$d hành trình</string>
+    <string name="gps_card_suggestions">%1$d gợi ý</string>
+    <string name="track_saved">Đã lưu hành trình %1$s</string>
+    <string name="track_dropped">Hành trình quá ngắn (dưới 50 m) nên không được lưu</string>
+    <string name="track_trip_ended">Chuyến đi đã kết thúc: không ghi thêm hành trình vào chuyến này.</string>
+    <string name="track_new_trip_and_record">Tạo chuyến mới và ghi</string>
     <string name="track_delete">Xóa hành trình</string>
     <string name="track_delete_confirm_title">Xóa hành trình này?</string>
     <string name="track_delete_confirm_body">Hành trình ghi lúc %1$s (%2$s, %3$d điểm GPS) sẽ bị xóa khỏi máy. Không thể hoàn tác.</string>
@@ -209,13 +222,13 @@
     <!-- Stop suggestions from recorded tracks (R17) -->
     <string name="stop_suggest_title">Gợi ý điểm dừng</string>
     <string name="stop_suggest_hint">Nơi hành trình đã dừng từ 20 phút trở lên mà chưa có điểm dừng.</string>
-    <string name="stop_suggest_add">Thêm điểm dừng</string>
+    <string name="stop_suggest_add">Tạo điểm dừng ở đây</string>
     <string name="stop_suggest_dismiss">Bỏ qua</string>
     <string name="stop_suggest_default_title">Điểm dừng %1$s</string>
     <string name="stop_suggest_duration">Dừng %1$s</string>
     <string name="stop_suggest_photos">%1$d ảnh chụp lúc này</string>
-    <string name="stop_suggest_no_photos">Không có ảnh chụp lúc này</string>
-    <string name="stop_suggest_gallery">%1$d ảnh trong máy</string>
+    <string name="stop_suggest_near">gần %1$s, %2$s</string>
+    <string name="stop_suggest_gallery">%1$d ảnh trong thư viện</string>
     <string name="stop_photos_title">Ảnh chụp trong lúc dừng</string>
     <string name="stop_photos_window">Ảnh trong máy chụp trong khoảng %1$s (từ 10 phút trước đến 10 phút sau lúc dừng)</string>
     <string name="stop_photos_explain">Lữ Trình có thể tìm trong thư viện ảnh của máy những ảnh bạn chụp lúc dừng ở đây. Ảnh chỉ được sao chép vào chuyến đi khi bạn bấm Lưu; không có gì được gửi đi.</string>

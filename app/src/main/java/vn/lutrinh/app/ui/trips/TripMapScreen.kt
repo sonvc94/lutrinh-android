@@ -63,6 +63,8 @@ fun TripMapScreen(
     onBack: () -> Unit,
     onOpenStep: (String) -> Unit,
     onOpenOffline: () -> Unit,
+    /** "Tạo chuyến mới và ghi" (R16, ended trips). */
+    onNewTripAndRecord: () -> Unit = {},
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -117,6 +119,7 @@ fun TripMapScreen(
                 onPause = { vm.pauseRecording() }, onResume = { vm.resumeRecording() }, onStop = { vm.stopRecording() },
                 modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
                 compact = true,
+                ended = !detail.canRecord, onNewTripAndRecord = onNewTripAndRecord,
             )
             if (detail.steps.isEmpty()) {
                 Surface(

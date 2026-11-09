@@ -60,5 +60,5 @@ private val AppShapes = Shapes(
 
 @Composable
 fun LuTrinhTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Colors, shapes = AppShapes, content = content)
+    MaterialTheme(colorScheme = Colors, typography = AppTypography, shapes = AppShapes, content = content)
 }

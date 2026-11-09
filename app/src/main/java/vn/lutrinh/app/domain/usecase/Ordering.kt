@@ -2,6 +2,7 @@ package vn.lutrinh.app.domain.usecase
 
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.Trip
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -43,14 +44,34 @@ object Geo {
         points.zipWithNext().sumOf { (a, b) -> distanceKm(a, b) }
 }
 
-data class TripStats(val stepCount: Int, val photoCount: Int, val distanceKm: Double, val days: Long?)
+/** Where [TripStats.distanceKm] comes from. */
+enum class DistanceSource { STRAIGHT_LINE, GPS }
 
-fun statsOf(trip: Trip, steps: List<Step>): TripStats = TripStats(
-    stepCount = steps.size,
-    photoCount = steps.sumOf { it.photos.size },
-    distanceKm = Geo.routeLengthKm(routeOf(steps)),
-    days = trip.endDate?.let { ChronoUnit.DAYS.between(trip.startDate, it) + 1 },
+data class TripStats(
+    val stepCount: Int,
+    val photoCount: Int,
+    val distanceKm: Double,
+    val days: Long?,
+    val distanceSource: DistanceSource = DistanceSource.STRAIGHT_LINE,
 )
+
+/**
+ * Trip numbers. The distance is the straight line between steps (R3), unless the ended GPS tracks
+ * together are at least as long as that line: then they cover the trip and their length (the
+ * real road) is shown instead (docs/03 "Trip detail"). Open tracks are not counted.
+ */
+fun statsOf(trip: Trip, steps: List<Step>, tracks: List<Track> = emptyList()): TripStats {
+    val straightKm = Geo.routeLengthKm(routeOf(steps))
+    val gpsKm = tracks.filter { !it.isOpen }.sumOf { it.distanceM } / 1000
+    val useGps = gpsKm > 0 && gpsKm >= straightKm
+    return TripStats(
+        stepCount = steps.size,
+        photoCount = steps.sumOf { it.photos.size },
+        distanceKm = if (useGps) gpsKm else straightKm,
+        days = trip.endDate?.let { ChronoUnit.DAYS.between(trip.startDate, it) + 1 },
+        distanceSource = if (useGps) DistanceSource.GPS else DistanceSource.STRAIGHT_LINE,
+    )
+}
 
 /** R6: defaults for a new step. */
 object NewStepDefaults {
