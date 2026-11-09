@@ -157,8 +157,16 @@ class TripFlowsTest {
         waitForText("Mèo Vạc") // the Hà Giang loop's places
         waitForText("Ninh Bình")
         waitForText("Cúc Phương")
-        waitForText("Ước tính ~")
-        clickable("Tải về").fetchSemanticsNodes().let { assert(it.size >= 2) { "a download button per region" } }
+        // Each region shows its estimate ("Tải về") or, when the device already has it, its state.
+        val statuses = listOf("Ước tính ~", "Đã tải · ", "Đang tải ", "Đã tạm dừng · ", "Mất mạng · ")
+        try {
+            rule.waitUntil(TIMEOUT) {
+                statuses.sumOf { rule.onAllNodes(hasText(it, substring = true)).fetchSemanticsNodes().size } >= 2
+            }
+        } catch (e: ComposeTimeoutException) {
+            rule.onRoot(useUnmergedTree = false).printToLog("TripFlowsTest")
+            throw AssertionError("No status line for both ready-made regions", e)
+        }
     }
 
     @Test
