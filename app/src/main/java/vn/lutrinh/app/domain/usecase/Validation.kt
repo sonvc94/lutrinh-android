@@ -36,6 +36,8 @@ data class StepInput(
     val arrivedAt: LocalDateTime,
     /** Photo file names in display order; the first one is the step cover. */
     val photoFiles: List<String>,
+    /** EXIF capture time of newly imported files (R17); files not in the map keep what they had. */
+    val photoTakenAt: Map<String, LocalDateTime> = emptyMap(),
 )
 
 enum class StepError {

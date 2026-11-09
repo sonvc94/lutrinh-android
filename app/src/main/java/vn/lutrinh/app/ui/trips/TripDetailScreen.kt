@@ -1,5 +1,13 @@
 package vn.lutrinh.app.ui.trips
 
+import vn.lutrinh.app.domain.model.Dwell
+import vn.lutrinh.app.domain.model.StopDecision
+import vn.lutrinh.app.domain.model.StopDecisionKind
+import vn.lutrinh.app.domain.model.StopSuggestion
+import vn.lutrinh.app.domain.usecase.StopSuggestions
+import vn.lutrinh.app.map.StopMarker
+import vn.lutrinh.app.ui.tracks.StopSuggestionSection
+import java.time.ZoneId
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -111,11 +119,16 @@ data class TripDetail(
     val tracks: List<Track> = emptyList(),
     /** The tracks as drawable lines (one per segment, simplified). */
     val trackLines: List<TrackLine> = emptyList(),
+    /** Places a finished track stayed without a step yet (R17), oldest first. */
+    val stopSuggestions: List<StopSuggestion> = emptyList(),
 ) {
     /** legs[i] = steps[i] -> steps[i+1] (R12). */
     val legs: List<Leg> = legsOf(steps)
     val legModes: List<TransportMode?> get() = legs.map { it.mode }
 }
+
+/** Stop suggestions as map markers (R17, docs/05-map.md "Stop suggestions"). */
+fun TripDetail.stopMarkers(): List<StopMarker> = stopSuggestions.map { StopMarker(it.key, it.dwell.center) }
 
 fun List<Step>.toMarkers(highlightId: String? = null): List<MapMarker> =
     mapIndexed { i, s -> MapMarker(s.id, "${i + 1}", s.location, s.id == highlightId) }
@@ -131,13 +144,25 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
         points.groupBy { it.trackId }.flatMap { (id, pts) -> TrackMath.displayLines(pts).map { TrackLine(id, it, live = id == liveId) } }
     }.flowOn(Dispatchers.Default)
 
+    /**
+     * R17: recomputed from the stored points whenever a track ends or is deleted, a step changes
+     * or the user answers a suggestion (all are observed tables).
+     */
+    private val stopSuggestions = combine(
+        c.tracks.observeTracks(tripId), c.tracks.observePoints(tripId), c.steps.observeSteps(tripId), c.stopDecisions.observeDecisions(tripId),
+    ) { tracks, points, steps, decisions ->
+        StopSuggestions.build(tracks, points, steps, decisions, ZoneId.systemDefault())
+    }.distinctUntilChanged().flowOn(Dispatchers.Default)
+
     val state: StateFlow<Loadable<TripDetail>> =
-        combine(c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observeTracks(tripId), trackLines) { trip, steps, tracks, lines ->
+        combine(
+            c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observeTracks(tripId), trackLines, stopSuggestions,
+        ) { trip, steps, tracks, lines, suggestions ->
             if (trip == null) {
                 Loadable.Missing
             } else {
                 val ordered = steps.inTimelineOrder()
-                Loadable.Ready(TripDetail(trip, ordered, statsOf(trip, ordered), tracks, lines))
+                Loadable.Ready(TripDetail(trip, ordered, statsOf(trip, ordered), tracks, lines, suggestions))
             }
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
@@ -150,6 +175,12 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
     fun resumeRecording() = c.appScope.launch { c.recorder.resume() }
     fun stopRecording() = c.appScope.launch { c.recorder.stop() }
     fun deleteTrack(trackId: String) = viewModelScope.launch { c.deleteTrack(trackId) }
+
+    /** "Bỏ qua" (R17): hidden for good, also after a restart. */
+    fun dismissStop(s: StopSuggestion) = viewModelScope.launch {
+        val d = s.dwell
+        c.stopDecisions.saveDecision(StopDecision(d.trackId, d.startAt, d.endAt, StopDecisionKind.DISMISSED, null, c.clock.nowMillis()))
+    }
 
     fun delete() = viewModelScope.launch {
         c.deleteTrip(tripId)
@@ -164,6 +195,8 @@ fun TripDetailScreen(
     onEdit: () -> Unit,
     onOpenMap: () -> Unit,
     onAddStep: () -> Unit,
+    /** "Thêm điểm dừng" on a stop suggestion (R17): the step editor prefilled from [Dwell]. */
+    onAddFromStop: (Dwell, String) -> Unit,
     onAddFromPhotos: () -> Unit,
     onOpenStep: (String) -> Unit,
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
@@ -235,6 +268,11 @@ fun TripDetailScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                         TrackList(s.value.tracks, onDelete = { vm.deleteTrack(it) })
+                        StopSuggestionSection(
+                            s.value.stopSuggestions,
+                            onAdd = { sg, title -> onAddFromStop(sg.dwell, title) },
+                            onDismiss = { vm.dismissStop(it) },
+                        )
                     }
                 },
             )
@@ -271,7 +309,9 @@ private fun TripDetailContent(
     ) {
         item {
             Box(Modifier.fillMaxWidth().height(220.dp)) {
-                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize(), tracks = d.trackLines)
+                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize(), tracks = d.trackLines,
+                    stopSuggestions = d.stopMarkers(),
+                )
                 Box(Modifier.fillMaxSize().clickable(onClick = onOpenMap))
                 SmallFloatingActionButton(
                     onClick = onOpenMap,

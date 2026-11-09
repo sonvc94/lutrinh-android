@@ -201,4 +201,14 @@
     <string name="track_channel_description">Thông báo trong lúc ghi hành trình bằng GPS</string>
     <string name="track_notif_recording">Đang ghi hành trình</string>
     <string name="track_notif_paused">Đã tạm dừng ghi hành trình</string>
+
+    <!-- Stop suggestions from recorded tracks (R17) -->
+    <string name="stop_suggest_title">Gợi ý điểm dừng</string>
+    <string name="stop_suggest_hint">Nơi hành trình đã dừng từ 20 phút trở lên mà chưa có điểm dừng.</string>
+    <string name="stop_suggest_add">Thêm điểm dừng</string>
+    <string name="stop_suggest_dismiss">Bỏ qua</string>
+    <string name="stop_suggest_default_title">Điểm dừng %1$s</string>
+    <string name="stop_suggest_duration">Dừng %1$s</string>
+    <string name="stop_suggest_photos">%1$d ảnh chụp lúc này</string>
+    <string name="stop_suggest_no_photos">Không có ảnh chụp lúc này</string>
 </resources>

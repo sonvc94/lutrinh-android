@@ -65,6 +65,8 @@ data class PhotoEntity(
     @ColumnInfo(name = "file_name") val fileName: String,
     val position: Int,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    /** EXIF capture time, "yyyy-MM-ddTHH:mm" local, or null (added in DB version 4, R17). */
+    @ColumnInfo(name = "taken_at") val takenAt: LocalDateTime? = null,
 )
 
 data class StepWithPhotos(
@@ -138,4 +140,33 @@ data class TrackPointEntity(
     @ColumnInfo(name = "accuracy_m") val accuracyM: Float?,
     @ColumnInfo(name = "altitude_m") val altitudeM: Double?,
     @ColumnInfo(name = "speed_mps") val speedMps: Float?,
+)
+
+/**
+ * The user's answer to a stop suggestion (R17, DB version 4). A suggestion itself is never
+ * stored: it is recomputed from the track's points; a decision is matched to it by track and
+ * overlapping time window. Goes with its track (cascade).
+ */
+@Entity(
+    tableName = "stop_decisions",
+    primaryKeys = ["track_id", "start_at"],
+    foreignKeys = [
+        ForeignKey(
+            entity = TrackEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["track_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("track_id")],
+)
+data class StopDecisionEntity(
+    @ColumnInfo(name = "track_id") val trackId: String,
+    @ColumnInfo(name = "start_at") val startAt: Long,
+    @ColumnInfo(name = "end_at") val endAt: Long,
+    /** StopDecisionKind.code */
+    val decision: String,
+    /** Step created from the suggestion ("added"); no foreign key: the step may be deleted later. */
+    @ColumnInfo(name = "step_id") val stepId: String?,
+    @ColumnInfo(name = "decided_at") val decidedAt: Long,
 )

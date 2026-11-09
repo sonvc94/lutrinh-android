@@ -1,5 +1,6 @@
 package vn.lutrinh.app.ui
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
@@ -12,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import vn.lutrinh.app.R
+import vn.lutrinh.app.domain.model.Dwell
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.ui.offline.OfflineMapsScreen
 import vn.lutrinh.app.ui.photos.PhotoViewerScreen
@@ -32,7 +34,9 @@ object Routes {
     const val TRIP_EDIT = "tripEdit?tripId={tripId}"
     const val TRIP = "trip/{tripId}"
     const val TRIP_MAP = "trip/{tripId}/map"
-    const val STEP_EDIT = "trip/{tripId}/stepEdit?stepId={stepId}"
+    const val STEP_EDIT =
+        "trip/{tripId}/stepEdit?stepId={stepId}&stopTrack={stopTrack}&stopStart={stopStart}&stopEnd={stopEnd}" +
+            "&lat={lat}&lng={lng}&title={title}"
     const val STEP = "trip/{tripId}/step/{stepId}"
     const val PICKER = "trip/{tripId}/pick?stepId={stepId}&lat={lat}&lng={lng}"
     const val PHOTOS = "trip/{tripId}/step/{stepId}/photos?index={index}"
@@ -44,6 +48,10 @@ object Routes {
     fun tripMap(tripId: String) = "trip/$tripId/map"
     fun stepEdit(tripId: String, stepId: String? = null) =
         if (stepId == null) "trip/$tripId/stepEdit" else "trip/$tripId/stepEdit?stepId=$stepId"
+    /** New step prefilled from a stop suggestion (R17). */
+    fun stepFromStop(tripId: String, d: Dwell, title: String) =
+        "trip/$tripId/stepEdit?stopTrack=${Uri.encode(d.trackId)}&stopStart=${d.startAt}&stopEnd=${d.endAt}" +
+            "&lat=${d.center.latitude}&lng=${d.center.longitude}&title=${Uri.encode(title)}"
     fun step(tripId: String, stepId: String) = "trip/$tripId/step/$stepId"
     fun picker(tripId: String, stepId: String?, at: GeoPoint?) = buildString {
         append("trip/$tripId/pick?")
@@ -102,6 +110,7 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onEdit = { nav.navigate(Routes.tripEdit(tripId)) },
                 onOpenMap = { nav.navigate(Routes.tripMap(tripId)) },
                 onAddStep = { nav.navigate(Routes.stepEdit(tripId)) },
+                onAddFromStop = { dwell, title -> nav.navigate(Routes.stepFromStop(tripId, dwell, title)) },
                 onAddFromPhotos = { nav.navigate(Routes.fromPhotos(tripId)) },
                 onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
             )
@@ -114,7 +123,11 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onOpenOffline = { nav.navigate(Routes.offline(tripId)) },
             )
         }
-        composable(Routes.STEP_EDIT, arguments = listOf(required("tripId"), optional("stepId"))) { entry ->
+        composable(
+            Routes.STEP_EDIT,
+            arguments = listOf(required("tripId"), optional("stepId")) +
+                listOf("stopTrack", "stopStart", "stopEnd", "lat", "lng", "title").map { optional(it) },
+        ) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!
             val stepId = entry.arguments?.getString("stepId")
             val picked by entry.savedStateHandle.getStateFlow<String?>(PICKED_LOCATION, null).collectAsState()

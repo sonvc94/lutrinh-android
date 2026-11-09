@@ -79,12 +79,15 @@ import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.StopDecision
+import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
 import vn.lutrinh.app.domain.usecase.SaveResult
 import vn.lutrinh.app.domain.usecase.StepError
 import vn.lutrinh.app.domain.usecase.StepInput
+import vn.lutrinh.app.domain.usecase.StopSuggestions
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
 import vn.lutrinh.app.map.MapMarker
 import vn.lutrinh.app.map.TripMap
@@ -102,6 +105,7 @@ import vn.lutrinh.app.ui.trips.DatePickDialog
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 
 data class StepForm(
     val loading: Boolean = true,
@@ -126,11 +130,17 @@ data class StepForm(
 class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) : ViewModel() {
     val tripId: String = checkNotNull(handle["tripId"])
     val stepId: String? = handle.get<String>("stepId")
+
+    /** Set when the editor was opened from "Thêm điểm dừng" on a stop suggestion (R17). */
+    private val fromStop: StopPrefill? = StopPrefill.from(handle)
     private val _form = MutableStateFlow(StepForm())
     val form = _form.asStateFlow()
 
     /** Files copied during this editing session; deleted again unless the step is saved with them. */
     private val importedThisSession = mutableSetOf<String>()
+
+    /** EXIF capture time of the files imported in this session (R17). */
+    private val takenAtByFile = mutableMapOf<String, LocalDateTime>()
     private var finished = false
 
     init {
@@ -144,7 +154,19 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
             }
             _form.update {
                 if (step != null) it.fromStep(trip, step)
-                else {
+                else if (fromStop != null) {
+                    // R17: location = the stay's centre, arrival = its start, title = "Điểm dừng HH:mm".
+                    val arrival = StopSuggestions.localMinute(fromStop.startAt, ZoneId.systemDefault())
+                    it.copy(
+                        loading = false,
+                        trip = trip,
+                        title = fromStop.title,
+                        location = fromStop.location,
+                        date = arrival.toLocalDate(),
+                        time = arrival.toLocalTime(),
+                        suggestedLocation = fromStop.location,
+                    )
+                } else {
                     val arrival = NewStepDefaults.arrival(trip, steps, LocalDateTime.now())
                     it.copy(
                         loading = false,
@@ -179,9 +201,15 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
         viewModelScope.launch {
             var failed = 0
             val added = mutableListOf<String>()
-            for (uri in uris) {
+            // EXIF date of the picked files, read before import: the stored copy has no EXIF (R17).
+            val meta = runCatching { c.photoMeta.read(uris) }.getOrDefault(emptyList())
+            for ((i, uri) in uris.withIndex()) {
                 val name = c.photos.import(uri)
-                if (name == null) failed++ else { added += name; importedThisSession += name }
+                if (name == null) failed++ else {
+                    added += name
+                    importedThisSession += name
+                    meta.getOrNull(i)?.takenAt?.let { takenAtByFile[name] = it }
+                }
             }
             _form.update { it.copy(importing = false, importFailed = failed) }
             edit { copy(photos = photos + added) }
@@ -194,10 +222,15 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
 
     fun save() = viewModelScope.launch {
         val f = _form.value
-        val input = StepInput(f.title, f.note, f.location, LocalDateTime.of(f.date, f.time), f.photos)
+        val input = StepInput(f.title, f.note, f.location, LocalDateTime.of(f.date, f.time), f.photos, takenAtByFile.toMap())
         when (val r = c.saveStep(tripId, stepId, input)) {
             is SaveResult.Saved -> {
                 finished = true
+                fromStop?.let { stop ->
+                    c.stopDecisions.saveDecision(
+                        StopDecision(stop.trackId, stop.startAt, stop.endAt, StopDecisionKind.ADDED, r.id, c.clock.nowMillis()),
+                    )
+                }
                 c.photos.delete(importedThisSession - f.photos.toSet())
                 _form.update { it.copy(savedId = r.id, dirty = false) }
             }
@@ -214,6 +247,26 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
         if (!finished && importedThisSession.isNotEmpty()) {
             val leftovers = importedThisSession.toList()
             CoroutineScope(Dispatchers.IO).launch { c.photos.delete(leftovers) }
+        }
+    }
+}
+
+/** Values passed by "Thêm điểm dừng" through the navigation arguments (Routes.stepFromStop). */
+data class StopPrefill(
+    val trackId: String,
+    val startAt: Long,
+    val endAt: Long,
+    val location: GeoPoint,
+    val title: String,
+) {
+    companion object {
+        fun from(handle: SavedStateHandle): StopPrefill? {
+            val track = handle.get<String>("stopTrack") ?: return null
+            val start = handle.get<String>("stopStart")?.toLongOrNull() ?: return null
+            val end = handle.get<String>("stopEnd")?.toLongOrNull() ?: return null
+            val lat = handle.get<String>("lat")?.toDoubleOrNull() ?: return null
+            val lng = handle.get<String>("lng")?.toDoubleOrNull() ?: return null
+            return StopPrefill(track, start, end, GeoPoint(lat, lng), handle.get<String>("title").orEmpty())
         }
     }
 }

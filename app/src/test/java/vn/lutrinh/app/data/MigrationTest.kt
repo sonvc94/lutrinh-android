@@ -19,12 +19,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import vn.lutrinh.app.data.local.AppDatabase
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.StopDecision
+import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackPoint
 import vn.lutrinh.app.domain.model.TrackStatus
 import vn.lutrinh.app.domain.model.TransportMode
 import java.io.File
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 /**
  * Builds a database exactly as version 1 created it (SQL from app/schemas/.../1.json, the file
@@ -133,6 +136,50 @@ class MigrationTest {
         trips.deleteTrip("t1")
         assertNull(tracks.getTrack("k1"))
         assertTrue(tracks.observeAllPoints().first().isEmpty())
+    }
+
+    @Test fun version3UpgradesWithPhotoTimesAndStopDecisionsAndKeepsTracks() = runTest {
+        createVersion(3)
+        SQLiteDatabase.openDatabase(ctx.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.insert("tracks", null, ContentValues().apply {
+                put("id", "k1"); put("trip_id", "t1"); put("status", "ended"); put("started_at", 10L); put("ended_at", 20L)
+                put("active_ms", 10L); put("segment", 0); put("distance_m", 120.0); put("point_count", 2); put("interrupted", 0)
+                put("created_at", 10L); put("updated_at", 20L)
+            })
+            listOf(11L to 22.82, 19L to 22.821).forEach { (t, lat) ->
+                db.insert("track_points", null, ContentValues().apply {
+                    put("track_id", "k1"); put("segment", 0); put("recorded_at", t); put("latitude", lat); put("longitude", 104.98)
+                })
+            }
+        }
+        val db = open()
+        val trips = RoomTripRepository(db)
+        val steps = RoomStepRepository(db)
+        val tracks = RoomTrackRepository(db)
+        val decisions = RoomStopDecisionRepository(db)
+
+        // Everything survives; existing photos have no capture time.
+        assertEquals(listOf("s1", "s2"), steps.getSteps("t1").map { it.id })
+        val photo = steps.getSteps("t1")[1].photos.single()
+        assertEquals("a.jpg", photo.fileName)
+        assertNull(photo.takenAt)
+        assertEquals(2, tracks.getTrack("k1")!!.pointCount)
+        assertEquals(2, tracks.observePoints("t1").first().size)
+        assertTrue(decisions.observeDecisions("t1").first().isEmpty())
+
+        // photos.taken_at is writable and read back (minute precision).
+        val s2 = steps.getStep("s2")!!
+        val taken = LocalDateTime.of(2025, 10, 20, 12, 7)
+        steps.saveStep(s2.copy(photos = listOf(photo.copy(takenAt = taken))))
+        assertEquals(taken, steps.getStep("s2")!!.photos.single().takenAt)
+
+        // stop_decisions: upsert by (track, start); they go with their track.
+        decisions.saveDecision(StopDecision("k1", 11, 19, StopDecisionKind.DISMISSED, null, 30))
+        decisions.saveDecision(StopDecision("k1", 11, 19, StopDecisionKind.ADDED, "s2", 31))
+        assertEquals(listOf(StopDecision("k1", 11, 19, StopDecisionKind.ADDED, "s2", 31)), decisions.observeDecisions("t1").first())
+        assertTrue(tracks.deleteTrack("k1"))
+        assertTrue(decisions.observeDecisions("t1").first().isEmpty())
+        assertEquals(1, trips.observeTripSummaries().first().single().photoCount)
     }
 
     private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)

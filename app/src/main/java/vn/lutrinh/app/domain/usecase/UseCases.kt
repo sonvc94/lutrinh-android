@@ -75,7 +75,10 @@ class SaveStep(
         val known = existing?.photos.orEmpty().associateBy { it.fileName }
         val photos = input.photoFiles.distinct().mapIndexed { index, file ->
             known[file]?.copy(position = index)
-                ?: Photo(id = ids.newId(), stepId = id, fileName = file, position = index, createdAt = now)
+                ?: Photo(
+                    id = ids.newId(), stepId = id, fileName = file, position = index, createdAt = now,
+                    takenAt = input.photoTakenAt[file],
+                )
         }
         val step = Step(
             id = id,

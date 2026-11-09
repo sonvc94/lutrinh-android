@@ -4,6 +4,7 @@ import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.Layer
+import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
@@ -214,5 +215,47 @@ internal fun List<TrackLine>.toFeatureCollection(): FeatureCollection =
             Feature.fromGeometry(
                 LineString.fromLngLats(line.points.map { Point.fromLngLat(it.longitude, it.latitude) }),
             ).apply { addStringProperty("track", line.trackId) }
+        },
+    )
+
+/** A stop suggestion on the map (R17): drawn as a ring, never a numbered pin (it is not a step yet). */
+data class StopMarker(val key: String, val point: GeoPoint)
+
+/** Stop-suggestion layer ids, bottom to top (docs/05-map.md "Stop suggestions"). */
+internal object StopLayerIds {
+    const val HALO = "stop-suggest-halo"
+    const val DOT = "stop-suggest-dot"
+}
+
+/**
+ * Adds the stop-suggestion layers for GeoJSON source [source] (one Point per suggestion): a pale
+ * track-coloured halo (≈ the 150 m stay radius at town zoom) around a hollow white dot with a
+ * track-coloured ring. Hollow and unnumbered, so it never reads as a step pin.
+ */
+internal fun Style.addStopSuggestionLayers(source: String) {
+    addLayer(
+        CircleLayer(StopLayerIds.HALO, source).withProperties(
+            PropertyFactory.circleColor(TRACK_COLOR),
+            PropertyFactory.circleOpacity(0.16f),
+            PropertyFactory.circleRadius(byZoom(5f to 7f, 10f to 11f, 14f to 18f)),
+            PropertyFactory.circleStrokeColor(TRACK_COLOR),
+            PropertyFactory.circleStrokeOpacity(0.5f),
+            PropertyFactory.circleStrokeWidth(1f),
+        ),
+    )
+    addLayer(
+        CircleLayer(StopLayerIds.DOT, source).withProperties(
+            PropertyFactory.circleColor("#FFFFFF"),
+            PropertyFactory.circleRadius(byZoom(5f to 3.5f, 10f to 5f, 14f to 6f)),
+            PropertyFactory.circleStrokeColor(TRACK_COLOR),
+            PropertyFactory.circleStrokeWidth(2.5f),
+        ),
+    )
+}
+
+internal fun List<StopMarker>.toStopFeatureCollection(): FeatureCollection =
+    FeatureCollection.fromFeatures(
+        map { m ->
+            Feature.fromGeometry(Point.fromLngLat(m.point.longitude, m.point.latitude)).apply { addStringProperty("key", m.key) }
         },
     )

@@ -125,3 +125,15 @@ interface TrackDao {
     @Query("DELETE FROM tracks WHERE id = :id")
     suspend fun delete(id: String): Int
 }
+
+@Dao
+interface StopDecisionDao {
+    @Query(
+        "SELECT d.* FROM stop_decisions d JOIN tracks t ON d.track_id = t.id WHERE t.trip_id = :tripId " +
+            "ORDER BY d.track_id, d.start_at",
+    )
+    fun observeForTrip(tripId: String): Flow<List<StopDecisionEntity>>
+
+    @Upsert
+    suspend fun upsert(decision: StopDecisionEntity)
+}

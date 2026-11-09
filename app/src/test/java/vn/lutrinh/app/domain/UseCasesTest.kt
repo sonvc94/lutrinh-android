@@ -95,6 +95,16 @@ class UseCasesTest {
         assertEquals(listOf("a.jpg"), files.deleted)
     }
 
+    /** R17: a new photo gets the EXIF time passed with it; an existing photo keeps its time on edit. */
+    @Test fun savingStepStoresPhotoCaptureTimesAndKeepsThemOnEdit() = runTest {
+        val tripId = newTrip()
+        val taken = LocalDateTime.of(2026, 10, 20, 9, 15)
+        val id = (saveStep(tripId, null, stepInput(photos = listOf("a.jpg", "b.jpg")).copy(photoTakenAt = mapOf("a.jpg" to taken))) as SaveResult.Saved).id
+        assertEquals(listOf(taken, null), store.getStep(id)!!.photos.map { it.takenAt })
+        saveStep(tripId, id, stepInput(photos = listOf("b.jpg", "a.jpg", "c.jpg")))
+        assertEquals(listOf(null, taken, null), store.getStep(id)!!.photos.map { it.takenAt })
+    }
+
     @Test fun deleteStepRemovesItsPhotoFilesOnly() = runTest {
         val tripId = newTrip()
         val s1 = (saveStep(tripId, null, stepInput(photos = listOf("a.jpg"))) as SaveResult.Saved).id

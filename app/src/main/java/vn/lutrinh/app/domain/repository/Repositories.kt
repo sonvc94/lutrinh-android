@@ -3,6 +3,7 @@ package vn.lutrinh.app.domain.repository
 import kotlinx.coroutines.flow.Flow
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackPoint
 import vn.lutrinh.app.domain.model.TransportMode
@@ -67,7 +68,6 @@ interface TrackRepository {
     /** Tracks still RECORDING or PAUSED (at most one in normal use). */
     suspend fun openTracks(): List<Track>
 
-
     suspend fun insertTrack(track: Track)
 
     suspend fun updateTrack(track: Track)
@@ -77,6 +77,15 @@ interface TrackRepository {
 
     /** Deletes the track and all its points. False when it did not exist. */
     suspend fun deleteTrack(id: String): Boolean
+}
+
+/** The user's answers to stop suggestions ("Bỏ qua" / "Thêm điểm dừng", R17). */
+interface StopDecisionRepository {
+    /** Decisions on every track of a trip. */
+    fun observeDecisions(tripId: String): Flow<List<StopDecision>>
+
+    /** Stores [decision], replacing an earlier one with the same track and start. */
+    suspend fun saveDecision(decision: StopDecision)
 }
 
 /** Owns the photo files in app-private storage. */

@@ -26,6 +26,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.MainActivity
+import vn.lutrinh.app.data.SampleData
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.usecase.SaveResult
@@ -70,6 +71,30 @@ class TripFlowsTest {
         waitForText("Chưa có điểm dừng")
         rule.waitUntil(TIMEOUT) { clickable("Ghi hành trình").fetchSemanticsNodes().isNotEmpty() }
         clickable("Ghi hành trình").onFirst().assertExists()
+    }
+
+    /**
+     * R17: a trip with the sample track (three stays, no steps) shows "Gợi ý điểm dừng" with
+     * three suggestions; "Bỏ qua" hides one and the decision is stored.
+     */
+    @Test
+    fun tripWithSampleTrack_showsStopSuggestions_andDismissHidesOne() {
+        val tripId = runBlocking {
+            val c = container()
+            val today = LocalDate.now()
+            val id = (c.saveTrip(null, TripInput(title, "", today, null)) as SaveResult.Saved).id
+            SampleData.addHaGiangTrack(c, id, today)
+            id
+        }
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
+        rule.onAllNodesWithText(title).onFirst().performClick()
+
+        waitForText("Gợi ý điểm dừng (3)")
+        clickable("Bỏ qua").onFirst().performClick()
+        waitForText("Gợi ý điểm dừng (2)")
+        rule.waitUntil(TIMEOUT) {
+            runBlocking { container().stopDecisions.observeDecisions(tripId).first() }.size == 1
+        }
     }
 
     @Test

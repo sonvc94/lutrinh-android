@@ -4,6 +4,7 @@ import android.content.Context
 import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
 import vn.lutrinh.app.data.RoomStepRepository
+import vn.lutrinh.app.data.RoomStopDecisionRepository
 import vn.lutrinh.app.data.RoomTrackRepository
 import vn.lutrinh.app.data.RoomTripRepository
 import vn.lutrinh.app.data.local.AppDatabase
@@ -39,6 +40,7 @@ class AppContainer(context: Context) {
     val photos = PhotoStorage(context)
     val photoMeta = PhotoMetaReader(context)
     val tracks = RoomTrackRepository(db)
+    val stopDecisions = RoomStopDecisionRepository(db)
 
     /** Work that must outlive a screen (recording commands, start-up recovery). */
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

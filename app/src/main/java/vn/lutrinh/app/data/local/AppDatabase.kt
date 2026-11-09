@@ -13,9 +13,13 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  1 - trips, steps, photos
  *  2 - steps.transport_mode (nullable TEXT): transport of the leg ending at the step (R12)
  *  3 - tracks + track_points: recorded GPS tracks (R16)
+ *  4 - photos.taken_at (nullable TEXT) + stop_decisions: stop suggestions from tracks (R17)
  */
 @Database(
-    entities = [TripEntity::class, StepEntity::class, PhotoEntity::class, TrackEntity::class, TrackPointEntity::class],
+    entities = [
+        TripEntity::class, StepEntity::class, PhotoEntity::class, TrackEntity::class, TrackPointEntity::class,
+        StopDecisionEntity::class,
+    ],
     version = AppDatabase.VERSION,
     exportSchema = true,
 )
@@ -24,10 +28,11 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun tripDao(): TripDao
     abstract fun stepDao(): StepDao
     abstract fun trackDao(): TrackDao
+    abstract fun stopDecisionDao(): StopDecisionDao
 
     companion object {
         const val NAME = "lutrinh.db"
-        const val VERSION = 3
+        const val VERSION = 4
 
         /** Adds the nullable leg transport column; existing rows read as "not set". */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -61,8 +66,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the photo capture time (existing photos read as "unknown") and the table of answers
+         * to stop suggestions (R17); nothing existing is rewritten.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE photos ADD COLUMN taken_at TEXT")
+                // SQL copied from app/schemas/.../4.json (what Room creates on a fresh install).
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `stop_decisions` (`track_id` TEXT NOT NULL, `start_at` INTEGER NOT NULL, " +
+                        "`end_at` INTEGER NOT NULL, `decision` TEXT NOT NULL, `step_id` TEXT, `decided_at` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`track_id`, `start_at`), " +
+                        "FOREIGN KEY(`track_id`) REFERENCES `tracks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_stop_decisions_track_id` ON `stop_decisions` (`track_id`)")
+            }
+        }
+
         /** Every migration, oldest first. Never use destructive fallback: user data is local only. */
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)

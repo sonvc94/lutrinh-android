@@ -3,6 +3,8 @@ package vn.lutrinh.app.data.local
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.StopDecision
+import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackPoint
 import vn.lutrinh.app.domain.model.TrackStatus
@@ -16,9 +18,9 @@ fun Trip.toEntity() = TripEntity(id, title, description, startDate, endDate, cre
 
 fun TripSummaryRow.toDomain() = TripSummary(trip.toDomain(), stepCount, photoCount, coverFile)
 
-fun PhotoEntity.toDomain() = Photo(id, stepId, fileName, position, createdAt)
+fun PhotoEntity.toDomain() = Photo(id, stepId, fileName, position, createdAt, takenAt)
 
-fun Photo.toEntity() = PhotoEntity(id, stepId, fileName, position, createdAt)
+fun Photo.toEntity() = PhotoEntity(id, stepId, fileName, position, createdAt, takenAt)
 
 fun StepWithPhotos.toDomain() = Step(
     id = step.id,
@@ -63,3 +65,8 @@ fun TrackPoint.toEntity() = TrackPointEntity(
     trackId = trackId, segment = segment, recordedAt = recordedAt, latitude = location.latitude,
     longitude = location.longitude, accuracyM = accuracyM, altitudeM = altitudeM, speedMps = speedMps,
 )
+
+fun StopDecisionEntity.toDomain() =
+    StopDecision(trackId, startAt, endAt, StopDecisionKind.fromCode(decision), stepId, decidedAt)
+
+fun StopDecision.toEntity() = StopDecisionEntity(trackId, startAt, endAt, kind.code, stepId, decidedAt)

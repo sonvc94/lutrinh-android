@@ -109,6 +109,7 @@ fun TripMapScreen(
                 onMarkerClick = { selected = it },
                 onLegClick = { editLegTo = it },
                 tracks = detail.trackLines,
+                stopSuggestions = detail.stopMarkers(),
             )
             // "Ghi hành trình" (R16) floats top-right; the offline indicator sits top-left.
             RecordTrackControl(

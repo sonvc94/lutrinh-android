@@ -81,4 +81,10 @@ data class Photo(
     val fileName: String,
     val position: Int,
     val createdAt: Long,
+    /**
+     * Local wall-clock capture time from the picked file's EXIF date (no time zone, minute
+     * precision, like [Step.arrivedAt]), or null when unknown (no EXIF date, or imported before
+     * DB version 4). Used to count photos in a stop suggestion's window (R17).
+     */
+    val takenAt: LocalDateTime? = null,
 )

@@ -54,6 +54,7 @@ data class MapMarker(val id: String, val label: String, val point: GeoPoint, val
 private const val SRC_STEPS = "steps-src"
 private const val SRC_ROUTE = "route-src"
 private const val SRC_TRACKS = "tracks-src"
+private const val SRC_STOPS = "stop-suggest-src"
 private const val LAYER_STEPS = "steps-layer"
 private const val SRC_LEG_BADGES = "leg-badges-src"
 private const val LAYER_LEG_BADGES = "leg-badges-layer"
@@ -151,6 +152,8 @@ fun TripMap(
     onLegClick: ((String) -> Unit)? = null,
     /** Recorded GPS tracks of the trip (R16), drawn above the legs, below badges and pins. */
     tracks: List<TrackLine> = emptyList(),
+    /** Stop suggestions (R17): rings above the tracks, below badges and pins. */
+    stopSuggestions: List<StopMarker> = emptyList(),
 ) {
     val context = LocalContext.current
     val mapView = rememberMapView()
@@ -172,11 +175,13 @@ fun TripMap(
                     map.loadBasemap { style ->
                         style.addSource(GeoJsonSource(SRC_ROUTE))
                         style.addSource(GeoJsonSource(SRC_TRACKS))
+                        style.addSource(GeoJsonSource(SRC_STOPS))
                         style.addSource(GeoJsonSource(SRC_LEG_BADGES))
                         style.addSource(GeoJsonSource(SRC_STEPS))
                         badges.forEach { (id, bmp) -> style.addImage(id, bmp) }
                         style.addRouteLayers(SRC_ROUTE, routeColors)
                         style.addTrackLayers(SRC_TRACKS)
+                        style.addStopSuggestionLayers(SRC_STOPS)
                         // Badges give way to pins and to each other (short legs lose theirs).
                         style.addLayer(
                             SymbolLayer(LAYER_LEG_BADGES, SRC_LEG_BADGES).withProperties(
@@ -230,6 +235,7 @@ fun TripMap(
                 state.markers = markers
                 state.legModes = legModes
                 state.tracks = tracks
+                state.stops = stopSuggestions
                 state.showRoute = showRoute
                 state.selectedLegTo = selectedLegTo
                 state.render(context, mapView, fitPaddingDp, fitExtraBottomDp, interactive)
@@ -246,6 +252,7 @@ private class TripMapState {
     var markers: List<MapMarker> = emptyList()
     var legModes: List<TransportMode?> = emptyList()
     var tracks: List<TrackLine> = emptyList()
+    var stops: List<StopMarker> = emptyList()
     var showRoute: Boolean = true
     var selectedLegTo: String? = null
     var pinColors = PinColors(0, 0, 0, 0)
@@ -310,6 +317,7 @@ private class TripMapState {
         style.getSourceAs<GeoJsonSource>(SRC_ROUTE)?.setGeoJson(FeatureCollection.fromFeatures(lines))
         style.getSourceAs<GeoJsonSource>(SRC_LEG_BADGES)?.setGeoJson(FeatureCollection.fromFeatures(badges))
         style.getSourceAs<GeoJsonSource>(SRC_TRACKS)?.setGeoJson(tracks.toFeatureCollection())
+        style.getSourceAs<GeoJsonSource>(SRC_STOPS)?.setGeoJson(stops.toStopFeatureCollection())
 
         val density = context.resources.displayMetrics.density
         // Re-fit when the route changes or when the bottom overlay is first measured / resized.
