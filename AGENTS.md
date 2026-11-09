@@ -171,11 +171,15 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   "Quận Nam Sa", 三沙市…); every map hides them via `SovereigntyLayers` and draws "Quần đảo
   Hoàng Sa/Trường Sa". A new style, a new label layer or a new tile build: add the layer to the
   filter (`tuneBasemap` prefixes + `MapConfig.LABEL_LAYER_IDS`), resurvey z5–10 tiles over the
-  boxes and extend `SovereigntyLabels.BLOCKED_NAMES`. Map text is GL-drawn: uiautomator cannot
-  see it, judge screenshots. To get there on the AVD: `adb emu geo fix 112.0 16.5`, tap "Vị trí
-  của tôi" on "Bản đồ của tôi" (980,1915), then zoom out with quick-scales anchored at the map
-  centre (540,1284; elsewhere the centre drifts) and read the zoom from `logcat -s
-  Mbgl-HttpRequest` tile URLs (z/x/y); pan with a slow `input swipe … 2500` (no fling).
+  boxes and extend `SovereigntyLabels.BLOCKED_NAMES`; `tools/map-survey/` decodes the tiles and
+  lists what the rule keeps. Admin labels there survive only by `VIETNAMESE_ADMIN` (claimants,
+  docs/04 R30). Map text is GL-drawn: uiautomator cannot see it, judge screenshots. To get there
+  on the AVD: open "Bản đồ của tôi" (globe at 875,209), `adb emu geo fix <lon> <lat>`, tap "Vị
+  trí của tôi" (980,1915; first time a guide dialog + "Only this time"), then zoom **out** with
+  `adb shell input mouse scroll 540 1236 --axis VSCROLL,-N` (z ≈ 15 − N from the z13 the button
+  gives; quick-scales and `sendevent` pinches were unreliable). The camera centre is the fix, and
+  the blue dot sits on it: offset the fix 0.1–0.2° from what you want to see. Tile logs do not
+  show zoom; measure px/deg from two known labels (z10 ≈ 3 823 px/deg on the 1080-px screen).
 * Offline limit (R31): OpenFreeMap allows ≤ 3 000 tiles / 50 MB per offline download;
   `OfflineConfig.estimateTiles` (vector z0–14 + relief raster z0–6) matched the store (Hà Giang
   1 764 estimated vs 1 763 in `mbgl-offline.db` `region_tiles`). Never raise the caps without the

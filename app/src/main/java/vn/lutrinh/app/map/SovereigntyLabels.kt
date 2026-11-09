@@ -18,7 +18,12 @@ import vn.lutrinh.app.domain.model.GeoPoint
  * - its local `name` is in a non-Latin script (OpenMapTiles sets `name:nonlatin`), unless it is a
  *   natural feature ([NATURAL_CLASSES], e.g. an island) that has a Vietnamese `name:vi`, which is
  *   what the app shows (MapConfig.LABEL_FIELD), e.g. "Đảo Phú Lâm" for 永兴岛.
- * Latin-script names (Vietnamese "Song Tử Tây", "Trường Sa", Philippine, Malaysian) stay.
+ * - a Vietnamese/Latin name contains a Chinese admin name ([BLOCKED_SUBSTRINGS], e.g. "(Tam Sa Vĩnh Lạc Long Động)"), or
+ * - (claimants) it is an administrative place label ([ADMIN_CLASSES]: city, town, village, hamlet,
+ *   quarter …) whose `name` is not one of the Vietnamese units [VIETNAMESE_ADMIN]: only Vietnamese
+ *   administrative names stay over the two archipelagos, so the Philippine municipality "Kalayaan",
+ *   the quarter "Pag-asa" and any other country's unit (any script) are hidden.
+ * Other Latin-script labels (islands/reefs shown by `name:vi`, Vietnamese harbours) stay.
  * The app then draws [LABELS] ("Quần đảo Hoàng Sa", "Quần đảo Trường Sa") itself at
  * [LABEL_MIN_ZOOM]..[LABEL_MAX_ZOOM].
  */
@@ -52,11 +57,29 @@ object SovereigntyLabels {
         "西沙区", "西沙", "Quận Tây Sa", "Tây Sa", "Xisha", "Xisha District",
         "南沙区", "南沙", "Quận Nam Sa", "Nam Sa", "Nansha", "Nansha District",
         "永兴镇", "Yongxing", "永乐群岛", "Yongle Qundao", "七连屿", "Qilianyu", "渚碧岛", "Zhubi",
+        // Other countries' Latin-script names seen in the 2026-11-01 tiles (Philippines, Malaysia).
+        "Kalayaan", "Pag-asa", "Pag-asa Island Harbor", "Rancudo Airfield", "Layang-Layang",
+    )
+
+    /** Chinese admin names that may be embedded in a longer Vietnamese/Latin name ("Hố Rồng (Tam Sa Vĩnh Lạc Long Động)"). */
+    val BLOCKED_SUBSTRINGS = listOf("Tam Sa", "Tây Sa", "Nam Sa", "Sansha", "Xisha", "Nansha")
+    val SUBSTRING_FIELDS = listOf("name:vi", "name:latin", "name_en", "name:en")
+
+    /** `place` classes that are administrative/populated-place labels (not islands or water). */
+    val ADMIN_CLASSES = setOf(
+        "country", "state", "province", "region", "county", "district", "municipality", "city", "town",
+        "village", "hamlet", "suburb", "quarter", "neighbourhood", "isolated_dwelling",
+    )
+
+    /** The Vietnamese administrative units drawn in the tiles (xã/thị trấn on Trường Sa); the only admin names kept. */
+    val VIETNAMESE_ADMIN: Set<String> = setOf(
+        "Trường Sa", "Hoàng Sa", "An Bang", "Sinh Tồn", "Song Tử Tây", "Thuyền Chài D", "Thuyền Chài E", "Đá Tây A",
     )
 
     /** Natural-feature classes (place `island`, water names) that keep a Vietnamese `name:vi`. */
     val NATURAL_CLASSES = setOf("island", "ocean", "sea", "bay", "strait", "lake")
 
+    const val NAME_FIELD = "name"
     const val NONLATIN_FIELD = "name:nonlatin"
     const val VI_FIELD = "name:vi"
     const val CLASS_FIELD = "class"
@@ -75,6 +98,8 @@ object SovereigntyLabels {
     fun hides(props: Map<String, Any?>, point: GeoPoint): Boolean {
         if (!inAreas(point)) return false
         if (NAME_FIELDS.any { props[it] in BLOCKED_NAMES }) return true
+        if (SUBSTRING_FIELDS.any { f -> (props[f] as? String)?.let { v -> BLOCKED_SUBSTRINGS.any { it in v } } == true }) return true
+        if (props[CLASS_FIELD] in ADMIN_CLASSES && props[NAME_FIELD] !in VIETNAMESE_ADMIN) return true
         val keptNatural = props[CLASS_FIELD] in NATURAL_CLASSES && props[VI_FIELD] != null
         return props[NONLATIN_FIELD] != null && !keptNatural
     }

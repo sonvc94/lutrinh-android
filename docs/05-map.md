@@ -91,8 +91,9 @@ Vietnam, so (rule R30):
 * **Filter.** `tuneBasemap` (live maps) and `StaticTripMap.onDidFinishLoadingStyle` (share
   snapshot) add `all(<layer's own filter>, not(hidden))` to every label layer of the table above,
   where `hidden` = `within(Hoàng Sa box) or within(Trường Sa box)` and (any name field in
-  `BLOCKED_NAMES`, or `has name:nonlatin` and not (`class` in island/ocean/sea/bay/strait/lake and
-  `has name:vi`)). Decided per feature by its tags, not by its text, so it does not depend on the
+  `BLOCKED_NAMES`, or contains a blocked substring, or `class` in the admin classes and `name`
+  not in `VIETNAMESE_ADMIN`, or `has name:nonlatin` and not (`class` in
+  island/ocean/sea/bay/strait/lake and `has name:vi`)). Decided per feature by its tags, not by its text, so it does not depend on the
   label language; filtering by box keeps Guangzhou's own 南沙区 etc. untouched.
 * **Our labels.** `Style.Builder.withSovereigntyLabels()` adds GeoJSON source
   `r30-archipelagos` (two points from `SovereigntyLabels.labelsGeoJson()`, bundled in code) and
@@ -103,12 +104,33 @@ Vietnam, so (rule R30):
   `Style.Builder`'s sources and layers).
 * **Offline.** Packs store the plain style and tiles; the filter and labels are applied at
   runtime, so offline maps show the same.
-* **Kept.** Latin-script names (Vietnamese "Trường Sa", "Song Tử Tây", "Đảo Sinh Tồn"; the
-  Philippine town "Kalayaan" too) and natural features with a Vietnamese name ("Đảo Phú Lâm").
+* **Kept.** Only Vietnamese administrative names (rule R30 (c): "Trường Sa", "An Bang", "Sinh
+  Tồn", "Song Tử Tây", "Thuyền Chài D/E", "Đá Tây A"), islands/reefs through their Vietnamese
+  name ("Đảo Phú Lâm", "Đá En Ca") and Vietnamese harbours/ferries/airports. The Philippine
+  municipality "Kalayaan" and quarter "Pag-asa" and Malaysian/Taiwanese/Chinese units are hidden.
   Boundary lines are not changed.
-* **Another style or tile build** may bring new names: rerun the survey (decode the z5–10 tiles
-  over both boxes, list `place`/`water_name`/`aerodrome_label` features) and extend
-  `BLOCKED_NAMES`; screenshots in `img/sovereignty/` (before/after, "Bản đồ của tôi").
+* **Another style or tile build** may bring new names: rerun the survey and extend
+  `BLOCKED_NAMES`/`VIETNAMESE_ADMIN`; screenshots in `img/sovereignty/` (before/after, "Bản đồ của
+  tôi").
+* **Survey method** (`tools/map-survey/`, Python stdlib only): `survey.py` fetches every z5–12
+  tile over both boxes and the z13–14 children of non-empty tiles (≈ 25 000 tiles, 2026-11-01
+  build), decodes the vector tiles itself (`mvt.py`) and dumps every named `place`, `water_name`,
+  `waterway`, `transportation_name`, `aerodrome_label`, `poi` feature; `report.py` applies the rule
+  and lists what stays. Positron draws no POI symbols, so `poi` is only listed. Tiles: z5–6 have no
+  feature in the boxes; the first labels (the three Chinese admin cities, "Kalayaan", "Trường Sa")
+  appear at z7.
+* **Kept after the claimants rule** (every label the rule leaves in the boxes, z7–14; all
+  Vietnamese): towns/villages Trường Sa, An Bang, Sinh Tồn, Song Tử Tây, Thuyền Chài D,
+  Thuyền Chài E, Đá Tây A; islands Đảo An Bang, Đảo Nam Yết, Đảo Núi Le C, Đảo Phan Vinh (+B),
+  Đảo Phú Lâm, Đảo Sinh Tồn Đông, Đảo Sơn Ca, Đảo Thuyền Chài (+E), Đảo Tiên Nữ A/B, Đảo Tri
+  Tôn, Đảo Trường Sa, Đảo Đá Lát, Đảo Đá Lớn A/B/C, Đảo Đá Nam, Đảo Đá Đông C, Đảo Đông Đảo,
+  Đảo Mĩ Tế Bắc; reefs and banks Đá Cô Lin, Đá En Ca, Đá Hoa Lau, Đá Hoa Quang, Đá Hải Sâm, Đá
+  Lãng Hoa, Đá Toàn Phú, Đá Vĩnh Thử, Bãi Bắc Biên, Bãi Ngân Thước, Bãi Ngự Bình, Bãi Tung Đảo,
+  Bãi Tân Mê, Bãi Xà Cừ; airports "Sân bay Trường Sa", "Sân bay Đá Hoa Lau"; water "Âu tàu
+  Trường Sa", "Âu tàu Đá Tây A", "Âu tàu đảo Sinh Tồn", "Khu cảng Đảo Vĩnh Thử", "Đầm phá Đảo
+  Áp Công"; ferry lines such as "Sinh Tồn – Nam Yết"; "Bờ bao âu tàu". (The Vietnamese names of
+  Chinese-origin features — Khu cảng Đảo Vĩnh Thử, Đầm phá Đảo Áp Công — are kept as names, not
+  as administrative units.) Screenshots: `img/sovereignty/claimants-*.png`.
 
 ## Map surfaces
 

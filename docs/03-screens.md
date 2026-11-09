@@ -386,8 +386,9 @@ The picker returns its result to the step form through the previous screen's sav
 ## 4c. My map — "Bản đồ của tôi"
 
 Every map (this one, the trip map, step maps, the location picker, the share image) labels
-Vietnam's archipelagos "Quần đảo Hoàng Sa" / "Quần đảo Trường Sa" and never shows the Chinese
-administrative names there (R30, docs/05; `img/sovereignty/`).
+Vietnam's archipelagos "Quần đảo Hoàng Sa" / "Quần đảo Trường Sa" and never shows another
+country's administrative names there — Chinese, Philippine "Kalayaan", Malaysian, Taiwanese; only
+Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
 
 * **Purpose:** every trip on one map (R14).
 * **Drafts (R20)** are not on this map: no pin, not in the lines, the totals or the card counts.
@@ -769,7 +770,10 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 | sovereignty/before-hoang-sa-z8.png | before R30 (main APK), "Bản đồ của tôi" at z8 over the Paracels: Chinese admin labels "Tam Sa", "Yongle Qundao" |
 | sovereignty/before-truong-sa-z7.png | before R30, z7 over the Spratlys: "Quận Nam Sa", "Zhubi" |
 | sovereignty/after-hoang-sa-z8.png | R30: same view, Chinese admin labels hidden, "Quần đảo Hoàng Sa" drawn |
-| sovereignty/after-truong-sa-z7.png | R30: same view, "Quần đảo Trường Sa"; Latin-script "Kalayaan" stays |
+| sovereignty/after-truong-sa-z7.png | R30 as first shipped: same view, "Quần đảo Trường Sa"; the Philippine "Kalayaan" still showed (hidden since the claimants rule, below) |
+| sovereignty/claimants-truong-sa-z7.png | R30 claimants rule, z7 over the Spratlys (fix 10.3 N 113.5 E): no "Kalayaan" (11.05 N 114.29 E), no "Quận Nam Sa"; "Quần đảo Trường Sa" |
+| sovereignty/claimants-truong-sa-z10.png | z10 around Thitu (Pag-asa) island, bottom: no "Kalayaan"/"Pag-asa"; "Đảo Đá Nam" shown |
+| sovereignty/claimants-hoang-sa-z8.png | z8 over the Paracels: no Chinese or other admin name; "Quần đảo Hoàng Sa" |
 | sovereignty/after-overview-z5.png | R30 at z5: Việt Nam, Biển Đông, "Quần đảo Hoàng Sa" and "Quần đảo Trường Sa" |
 
 ## Accessibility and UI tests

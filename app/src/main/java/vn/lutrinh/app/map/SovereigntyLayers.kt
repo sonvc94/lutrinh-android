@@ -56,9 +56,23 @@ internal fun sovereigntyHidden(): Expression {
         Expression.`in`(Expression.get(SovereigntyLabels.CLASS_FIELD), Expression.literal(SovereigntyLabels.NATURAL_CLASSES.toTypedArray<Any>())),
         Expression.has(SovereigntyLabels.VI_FIELD),
     )
+    val embedded = Expression.any(
+        *SovereigntyLabels.BLOCKED_SUBSTRINGS.flatMap { sub ->
+            SovereigntyLabels.SUBSTRING_FIELDS.map { Expression.`in`(Expression.literal(sub), Expression.toString(Expression.get(it))) }
+        }.toTypedArray(),
+    )
+    val foreignAdmin = Expression.all(
+        Expression.`in`(Expression.get(SovereigntyLabels.CLASS_FIELD), Expression.literal(SovereigntyLabels.ADMIN_CLASSES.toTypedArray<Any>())),
+        Expression.not(Expression.`in`(Expression.get(SovereigntyLabels.NAME_FIELD), Expression.literal(SovereigntyLabels.VIETNAMESE_ADMIN.toTypedArray<Any>()))),
+    )
     return Expression.all(
         inAreas,
-        Expression.any(blockedName, Expression.all(Expression.has(SovereigntyLabels.NONLATIN_FIELD), Expression.not(keptNatural))),
+        Expression.any(
+            blockedName,
+            embedded,
+            foreignAdmin,
+            Expression.all(Expression.has(SovereigntyLabels.NONLATIN_FIELD), Expression.not(keptNatural)),
+        ),
     )
 }
 

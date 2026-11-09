@@ -957,17 +957,32 @@ Hoàng Sa (Paracel) and Trường Sa (Spratly) archipelagos.
 * **Areas.** Hoàng Sa box S 15.4, W 110.9, N 17.4, E 113.2; Trường Sa box S 6.8, W 111.3, N 12.2,
   E 116.3 (clear of the Vietnamese coast, Hainan, Palawan and Sabah).
 * **Hidden.** On every basemap label layer (place, water, road, airport names), a label whose point
-  lies in an area is hidden when (a) its `name`, `name:vi`, `name:latin`, `name_en`, `name:en`,
-  `name_int` or `name:zh` is a **blocked name**: 三沙市/三沙/Tam Sa/Thành phố Tam Sa/Sansha/Sansha
-  City, 西沙区/西沙/Quận Tây Sa/Tây Sa/Xisha/Xisha District, 南沙区/南沙/Quận Nam Sa/Nam Sa/
-  Nansha/Nansha District, 永兴镇/Yongxing, 永乐群岛/Yongle Qundao, 七连屿/Qilianyu, 渚碧岛/Zhubi;
-  or (b) its local `name` is in a non-Latin script (tile field `name:nonlatin`), unless it is a
+  lies in an area is hidden when
+  (a) its `name`, `name:vi`, `name:latin`, `name_en`, `name:en`, `name_int` or `name:zh` is a
+  **blocked name**: 三沙市/三沙/Tam Sa/Thành phố Tam Sa/Sansha/Sansha City, 西沙区/西沙/Quận Tây
+  Sa/Tây Sa/Xisha/Xisha District, 南沙区/南沙/Quận Nam Sa/Nam Sa/Nansha/Nansha District,
+  永兴镇/Yongxing, 永乐群岛/Yongle Qundao, 七连屿/Qilianyu, 渚碧岛/Zhubi, and the other
+  claimants' Latin names seen in the tiles: Kalayaan, Pag-asa, Pag-asa Island Harbor, Rancudo
+  Airfield, Layang-Layang;
+  (b) its `name:vi`, `name:latin`, `name_en` or `name:en` **contains** Tam Sa, Tây Sa, Nam Sa,
+  Sansha, Xisha or Nansha (e.g. the water label "Hố Rồng (Tam Sa Vĩnh Lạc Long Động)");
+  (c) **claimants:** it is an administrative place label — `class` country, state, province,
+  region, county, district, municipality, city, town, village, hamlet, suburb, quarter,
+  neighbourhood or isolated_dwelling — whose `name` is not one of the Vietnamese units
+  **Trường Sa, Hoàng Sa, An Bang, Sinh Tồn, Song Tử Tây, Thuyền Chài D, Thuyền Chài E,
+  Đá Tây A** (`VIETNAMESE_ADMIN`). So over the two archipelagos only Vietnamese administrative
+  names remain: the Philippine municipality "Kalayaan" and its quarter "Pag-asa", Malaysian or
+  Taiwanese units, Chinese ones in any script ("Tam Sa", "Xã khu Cam Tuyền", "Yongxing") all go,
+  also when a name is not in (a); a new Vietnamese unit in a later tile build stays hidden until
+  it is added to `VIETNAMESE_ADMIN` (the safe direction);
+  (d) its local `name` is in a non-Latin script (tile field `name:nonlatin`), unless it is a
   natural feature (`class` island, ocean, sea, bay, strait, lake) with a Vietnamese `name:vi`, which
-  is what the label shows (e.g. 永兴岛 → "Đảo Phú Lâm"). So Chinese admin units in any script
-  ("Tam Sa", "Xã khu Cam Tuyền", "Yongxing"), Chinese airports ("Sân bay Tam Sa Vĩnh Hưng") and
-  Chinese-only names disappear; Latin-script names stay ("Trường Sa", "Song Tử Tây", "Đảo Nam
-  Yết", and the Philippine "Kalayaan"). Outside the two boxes nothing changes (Guangzhou's own
-  南沙区 keeps its label).
+  is what the label shows (e.g. 永兴岛 → "Đảo Phú Lâm"; 太平島 → "Đảo Thái Bình"), so Chinese
+  airports ("Sân bay Tam Sa Vĩnh Hưng") and Chinese-only names go.
+  Kept: Vietnamese admin units above, islands/reefs through their Vietnamese `name:vi` ("Đá En
+  Ca" for Malaysia's Terumbu Siput, "Đá Hoa Lau"), Vietnamese harbours ("Âu tàu Trường Sa"),
+  ferry lines, "Sân bay Trường Sa". Outside the two boxes nothing changes (Guangzhou's own 南沙区
+  keeps its label, Kalayaan's neighbours on Palawan too).
 * **Shown.** The app draws **"Quần đảo Hoàng Sa"** at 16.45 N 111.95 E and **"Quần đảo Trường
   Sa"** at 10.0 N 114.3 E (italic, label ink, always placed) from **zoom 3 up to, not including,
   11**; above that the islands' own Vietnamese names take over.
@@ -976,10 +991,15 @@ Hoàng Sa (Paracel) and Trường Sa (Spratly) archipelagos.
 
 *Tests:* `SovereigntyLabelsTest.blockedNames_coverTheThreeAdminUnits_inBothScripts`,
 `.chineseAdminUnits_areHidden_byEachOfTheirNames`, `.otherChineseScriptLabels_inTheAreas_areHidden`,
-`.vietnameseAndLatinLabels_stay`, `.outsideTheAreas_nothingIsHidden`,
+`.vietnameseAndLatinLabels_stay`, `.otherCountriesAdminNames_inTheAreas_areHidden` (Kalayaan, Pag-asa,
+Malaysian and Taiwanese units, embedded "Tam Sa"), `.vietnameseAdminUnits_andNaturalFeatures_stay`,
+`.outsideTheAreas_nothingIsHidden`,
 `.ourLabels_areInTheirAreas_andInTheGeoJson`, `.mapFilter_isTheSameRule`. Checked on emulator-5580,
 "Bản đồ của tôi" (`img/sovereignty/`): before, "Tam Sa", "Yongle Qundao", "Quận Nam Sa", "Zhubi";
-after, none of them, our two labels shown.
+after, none of them, our two labels shown. Claimants (captain: "chỉ giữ tên tiếng Việt cho đơn vị
+hành chính trong 2 vùng này", all countries): z5–14 tiles over both boxes decoded with
+`tools/map-survey/` (docs/05) — no Kalayaan, Pag-asa or other foreign admin label remains; the
+Vietnamese list of kept place labels is in docs/05.
 
 ## R31 — Offline download limit
 
