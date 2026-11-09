@@ -63,7 +63,8 @@ trip is in progress.
 
 ## R7 — Delete cascade
 
-* Deleting a **trip** deletes its steps, their photo rows **and the photo files**.
+* Deleting a **trip** deletes its steps, their photo rows **and the photo files**, and its
+  recorded tracks with their points (R16); a recording of that trip is stopped first.
 * Deleting a **step** deletes its photo rows and files; other steps are untouched.
 * Order: the database transaction runs first and returns the file names that were attached;
   the files are deleted afterwards. A crash between the two leaves orphan files (harmless, can be
@@ -244,6 +245,89 @@ All numbers live in `map/OfflineConfig.kt` (pure Kotlin; the iOS port copies the
 `TripFlowsTest.openOfflineMaps_fromTheTripListMenu_listsTheReadyMadeRegions`,
 `TripFlowsTest.openOfflineMaps_fromATripMap_offersTheTripArea`. Download, resume after kill and
 airplane-mode use are checked by hand on the emulator (docs/05 "Offline maps").
+
+## R16 — Recorded GPS tracks ("Ghi hành trình")
+
+Constants live in `domain/usecase/TrackLogic.kt` (`TrackRules`); the iOS port copies them.
+
+* **What.** A track is the real path of the traveller, recorded by GPS on demand and attached to
+  a whole trip (data in docs/02 "Track"). It is separate from the planned route (R3): steps are
+  never created or moved from a track, and a track is never snapped to roads.
+* **Start.** Only from the UI, by "Ghi hành trình" on the trip detail or the trip map, for that
+  trip. **One recording in the whole app**: while a track is open (recording or paused) other
+  trips show "Đang ghi hành trình cho chuyến đi khác" instead of the button; a deleted trip
+  cannot be recorded (`TripNotFound`). Starting creates the track (`recording`, segment 0) before
+  the first fix arrives.
+* **Permissions (in this order).** 1) Fine location granted already → skip to 2; otherwise an
+  explanation dialog ("Ghi hành trình bằng GPS": what is recorded, only after tapping, always a
+  notification while recording, data stays on the device) → the system location prompt (fine +
+  coarse). Approximate-only or refused → a dialog that explains and opens the app's settings;
+  nothing is recorded. 2) Android 13+: the notification permission is asked; recording works
+  whether or not it is granted (without it the notification is hidden, the recording is not).
+  3) The device location switch is off → a dialog that opens the location settings. **Background
+  location is never requested**: the recording runs in a foreground service started while the
+  app is visible, so "while using the app" is enough (iOS: "When In Use" + background mode,
+  docs/07). The Android manifest removes `ACCESS_BACKGROUND_LOCATION` explicitly.
+* **While recording.** A persistent, silent notification "Đang ghi hành trình" shows the elapsed
+  recording time (ticking), the distance and the trip, with "Tạm dừng" and "Dừng"; tapping it opens
+  the app. The recording continues with the screen off and with the user on any other screen or
+  app; it ends only by Dừng (screen or notification), by deleting the trip, or by the process dying.
+* **Sampling.** Fixes are requested from the platform GPS every **5 s** (`SAMPLE_INTERVAL_MS`)
+  with a minimum movement of **10 m** (`MIN_DISTANCE_M`), high accuracy. Android: platform
+  `LocationManager`, `GPS_PROVIDER` (not Play services' fused provider: no Google dependency,
+  closest to iOS `CLLocationManager`, and the emulator's `geo fix` feeds it directly). Fix time =
+  wall-clock now − the fix's age on the monotonic clock.
+* **Filter** (`TrackFilter.check`, in order; only ACCEPT is stored):
+  1. coordinates out of range / NaN → INVALID;
+  2. accuracy radius > **50 m** (`MAX_ACCURACY_M`) → INACCURATE (no accuracy given → kept);
+  3. fix time more than 2 s before the open segment started → STALE (cached fix from before a
+     start/resume);
+  4. first point of the segment → ACCEPT (never compared with the point before a pause);
+  5. not later than the last point → STALE; closer than **10 m** to it → TOO_CLOSE; speed from it
+     faster than **85 m/s** (≈ 300 km/h, `MAX_SPEED_MPS`) → JUMP (impossible jump).
+* **Pause / resume.** Pause stops the GPS, closes the open segment (`activeMs += now −
+  resumedAt`) and the notification shows "Đã tạm dừng…" with "Tiếp tục" / "Dừng". Fixes arriving
+  while paused are IGNORED. Resume starts a **new segment** (segment + 1, `resumedAt = now`).
+  Distance and drawn lines never join two segments (the traveller may have moved by bus while
+  paused); duration never counts a pause.
+* **Distance / duration.** Distance = Σ distance (haversine, R = 6371 km) between consecutive
+  points of the same segment, kept up to date in the track row on every stored point. Duration =
+  `activeMs` (+ `now − resumedAt` while recording). Shown as "850 m" (< 1 km), "2,4 km" (< 100 km,
+  Vietnamese decimal comma), "125 km"; time as "m:ss" or "h:mm:ss".
+* **Stop.** Ends the track (`ended`, `endedAt = now`, open segment closed), stops the GPS and
+  removes the notification. A track with 0 or 1 point is kept (it shows in the list, draws
+  nothing) so the user decides whether to delete it.
+* **Process death.** Every accepted point is stored at once, together with the track's distance /
+  count / `updatedAt`, in one transaction: nothing accepted is lost. If the app process dies
+  while a track is open (force-stop, crash, low-memory kill of the service), the system does not
+  restart the recording (Android: `START_NOT_STICKY`); at the next app start every open track
+  that is not the live one is **ended**: `interrupted = true`, `endedAt` = its last save (last
+  point, or the pause/resume time), duration counted up to that moment; the points stay. The list
+  shows it with "Dừng do ứng dụng bị đóng khi đang ghi". Recording never resumes by itself.
+* **Drawing.** Stored points are never simplified. For display each segment becomes one line,
+  simplified with Douglas–Peucker at **5·10⁻⁵°** (≈ 5.5 m, `DISPLAY_EPSILON_DEG`, finer than the
+  route's 2·10⁻⁴° so mountain switchbacks stay); segments of fewer than 2 points draw nothing.
+  Layer style in docs/05 "Recorded tracks".
+* **Delete.** A track is deleted from the list after a confirmation ("Xóa hành trình này?" with
+  its time, distance and point count); its points go with it (one transaction). The open track
+  has no delete button and cannot be deleted (`DeleteTrack` refuses); stop it first.
+
+*Tests:* `TrackLogicTest` (`first fix of a segment is accepted`, `fix with accuracy worse than
+50 m is dropped, missing accuracy is kept`, `invalid coordinates are dropped`, `fix closer than
+10 m to the last point is dropped`, `impossible jump faster than 85 m per s is dropped`, `fix older
+than the last point or the segment start is stale`, `after a pause the first fix is not compared
+with the point before the pause`, `length sums the segments and never the gap of a pause`,
+`display lines are one per segment and per track, single points draw nothing`, `display lines are
+simplified but keep both ends`, `distance and duration formats`); `TrackRecorderTest` (`duration
+excludes pauses and distance only joins points of one segment`, `filtered fixes are not stored`,
+`only one recording at a time and only for an existing trip`, `process death ends the open track
+with its saved points`, `a paused track interrupted keeps the time before the pause`, `delete
+removes an ended track and its points but never the open one`, `deleting the trip stops its
+recording`, `a track deleted under the recorder ends the recording instead of crashing`);
+`MigrationTest.version2UpgradesWithTrackTablesAndKeepsTripsAndSteps`; UI:
+`TripFlowsTest.tripDetail_showsTheRecordTrackControl`. Recording with simulated GPS, screen off,
+force-stop and offline drawing are checked by hand on the emulator (AGENTS.md "GPS on the
+emulator").
 
 ## Text rules
 

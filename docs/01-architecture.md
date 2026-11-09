@@ -3,7 +3,8 @@
 ## Goals
 
 1. **Local first.** All data lives on the device. There is no account and no API call; the only
-   network traffic is the map style and its tiles, fonts and icons (see 05-map.md).
+   network traffic is the map style and its tiles, fonts and icons (see 05-map.md). GPS
+   tracks (R16) are recorded and stored on the device only.
 2. **Portable domain.** Business rules live in a layer without platform types (no Android, no UI,
    no database), so the iOS app can port them line by line and run the same unit tests.
 3. **Server later without touching the UI.** Screens talk to use cases; use cases talk to
@@ -17,20 +18,28 @@
 │   observes streams, calls use cases, owns transient form state│
 ├──────────────────────────────────────────────────────────────┤
 │ Domain                                                        │  pure language code
-│   models: Trip, Step, Photo, GeoPoint, TripSummary            │
+│   models: Trip, Step, Photo, GeoPoint, TripSummary,           │
+│          Track, TrackPoint, LocationFix                       │
 │   rules: TripValidator, StepValidator, TripOrder, StepOrder,  │
 │          routeOf, Geo, statsOf, NewStepDefaults               │
-│   use cases: SaveTrip, DeleteTrip, SaveStep, DeleteStep       │
+│          TrackFilter, TrackMath (R16)                         │
+│   use cases: SaveTrip, DeleteTrip, SaveStep, DeleteStep,      │
+│          TrackRecorder (recording state machine), DeleteTrack │
 │   ports (interfaces): TripRepository, StepRepository,         │
+│          TrackRepository,                                     │
 │          PhotoFileStore, Clock, IdGenerator                   │
 ├──────────────────────────────────────────────────────────────┤
 │ Data                                                          │  Room / SwiftData
-│   local database (3 tables), mappers, repository impls        │
+│   local database (5 tables), mappers, repository impls        │
 │   photo file store (app-private folder)                       │
 │   sample data seeder (debug only)                             │
 ├──────────────────────────────────────────────────────────────┤
 │ Map adapter                                                   │  MapLibre / MapLibre iOS
 │   basemap config (one place), map views, route layers, pins   │
+├──────────────────────────────────────────────────────────────┤
+│ Tracking adapter                                              │  Service / CLLocationManager
+│   location foreground service: GPS fixes → TrackRecorder,     │
+│   recording notification                                      │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -43,12 +52,13 @@ concrete classes by hand (no DI framework), so the iOS app can use a plain `stru
 | Package | Content |
 | --- | --- |
 | `domain/model` | Immutable value types |
-| `domain/repository` | Interfaces the domain needs (`TripRepository`, `StepRepository`, `PhotoFileStore`, `Clock`, `IdGenerator`) |
-| `domain/usecase` | `Validation.kt` (limits, inputs, error enums, validators), `Ordering.kt` (comparators, route, distance, stats, new-step defaults), `UseCases.kt` |
+| `domain/repository` | Interfaces the domain needs (`TripRepository`, `StepRepository`, `TrackRepository`, `PhotoFileStore`, `Clock`, `IdGenerator`) |
+| `domain/usecase` | `Validation.kt` (limits, inputs, error enums, validators), `Ordering.kt` (comparators, route, distance, stats, new-step defaults), `UseCases.kt`; tracks (R16): `TrackLogic.kt` (`TrackRules`, `TrackFilter`, `TrackMath`, `TrackFormat`), `TrackRecorder.kt` (start/pause/resume/stop, fixes, process-death recovery) |
 | `data/local` | Database entities, DAOs, type converters, mappers |
-| `data` | `RoomTripRepository`, `RoomStepRepository`, `PhotoStorage`, `SampleData` |
+| `data` | `RoomTripRepository`, `RoomStepRepository`, `RoomTrackRepository`, `PhotoStorage`, `SampleData` |
+| `tracking` | `TrackRecordingService` (foreground service type location: platform GPS → `TrackRecorder.onFix`, GPS on/off with the state) and `TrackNotifications` (channel + notification) |
 | `map` | `MapConfig` (style URL, basemap tuning, attribution, User-Agent, zooms), `MapSetup`, `MapViews`, `RouteLayers`, `Pins`, `CameraMath`; offline areas: `OfflineConfig` (pure: areas, zooms, size estimate, limits), `OfflineState`, `OfflineMaps` (MapLibre offline store), `NetworkMonitor`, `OfflineIndicator` |
-| `ui/*` | One file per screen + view model; `ui/common` holds shared widgets and dialogs |
+| `ui/*` | One file per screen + view model; `ui/common` holds shared widgets and dialogs; `ui/tracks` the "Ghi hành trình" control and the track list |
 | `AppContainer`, `LuTrinhApp`, `MainActivity` | Composition root, app start, single activity |
 
 ## Data flow
@@ -60,6 +70,12 @@ concrete classes by hand (no DI framework), so the iOS app can use a plain `stru
   a use case. The use case validates, builds the domain model (ids, timestamps), writes through the
   repository in one transaction, and returns `Saved(id)` or `Invalid(errors)`. Errors are enum
   values; each screen maps them to localized messages.
+* **Recording (R16):** `TrackRecorder` is a single app-wide object (in `AppContainer`) holding the
+  open track as an observable value. The UI starts the service, which calls `start`; pause /
+  resume / stop come from the screen or the notification and go straight to the recorder; the
+  service observes the open track to switch GPS on/off, update the notification and stop itself.
+  Each accepted fix is written at once (point + track totals in one transaction). At app start
+  `recoverInterrupted` ends tracks left open by a dead process.
 * **Files:** photo files are written before the step is saved (import) and deleted after the
   database transaction that dropped their rows (see R7, R8 and 06-photos.md).
 

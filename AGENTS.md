@@ -20,7 +20,9 @@ app/src/main/java/vn/lutrinh/app/
   data/     Room DB, repositories, PhotoStorage (import: EXIF/downscale/GPS strip), data/photo/ (pure maths), sample data
   map/      MapConfig.kt (the ONLY place for style URL/basemap tuning/attribution/User-Agent),
             OfflineConfig.kt (the ONLY place for offline areas/zooms/limits), OfflineMaps.kt,
-            RouteLayers.kt (route layer stack), Pins.kt, MapLibre views
+            RouteLayers.kt (route + recorded-track layer stack), Pins.kt, MapLibre views
+  tracking/ TrackRecordingService (location foreground service + notification); the logic is
+            domain/usecase/TrackLogic.kt + TrackRecorder.kt (R16, pure, unit-tested)
   ui/       screens + view models; ui/common/Common.kt has formatters and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
@@ -60,7 +62,20 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
 * Map screenshots by script: pinch needs root; zoom in with a double tap
   (`input tap x y; sleep 0.1; input tap x y` — without the sleep it is two single taps) and out
   with a quick-scale (`input motionevent DOWN/UP/DOWN`, MOVE upwards, UP).
-* MapLibre merges location permissions into the manifest → removed with `tools:node="remove"`.
+* Location permissions are real since GPS tracks (R16): fine/coarse + `FOREGROUND_SERVICE_LOCATION`
+  + `POST_NOTIFICATIONS`; `ACCESS_BACKGROUND_LOCATION` stays removed with `tools:node="remove"`
+  (check: `aapt dump permissions app-debug.apk`). Never ask for background location.
+* GPS on the emulator (R16): `adb -s emulator-5580 emu geo fix <lon> <lat>` (longitude first)
+  feeds the platform GPS provider the recorder uses. Send fixes ≥ 6 s apart and ≥ 10 m apart (the
+  filter drops closer ones; > 85 m/s between fixes = dropped as a jump). Log:
+  `logcat -s TrackRecording` prints each fix with its verdict. Query the DB in place (the AVD has
+  `/system/bin/sqlite3`): `adb -s emulator-5580 shell 'run-as vn.lutrinh.app sqlite3
+  databases/lutrinh.db "select status,point_count,distance_m from tracks"'`. A real road for
+  fixes: `router.project-osrm.org/route/v1/driving/<lon,lat;lon,lat>?overview=full&geometries=geojson`
+  answers from this network (OSM data), resample to ~150 m, one fix every 7 s. Screen off:
+  `input keyevent 26`; back: `keyevent 224` + `wm dismiss-keyguard`. Process death:
+  `am force-stop vn.lutrinh.app` (`am kill` does not kill a foreground service); the next start
+  ends the track as interrupted. Notification shade: `cmd statusbar expand-notifications`.
 * A Compose `Dialog` re-provides `LocalConfiguration`/`LocalContext`: locale overrides must go
   **inside** dialog content (see `VietnameseLocale`). Don't wrap the whole app: MapLibre's
   `MapView` needs the real Activity context.

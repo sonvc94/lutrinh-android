@@ -84,7 +84,9 @@ The picker returns its result to the step form through the previous screen's sav
   line, R10), ngày; timeline grouped by day ("Ngày 2 · Thứ Bảy, 7/11"), each step with its number,
   time, note preview and up to a row of photo thumbnails. Between two steps a **leg chip** (mode
   icon + name in the mode colour, or "Chọn cách di chuyển" when not set, then "· N km") sits on
-  the timeline connector (R12); the header map draws the legs per mode (05-map.md).
+  the timeline connector (R12); the header map draws the legs per mode (05-map.md) and the
+  recorded tracks (crimson, 05-map.md "Recorded tracks"). Below the stats, the **"Ghi hành
+  trình" section** (§3b).
 * **Actions:** map icon → Trip map; ⋮ → Sửa / Xóa; tap step → Step detail; tap a leg chip → Leg
   mode sheet; FAB "Thêm điểm dừng"; small FAB above it (photo icon, label "Thêm từ ảnh") → From
   photos.
@@ -96,10 +98,43 @@ The picker returns its result to the step form through the previous screen's sav
   **Changed:** a scrolling timeline with the map as a header instead of a map-first screen with a
   drawer; day numbers are computed from the trip start date.
 
+## 3b. Record a track — "Ghi hành trình" (R16)
+
+* **Where:** a section of the Trip detail right under the stats, and a compact floating control
+  at the top right of the Trip map (§4). Both drive the same recording.
+* **Idle:** a short hint ("Bấm "Ghi hành trình" khi lên đường: …", detail only) and the tonal
+  button **"Ghi hành trình"** (route icon). Tap → permission flow of R16: explanation dialog
+  "Ghi hành trình bằng GPS" (Tiếp tục / Hủy) → system location prompt → (Android 13+)
+  notification prompt → recording starts. Refused precise location → dialog "Chưa có quyền vị
+  trí chính xác" with "Mở cài đặt"; device location off → "Vị trí đang tắt" with "Mở cài đặt".
+* **Recording (this trip):** a red dot + "Đang ghi", the ticking duration · distance, a pause
+  icon button ("Tạm dừng") and the button "Dừng". **Paused:** "Tạm dừng", the frozen duration ·
+  distance, a play icon button ("Tiếp tục") and "Dừng". Another trip is recording: the text "Đang
+  ghi hành trình cho chuyến đi khác" instead of the button (one recording at a time).
+* **Notification** (while open, cannot be swiped away): small route icon, "Đang ghi hành trình"
+  with a ticking chronometer and "<distance> · <trip>", actions "Tạm dừng" and "Dừng"; paused:
+  "Đã tạm dừng ghi hành trình", "<duration> · <distance> · <trip>", actions "Tiếp tục" and
+  "Dừng". Tap → opens the app.
+* **Track list** "Hành trình đã ghi (N)" in the same section, newest first: one row per track with
+  start date and time ("09/11/2026 14:05"), distance · duration · "N điểm GPS", and its state
+  ("Đang ghi" / "Tạm dừng" in red, "Dừng do ứng dụng bị đóng khi đang ghi" for an interrupted
+  track). Ended tracks have a delete icon ("Xóa hành trình") → confirm "Xóa hành trình này?" with
+  time, distance and point count → deleted with its points. The open track cannot be deleted.
+* **Screens:** `img/gps-track/01-recording-notification.png`,
+  `img/gps-track/02-trip-detail-recording.png`, `img/gps-track/03-trip-map-track.png`,
+  `img/gps-track/04-airplane-trip-map-track.png`, `img/gps-track/05-track-list-interrupted.png`,
+  `img/gps-track/06-my-map-track.png`.
+* **Inspired by:** polarsteps' automatic route tracking (its docs describe a background tracker
+  that fills the trip line between steps). **Changed:** recording is manual and visible
+  (start / pause / stop, always with a notification), stored per trip as separate tracks, drawn
+  apart from the planned route; no background-location permission, no automatic steps.
+
 ## 4. Trip map — full screen
 
 * **Content:** map (muted OpenFreeMap vector basemap, Vietnamese labels) with all pins + legs
-  styled per stroke kind with a mode badge at each leg's middle (05-map.md), fitted to the whole
+  styled per stroke kind with a mode badge at each leg's middle (05-map.md), the recorded tracks
+  (crimson, under the badges and pins), the compact "Ghi hành trình" control at the top right
+  (§3b), fitted to the whole
   route (camera rules) in the area above the card carousel, so no pin hides under a card; first
   pin white with a green ring (start), last pin clay (end); a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
   date · time; from card 2 on, the chip of the leg that arrives at this step).
@@ -136,7 +171,8 @@ The picker returns its result to the step form through the previous screen's sav
 * **Content:** full-screen map; at the top a card with three totals: số chuyến đi, điểm dừng, km
   (sum of each trip's straight-line distance); at the bottom a carousel of trip cards (colour
   dot, title, dates, "N điểm dừng · M km"). Each trip is drawn in its own colour on a white
-  casing with a soft shadow; the camera fits all trips between the totals card and the carousel.
+  casing with a soft shadow; recorded tracks of every trip are drawn on top in crimson
+  (05-map.md); the camera fits all trips between the totals card and the carousel.
 * **Behaviour:** tap a trip's line or dots → that trip is selected (wider line, on top, card
   scrolled into view and highlighted); tap a card → Trip detail. No trips: "Chưa có chuyến đi nào để
   hiện trên bản đồ."
@@ -295,6 +331,12 @@ The picker returns its result to the step form through the previous screen's sav
 | offline/04-airplane-hagiang-city.png | same at town zoom (street + village labels, route, pins) |
 | offline/05-airplane-hoian-not-downloaded.png | airplane mode, location picker at Hội An (not downloaded): "Không có mạng / Vùng này chưa tải bản đồ offline." |
 | offline/06-delete-confirm.png | "Xóa bản đồ offline “Ninh Bình”?" with the space it frees |
+| gps-track/01-recording-notification.png | recording the Hà Giang trip: the notification with chronometer, distance, Tạm dừng / Dừng |
+| gps-track/02-trip-detail-recording.png | trip detail while recording: "Đang ghi" control and the track list |
+| gps-track/03-trip-map-track.png | Hà Giang trip map zoomed to TP Hà Giang: the recorded track (crimson, along the road, gap = a pause) next to the planned straight leg |
+| gps-track/04-airplane-trip-map-track.png | airplane mode, app restarted: basemap from the offline pack + the track |
+| gps-track/05-track-list-interrupted.png | after a force-stop while recording: the track ended, "Dừng do ứng dụng bị đóng khi đang ghi" |
+| gps-track/06-my-map-track.png | "Bản đồ của tôi" zoomed to TP Hà Giang: the recorded track over the trip line |
 
 ## Accessibility and UI tests
 
@@ -305,7 +347,8 @@ The picker returns its result to the step form through the previous screen's sav
   on a device: create trip, edit trip, delete trip, add a step with the "Mã Pí Lèng" quick-place
   chip, set a leg's mode to "Xe máy" from the timeline (checked in the database), open "Bản đồ
   của tôi" from the list, open "Bản đồ offline" from the list menu (ready-made regions listed) and
-  from a trip map ("Tải vùng của chuyến đi này"). They find nodes by the Vietnamese texts/labels above (changing a string means updating the
+  from a trip map ("Tải vùng của chuyến đi này"), and check that a trip shows the "Ghi hành
+  trình" button (not tapped: it would raise the system location prompt). They find nodes by the Vietnamese texts/labels above (changing a string means updating the
   test) and delete every trip whose title starts with `UITEST` afterwards. Run with
   `./gradlew connectedDebugAndroidTest` (needs network for tiles only cosmetically; the picker
   centre updates without tiles).

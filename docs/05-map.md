@@ -132,6 +132,9 @@ selected leg rice gold `#E0A526`. Selected features have `line-sort-key` 2 (draw
 | 62 | `leg-badges-layer` | | symbol, mode badge at `pointAt(0.5)`; `icon-allow-overlap` **off** (badges give way to pins and each other, so short legs drop theirs at low zoom), `symbol-sort-key` = order (selected first), `symbol-avoid-edges` |
 | 63 | `steps-layer` | | symbol, step pins; `icon-allow-overlap` on (no pin ever hides), `symbol-sort-key` puts the selected pin, then start/end, on top |
 
+Recorded tracks (R16) sit between the route and the badges: `track-casing` and `track-line`
+(see "Recorded tracks" below), so pins and badges stay on top of them.
+
 Pins and badges scale with zoom: `icon-size` 0.75 at z4, 0.9 at z8, 1 from z10.
 MapLibre's `line-dasharray` is **not** data-driven, so each stroke kind is its own layer
 filtered with `["==", ["get", "kind"], "<kind>"]`.
@@ -185,6 +188,32 @@ colour, 2 / 3.2 / 5 → 3.2 / 5 / 7.5), `trip-stops-layer` (circles in the trip 
 3 / 4.5 / 6 → 4 / 6 / 7.5, white stroke 1.5 → 2.5). The selected trip is sorted on top. A tap
 within 18 dp of a line or dot selects that trip; the camera fits all trips.
 Screenshot: `img/26-my-map.png`.
+
+### Recorded tracks (R16)
+
+`RouteLayers.kt` `addTrackLayers` + `TrackLine.toFeatureCollection`: one GeoJSON source
+(`tracks-src` on trip maps, `all-tracks-src` on Bản đồ của tôi) with one LineString per drawn
+segment (`TrackMath.displayLines`: one line per track segment, Douglas–Peucker 5·10⁻⁵°; a pause
+splits the line), properties `track` (id) and `live` (the open track).
+
+| Layer id | Paint (dp at z5 / z9 / z13) |
+| --- | --- |
+| `track-casing` | white, width 3.2 / 4.6 / 6.5, opacity 0.9, round cap/join |
+| `track-line` | crimson `#D7263D`, width 1.6 / 2.6 / 4, round cap/join, solid |
+
+Crimson is not used by the route (green/gold), the leg modes or the 8 trip colours of R14, and a
+thinner solid line on a thin casing reads as "where I really went" next to the thicker planned
+legs. Drawn on: the trip detail header map, the full trip map (above the legs, below badges and
+pins) and Bản đồ của tôi (every trip's tracks, above the trip lines, below the stop dots). Tracks
+are not tappable. The step map and location picker draw no tracks.
+
+* **Camera:** on trip maps the fit includes the points of ended tracks (a track that left the
+  steps' box stays on screen); the **live** track never moves the camera (no re-fit on each fix).
+  Bản đồ của tôi fits trips only.
+* **Offline:** tracks come from the local database and draw over whatever basemap is available,
+  including a downloaded offline area (R15) with no network (`img/gps-track/04-airplane-trip-map-track.png`).
+* Screenshots: `img/gps-track/03-trip-map-track.png`, `img/gps-track/06-my-map-track.png`,
+  `img/gps-track/02-trip-detail-recording.png`.
 
 ## Camera rules
 
@@ -277,5 +306,6 @@ Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map
 Drawing a custom offline box on the map, background download as a foreground service/WorkManager
 (today downloads stop when the process dies and resume at the next start), dark map, clustering for trips with many steps, road-following routes
 (snap-to-roads / OSRM — legs stay straight or arcs), photo thumbnails inside pins, current-location
-button (needs location permission; tracking is out of scope), a self-hosted or paid tile source
+button and following the user on the map (location is used only while recording a track, R16),
+snapping recorded tracks to roads, GPX export, a self-hosted or paid tile source
 for production (also for offline areas, see "Provider note").
