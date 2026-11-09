@@ -1,0 +1,16 @@
+Place names (assets/places/vn_places.tsv)
+==========================================
+
+The offline place list used by "Tìm địa danh" (place search) and automatic step names is derived
+from OpenStreetMap data.
+
+  © OpenStreetMap contributors
+  https://www.openstreetmap.org/copyright
+
+OpenStreetMap data is available under the Open Data Commons Open Database License (ODbL) 1.0:
+  https://opendatacommons.org/licenses/odbl/1-0/
+
+The file vn_places.tsv is a derived database and is likewise made available under the ODbL 1.0.
+It is produced by tools/gazetteer/build_gazetteer.py from the Geofabrik extract of Vietnam
+(https://download.geofabrik.de/asia/vietnam.html); the first lines of the file name the extract
+date. Former province names (before 1 July 2025) are added from Nghị quyết 202/2025/QH15.

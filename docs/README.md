@@ -12,8 +12,8 @@ Language: English for prose, Vietnamese for the on-screen copy (quoted as it app
 | [01-architecture.md](01-architecture.md) | Layers (UI → use cases → repositories → storage), modules/packages, dependency flow, what is local-only today and where a server plugs in later |
 | [02-data-model.md](02-data-model.md) | Entities Trip / Step / Photo: fields, types, nullability, relations, storage format, validation limits |
 | [03-screens.md](03-screens.md) | Every screen: purpose, states (empty / loading / error / content), actions, navigation graph, which Polarsteps flow inspired it and what was changed on purpose |
-| [04-business-rules.md](04-business-rules.md) | Numbered rules R1–R11: ordering, date validation, new-step defaults, delete cascade, photo list rules, stats, photo import processing |
-| [05-map.md](05-map.md) | OpenStreetMap tiles, tile server choice, User-Agent, attribution, markers, route line, camera rules, location picker |
+| [04-business-rules.md](04-business-rules.md) | Numbered rules R1–R24: ordering, date validation, new-step defaults, delete cascade, photo list rules, stats, photo import processing, legs, tracks, suggestions, sharing, drafts, cover, my location, offline place search (R23) and automatic place names (R24) |
+| [05-map.md](05-map.md) | OpenStreetMap tiles, tile server choice, User-Agent, attribution, markers, route line, camera rules, location picker, offline gazetteer (data, generator, ODbL) |
 | [06-photos.md](06-photos.md) | Picking (system picker, no storage permission), copying into app storage, cover, viewer, cleanup |
 | [07-ios-port.md](07-ios-port.md) | Android choice → Swift/SwiftUI equivalent, per layer, plus a porting checklist |
 | [img/](img/) | Emulator screenshots of each flow (listed in 03-screens.md) |

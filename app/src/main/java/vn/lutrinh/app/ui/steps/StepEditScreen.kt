@@ -91,6 +91,7 @@ import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.usecase.GalleryPhoto
 import vn.lutrinh.app.domain.usecase.GallerySelection
+import vn.lutrinh.app.domain.usecase.AutoTitle
 import vn.lutrinh.app.domain.usecase.PlaceLabel
 import vn.lutrinh.app.domain.usecase.ExtendCase
 import vn.lutrinh.app.domain.usecase.Limits
@@ -118,6 +119,7 @@ import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.ChangeLocationButton
 import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.placeLines
+import vn.lutrinh.app.ui.common.rememberGazetteer
 import vn.lutrinh.app.ui.trips.DateField
 import vn.lutrinh.app.ui.trips.DatePickDialog
 import java.time.LocalDate
@@ -153,7 +155,14 @@ data class StepForm(
     val isDraft: Boolean = false,
     /** R20: the last save asked for a draft ("Lưu nháp"); kept for the R17 extend-trip retry. */
     val saveAsDraft: Boolean = false,
+    /** R24: the place name last filled into [title] (null = none) and the title before it. */
+    val autoTitle: String? = null,
+    val titleBeforeAuto: String = "",
 ) {
+    /** R24: the title after the location moved to a point named [place]; a typed title stays. */
+    fun placed(place: String?): StepForm =
+        AutoTitle(title, autoTitle, titleBeforeAuto).placed(place).let { copy(title = it.title, autoTitle = it.auto, titleBeforeAuto = it.beforeAuto) }
+
     /** Gallery photos that "Lưu" will copy into the step (R19), in grid order. */
     val galleryPhotos: List<GalleryPhoto> get() = stopPhotos?.selection?.selected.orEmpty()
 
@@ -210,6 +219,8 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                 _form.update { it.copy(loading = false, missing = true) }
                 return@launch
             }
+            // R24: a stop suggestion's default title becomes the place there.
+            val stopPlace = fromStop?.let { c.places.await()?.nearest(it.location)?.place?.name }
             _form.update {
                 if (step != null) it.fromStep(trip, step).copy(tripSteps = steps)
                 else if (fromStop != null) {
@@ -224,7 +235,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                         time = arrival.toLocalTime(),
                         suggestedLocation = fromStop.location,
                         tripSteps = steps,
-                    )
+                    ).placed(stopPlace)
                 } else {
                     val arrival = NewStepDefaults.arrival(trip, steps, LocalDateTime.now())
                     it.copy(
@@ -254,7 +265,17 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
 
     fun edit(change: StepForm.() -> StepForm) = _form.update { it.change().copy(dirty = true, errors = emptySet()) }
 
-    fun setLocation(p: GeoPoint) = edit { copy(location = p) }
+    /**
+     * A new location (picker, search, "Vị trí của tôi"). R24: a title the user has not typed takes
+     * [pickedName] (a search result) or the nearest gazetteer place.
+     */
+    fun setLocation(p: GeoPoint, pickedName: String? = null) {
+        edit { copy(location = p) }
+        viewModelScope.launch {
+            val name = pickedName ?: c.places.await()?.nearest(p)?.place?.name
+            _form.update { f -> if (f.location == p) f.placed(name) else f }
+        }
+    }
 
     fun addPhotos(uris: List<Uri>) {
         if (uris.isEmpty()) return
@@ -417,6 +438,7 @@ fun StepEditScreen(
     onPickLocation: (current: GeoPoint?) -> Unit,
     onBack: () -> Unit,
     onSaved: () -> Unit,
+    pickedName: String? = null,
     onDeleted: () -> Unit,
     vm: StepEditViewModel = viewModel(factory = factory { c, h -> StepEditViewModel(c, h) }),
 ) {
@@ -429,7 +451,7 @@ fun StepEditScreen(
 
     LaunchedEffect(pickedLocation) {
         if (pickedLocation != null) {
-            vm.setLocation(pickedLocation)
+            vm.setLocation(pickedLocation, pickedName)
             onPickedConsumed()
         }
     }
@@ -618,7 +640,7 @@ private fun LocationCard(f: StepForm, excludeId: String?, onPick: () -> Unit) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.step_location), style = MaterialTheme.typography.labelMedium)
-                val lines = loc?.let { placeLines(it, f.tripSteps, excludeId) }
+                val lines = loc?.let { placeLines(it, f.tripSteps, excludeId, rememberGazetteer()) }
                 Text(
                     lines?.first ?: stringResource(R.string.step_location_none),
                     style = MaterialTheme.typography.bodyMedium,

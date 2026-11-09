@@ -91,6 +91,10 @@ object Routes {
 
 private const val PICKED_LOCATION = "picked_location"
 
+private fun pickedPoint(v: String): GeoPoint = v.split(',', limit = 3).let { GeoPoint(it[0].toDouble(), it[1].toDouble()) }
+
+private fun pickedName(v: String): String? = v.split(',', limit = 3).getOrNull(2)?.takeIf { it.isNotBlank() }
+
 private fun optional(name: String) = navArgument(name) {
     type = NavType.StringType
     nullable = true
@@ -191,7 +195,8 @@ private fun NavGraph(nav: NavHostController) {
             val stepId = entry.arguments?.getString("stepId")
             val picked by entry.savedStateHandle.getStateFlow<String?>(PICKED_LOCATION, null).collectAsState()
             StepEditScreen(
-                pickedLocation = picked?.split(',')?.let { GeoPoint(it[0].toDouble(), it[1].toDouble()) },
+                pickedLocation = picked?.let(::pickedPoint),
+                pickedName = picked?.let(::pickedName),
                 onPickedConsumed = { entry.savedStateHandle[PICKED_LOCATION] = null },
                 onPickLocation = { at -> nav.navigate(Routes.picker(tripId, stepId, at)) },
                 onBack = { nav.popBackStack() },
@@ -204,7 +209,8 @@ private fun NavGraph(nav: NavHostController) {
             val context = LocalContext.current
             val picked by entry.savedStateHandle.getStateFlow<String?>(PICKED_LOCATION, null).collectAsState()
             FromPhotosScreen(
-                pickedLocation = picked?.split(',')?.let { GeoPoint(it[0].toDouble(), it[1].toDouble()) },
+                pickedLocation = picked?.let(::pickedPoint),
+                pickedName = picked?.let(::pickedName),
                 onPickedConsumed = { entry.savedStateHandle[PICKED_LOCATION] = null },
                 onPickLocation = { at -> nav.navigate(Routes.picker(tripId, null, at)) },
                 onBack = { nav.popBackStack() },
@@ -237,8 +243,10 @@ private fun NavGraph(nav: NavHostController) {
         ) {
             LocationPickerScreen(
                 onBack = { nav.popBackStack() },
-                onPicked = { p ->
-                    nav.previousBackStackEntry?.savedStateHandle?.set(PICKED_LOCATION, "${p.latitude},${p.longitude}")
+                onPicked = { p, name ->
+                    // "lat,lng" or "lat,lng,<name of the search result>" (R24)
+                    val value = "${p.latitude},${p.longitude}" + (name?.let { ",$it" } ?: "")
+                    nav.previousBackStackEntry?.savedStateHandle?.set(PICKED_LOCATION, value)
                     nav.popBackStack()
                 },
             )

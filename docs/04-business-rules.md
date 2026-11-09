@@ -682,6 +682,69 @@ Code: `ui/common/MyLocation.kt` (state + button + rationale), `ui/picker/DeviceL
 dialog, the denied snackbar, the guide on the first and second recording and the settings button
 are checked by hand on the emulator (`img/my-location/`, `adb emu geo fix 105.85 21.03`).
 
+## R23 — Offline place search ("Tìm địa danh" in the location picker)
+
+Code: `domain/usecase/Places.kt` (`PlaceText`, `Gazetteer.search`), `data/PlaceIndex.kt` (loads the
+asset once, in the background), `ui/picker/PlaceSearchUi.kt`, `ui/picker/LocationPickerScreen.kt`.
+Data: `assets/places/vn_places.tsv`, built from OpenStreetMap by `tools/gazetteer/build_gazetteer.py`
+(docs/05 "Place search"). **Search never uses the network**: it works in airplane mode.
+
+* **Normalising** (query and names alike): Unicode NFD, combining marks dropped, đ/Đ → d, lower
+  case, every run of other characters → one space. "Đồng Văn", "dong van" and "DONG-VAN" are equal.
+* **Keys of a place:** its name and aliases (OSM `alt_name`, `old_name`, `short_name`,
+  `official_name`, `name:en`, `name`), each also without one generic leading word ("xã", "phường",
+  "thị trấn", "thành phố", "tp", "tỉnh", "huyện", "khu du lịch (sinh thái)", "quần thể danh thắng",
+  "bãi biển", "phố cổ", "cột cờ", "đèo", "núi", "thác", "chùa", "đền"). Words that also start real
+  names without accents ("động/đồng", "hồ", "bản", "làng/lạng", "hang", "thôn", "bãi") are not
+  generic.
+* **Provinces:** the 34 in force since 1 July 2025; each lists the provinces merged into it as
+  former names (`FORMER_PROVINCES`, e.g. Tuyên Quang ← Hà Giang, Ninh Bình ← Hà Nam + Nam Định). A
+  former name finds the merged province and is shown with the result ("trước đây Hà Giang").
+* **Match** (query of ≥ 2 characters; every query word must start a word): tier 0 = a key equals
+  the query; 1 = a key starts with it; 2 = every query word starts a word of the keys; 3 = some
+  word is in the keys and the rest in the province's current or former name ("dong van ha giang").
+* **Ranking:** tier, then score = importance − 12 · ln(1 + km/10), km = distance to the nearest
+  step of the trip (no steps: importance only), then name. Importance: province 100, city 80, town
+  60, commune/ward 55, bay 60, sight 50, pass 50, viewpoint/peak/waterfall/cave/beach/island/lake/
+  worship 45, museum/historic 40, camp site 30, village 30, hamlet 20; +20 with a Wikidata/
+  Wikipedia link. Results with the same name (without its generic word) in one province within
+  5 km are folded into the first. At most 20 results.
+* **Picking** a result moves the pin there (zoom 8.5 for a province, else the picker zoom), closes
+  the list and shows the name on the bottom card; "Dùng vị trí này" returns the point **and** that
+  name while the pin has not moved more than 100 m (a province is never returned as a name).
+
+*Tests:* `PlacesTest` (`normaliser drops diacritics, đ and case`, `ascii query finds the accented
+place, exact before prefix`, `generic prefix and alias words match`, `former province name finds
+the merged province`, `ranking by importance, then distance to the trip, folding duplicates`,
+`bundled gazetteer - 34 provinces and the acceptance searches`). Checked by hand in airplane mode:
+`img/place-search/01`–`04`.
+
+## R24 — Automatic place name ("Tên địa điểm" follows the location until the user types one)
+
+Code: `Gazetteer.nearest`, `AutoName`, `AutoTitle` (`domain/usecase/Places.kt`); used by
+`StepEditScreen` (`StepForm.placed`), `FromPhotosScreen` (`StepSuggestion.placed`) and
+`PlaceLabel.label(…, places)`.
+
+* **Nearest place of a point:** the closest sight, village, hamlet, town or city within **3 km**;
+  if none, the closest commune/ward, town or city centre within **15 km**; else none (sea, border).
+* **When the location is set** — search pick (its name), pin drop, "Vị trí của tôi" or a step chip
+  in the picker, a step from photos (the photo GPS), a step from a stop suggestion (the stay's centre)
+  — the step name becomes that place's name **if the name is not typed**: blank, still the default
+  "Điểm dừng HH:mm" (R6), or the name this rule filled in last. A name the user typed (anything
+  else) is never replaced. When the point moves somewhere without a nearby place, an auto-filled
+  name goes back to what was there before it (blank or the default).
+* The lookup runs after the gazetteer is loaded (a few seconds after the app starts); a location
+  set earlier gets its name as soon as it is ready, unless the location changed meanwhile.
+* **Place labels** (step form, step detail, from-photos cards, stop suggestion cards): a step of
+  the trip within **5 km** keeps "gần <điểm dừng>, N km"; otherwise the gazetteer place: "<Tên>,
+  <Tỉnh>" within 0.3 km, else "gần <Tên> (<Tỉnh>), N km"; with neither, the old label (nearest
+  step at any distance, or coordinates only).
+
+*Tests:* `PlacesTest` (`nearest place - sight or village within 3 km, else a commune centre within
+15 km`, `auto title fills a blank or default name and never overwrites a typed one`, `place label
+keeps a near step, else names the gazetteer place`, `bundled gazetteer - a point near Ma Pi Leng
+gets a nearby name`). Checked by hand: `img/place-search/05`–`07`.
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

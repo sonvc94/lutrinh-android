@@ -99,7 +99,14 @@ data class StepSuggestion(
     val outsideTrip: Boolean,
     /** Created on confirm. Off for groups without a location until one is placed. */
     val include: Boolean,
-)
+    /** R24: the place name last filled into [title] (null = none) and the title before it. */
+    val autoTitle: String? = null,
+    val titleBeforeAuto: String = "",
+) {
+    /** R24: the title after the location moved to a point named [place]; a typed title stays. */
+    fun placed(place: String?): StepSuggestion =
+        AutoTitle(title, autoTitle, titleBeforeAuto).placed(place).let { copy(title = it.title, autoTitle = it.auto, titleBeforeAuto = it.beforeAuto) }
+}
 
 /**
  * R13: one suggestion per group, titled by [titleFor] ("Điểm dừng HH:mm" of its arrival, like a stop suggestion).

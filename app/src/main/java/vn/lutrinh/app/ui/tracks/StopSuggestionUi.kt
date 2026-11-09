@@ -25,6 +25,7 @@ import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.StopSuggestion
 import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.PlaceLabel
+import vn.lutrinh.app.ui.common.rememberGazetteer
 import vn.lutrinh.app.ui.common.displayDay
 import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.formatCoord
@@ -36,7 +37,7 @@ import vn.lutrinh.app.ui.common.formatCoord
 @Composable
 fun StopSuggestionSection(
     suggestions: List<StopSuggestion>,
-    /** The trip's steps: a suggestion is described as "gần <nearest step>, N km". */
+    /** The trip's steps: a suggestion is described as "gần <nearest step>, N km" (or by the gazetteer, R24). */
     steps: List<Step> = emptyList(),
     /** R19: gallery photos per [StopSuggestion.key] ("N ảnh trong máy"); empty without gallery access. */
     galleryCounts: Map<String, Int> = emptyMap(),
@@ -92,10 +93,15 @@ private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, steps: List<St
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    // "gần <step>, 850 m" when a step is within 5 km, else the gazetteer place (R24), else coordinates.
                     val near = PlaceLabel.nearest(s.dwell.center, steps)
+                    val place = if (near != null && near.km <= PlaceLabel.NEAR_STEP_KM) null else rememberGazetteer()?.nearest(s.dwell.center)
                     Text(
-                        if (near != null) stringResource(R.string.stop_suggest_near, near.title, DisplayFormat.trackDistance(near.km * 1000))
-                        else formatCoord(s.dwell.center.latitude, s.dwell.center.longitude),
+                        when {
+                            place != null -> PlaceLabel.placeLabel(place)
+                            near != null -> stringResource(R.string.stop_suggest_near, near.title, DisplayFormat.trackDistance(near.km * 1000))
+                            else -> formatCoord(s.dwell.center.latitude, s.dwell.center.longitude)
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

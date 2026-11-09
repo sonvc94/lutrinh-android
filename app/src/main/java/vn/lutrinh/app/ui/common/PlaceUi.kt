@@ -9,12 +9,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.usecase.Gazetteer
 import vn.lutrinh.app.domain.usecase.PlaceLabel
 
 /**
@@ -31,12 +35,19 @@ fun ChangeLocationButton(hasLocation: Boolean, onClick: () -> Unit, modifier: Mo
 }
 
 /**
- * A place as people read it (F15): "gần <điểm dừng gần nhất>, N km" as the main line, the
- * coordinates as the secondary one; coordinates alone when the trip has no other step.
- * Returns (main, secondary-or-null).
+ * A place as people read it (F15, R24): "gần <điểm dừng gần nhất>, N km" when a step is within
+ * 5 km, else the nearest gazetteer place, as the main line; the coordinates as the secondary one;
+ * coordinates alone when nothing names the point. Returns (main, secondary-or-null).
  */
-fun placeLines(point: GeoPoint, tripSteps: List<Step>, excludeId: String? = null): Pair<String, String?> {
+fun placeLines(point: GeoPoint, tripSteps: List<Step>, excludeId: String? = null, places: Gazetteer? = null): Pair<String, String?> {
     val coords = formatCoord(point.latitude, point.longitude)
-    val near = PlaceLabel.label(point, tripSteps, excludeId)
+    val near = PlaceLabel.label(point, tripSteps, excludeId, places)
     return if (near != null) near to coords else coords to null
+}
+
+/** The offline gazetteer (R23/R24) once loaded; null before (and in previews). */
+@Composable
+fun rememberGazetteer(): Gazetteer? {
+    val app = LocalContext.current.applicationContext as? LuTrinhApp ?: return null
+    return app.container.places.gazetteer.collectAsState().value
 }

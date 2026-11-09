@@ -79,6 +79,7 @@ import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.displayDateTime
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.placeLines
+import vn.lutrinh.app.ui.common.rememberGazetteer
 import vn.lutrinh.app.ui.trips.toMarkers
 
 /** [number] = timeline number (null for a draft, R20); [index] = position in [tripSteps] (drafts included). */
@@ -159,7 +160,7 @@ fun StepDetailScreen(
                         Text(step.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                         if (step.isDraft) DraftCard(onPublish = vm::publish)
                         InfoRow(Icons.Outlined.Schedule, step.arrivedAt.displayDateTime())
-                        val (place, coords) = placeLines(step.location, s.value.tripSteps, step.id)
+                        val (place, coords) = placeLines(step.location, s.value.tripSteps, step.id, rememberGazetteer())
                         InfoRow(Icons.Outlined.Place, place)
                         coords?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 26.dp))

@@ -525,7 +525,7 @@ fun PickerMap(
                 if (target != null && target !== state.lastMoveTo && map != null) {
                     state.lastMoveTo = target
                     map.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(LatLng(target.point.latitude, target.point.longitude), MapConfig.PICKER_ZOOM),
+                        CameraUpdateFactory.newLatLngZoom(LatLng(target.point.latitude, target.point.longitude), target.zoom),
                     )
                 }
             },
@@ -541,4 +541,4 @@ private class PickerState {
 }
 
 /** A request to fly the picker to [point]; a new instance each time, so the same place can be asked again. */
-class PickerMove(val point: GeoPoint)
+class PickerMove(val point: GeoPoint, val zoom: Double = MapConfig.PICKER_ZOOM)

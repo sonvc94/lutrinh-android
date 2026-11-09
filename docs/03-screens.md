@@ -231,8 +231,9 @@ The picker returns its result to the step form through the previous screen's sav
   "<day> · HH:mm–HH:mm", "Dừng 35 phút · 2 ảnh chụp lúc này" (only non-zero counts are shown),
   then " · N ảnh trong thư viện" when the app may read the phone's gallery (R19: gallery photos of
   the stop window not yet in the trip; omitted at 0 or without access), the place line
-  "gần <nearest step title>, 9,7 km" (track-distance format; the coordinates only when the trip
-  has no step); a neutral outline (not the track red); buttons "Bỏ qua" (text) and
+  "gần <nearest step title>, 9,7 km" when a step is within 5 km (track-distance format), else the
+  nearest gazetteer place (R24, "gần Tên (Tỉnh), N km"), else the nearest step at any distance,
+  else the coordinates; a neutral outline (not the track red); buttons "Bỏ qua" (text) and
   "Tạo điểm dừng ở đây" (tonal).
 * **Tạo điểm dừng ở đây:** opens the Step form (§5) as a new step prefilled with "Điểm dừng HH:mm",
   the stay's date/time and centre (shown on the location card; "Đổi vị trí" opens the picker there),
@@ -412,6 +413,12 @@ The picker returns its result to the step form through the previous screen's sav
   in the top bar.
 * **Defaults (new step):** R6 — date/time and the point where the picker opens. From a stop
   suggestion (§3c, R17): name "Điểm dừng HH:mm", the stay's date/time and centre.
+* **Automatic name (R24):** each time the location is set (picker result, pin, "Vị trí của tôi",
+  stop suggestion) and the name is blank, still "Điểm dừng HH:mm" or the name filled in last by
+  R24, "Tên địa điểm" becomes the nearest gazetteer place ("Mã Pí Lèng Pass"); a name the user typed
+  is never replaced. The Vị trí card label uses the gazetteer when no step of the trip is within
+  5 km ("gần Tên (Tỉnh), N km"). Screens: `img/place-search/05-step-auto-name.png`,
+  `06-step-typed-name-kept.png`, `07-step-pin-drop-auto-name.png`.
 * **"Ảnh chụp trong lúc dừng" (only when opened from a stop suggestion, R19):** a card below
   "Ảnh (n)" (which already holds the ticked photos): photo-library icon, title, "Ảnh trong máy chụp trong khoảng 08:50–09:36 (từ 10 phút
   trước đến 10 phút sau lúc dừng)", then one of:
@@ -444,17 +451,26 @@ The picker returns its result to the step form through the previous screen's sav
   `img/draft-cover/01-step-form-save-draft.png` ("Lưu nháp" | "Lưu").
 * **Inspired by:** docs/22 §1.3 (New/Edit Step: map header with edit pencil, name, arrival date +
   time, media box, note) and its "Publish / Save as draft" choice. **Changed:** the choice is two
-  buttons on the form ("Lưu nháp" / "Lưu") instead of a sheet, publishing later is "Đăng" on step detail, no location search (offline: the picker offers "Vị trí của tôi" and this trip's steps), suggested photos only for a step made
-  from a stop suggestion (its window, not the whole day), no top spots/activities, default time 09:00 instead of 10:00, name typed by the user
-  instead of reverse-geocoded.
+  buttons on the form ("Lưu nháp" / "Lưu") instead of a sheet, publishing later is "Đăng" on step detail, location search offline in the picker (R23, bundled gazetteer, no API), suggested photos only for a step made
+  from a stop suggestion (its window, not the whole day), no top spots/activities, default time 09:00 instead of 10:00, name filled from the
+  bundled offline gazetteer (R24) instead of an online reverse geocoder.
 
 ## 6. Location picker — "Chọn vị trí"
 
-* **Content:** full map with a fixed pin in the centre; one row of chips — "Vị trí của tôi" first,
+* **Search (R23):** at the top an outlined field "Tìm địa danh: Đồng Văn, Tràng An…" (search icon,
+  × clears). Typing (≥ 2 characters, diacritics optional: "dong van" finds "Đồng Văn") replaces the
+  chips by a result card: up to 20 rows "Tên" / "Loại · Tỉnh" (former province in brackets when
+  the query used it: "Tuyên Quang (trước đây Hà Giang)"), then the line "Tìm ngay trên máy, không
+  cần mạng · Địa danh © OpenStreetMap (ODbL)". No match: "Không tìm thấy địa danh nào." While the
+  gazetteer is still loading: "Đang tìm địa danh…". The keyboard's search key only hides the
+  keyboard. A tap on a row moves the pin there, clears the field (chips return) and shows the
+  place name above the coordinates on the bottom card; "Dùng vị trí này" returns the point with
+  that name (R24) while the pin is still on it. Works in airplane mode.
+* **Content:** full map with a fixed pin in the centre; under the search field one row of chips — "Vị trí của tôi" first,
   then **this trip's other steps** by title in timeline order (the step being edited is left out;
   a trip with no other step shows only "Vị trí của tôi"); the other steps also as small context
   pins; bottom card "Kéo bản đồ để đặt ghim vào đúng chỗ", live coordinates, button "Dùng vị trí
-  này". No fixed list of places, no online search (D4).
+  này". No online search (D4); the search above is offline (R23).
 * **"Vị trí của tôi":** asks for approximate/precise location with a short rationale first ("Dùng vị
   trí của bạn?" · "Lữ Trình chỉ lấy vị trí một lần để đặt ghim ở chỗ bạn đang đứng. Vị trí không
   được ghi lại và không gửi đi đâu." · "Tiếp tục"), then reads **one** fix (no background location,
@@ -463,16 +479,17 @@ The picker returns its result to the step form through the previous screen's sav
   đang tắt…", "Chưa xác định được vị trí của bạn…"); the user can still drag the map. A step chip
   flies to that step's point.
 * **Opens at:** the step's current point; else the last step of the trip; else Vietnam overview.
-* **Screen:** `img/05-location-picker.png`.
+* **Screens:** `img/05-location-picker.png` (before search), `img/place-search/01-search-dong-van-offline.png`
+  (airplane mode), `02-search-trang-an.png`, `03-search-former-province.png`, `04-picker-search-picked.png`.
 * **Inspired by:** docs/22 §1.3 ("Search step location" map + pin; "Change step location" shows
-  neighbours). **Changed:** drag-the-map-under-a-fixed-pin instead of tap-to-move, quick-place
-  "my location" + trip-step chips instead of online search (no geocoding API in the local-only phase).
+  neighbours). **Changed:** drag-the-map-under-a-fixed-pin instead of tap-to-move, an offline
+  gazetteer of Vietnam (OSM, bundled) instead of LocationIQ, plus "my location" + trip-step chips.
 
 ## 7. Step detail
 
 * **Content:** cover photo (only when the step has photos), title, date · time, place line
-  "gần <điểm dừng khác>, N km" with the coordinates as a smaller line (Display conventions; with no other step the
-  coordinates alone), note ("Chưa có ghi chú." when empty), mini map of the trip with this step highlighted, photo
+  "gần <điểm dừng khác>, N km" with the coordinates as a smaller line (Display conventions; no other step within
+  5 km: the gazetteer place, R24 "Tên, Tỉnh" / "gần Tên (Tỉnh), N km"; neither: the coordinates alone), note ("Chưa có ghi chú." when empty), mini map of the trip with this step highlighted, photo
   grid "Ảnh (n)". **Draft (R20):** the title has no number and a card under it shows "Nháp", "Bản nháp chưa có
   trên lộ trình, thống kê, bản đồ của tôi và tệp chia sẻ. Bấm “Đăng” khi đã xong." and the button
   **"Đăng"** (publishes; the card goes, the step gets its number).
@@ -509,7 +526,9 @@ The picker returns its result to the step form through the previous screen's sav
   Cancelling the picker with nothing picked returns to the trip. While reading: progress.
 * **Review content:** a 180 dp map with the numbered kept suggestions; "N ảnh → M điểm dừng gợi
   ý" + hint; one card per suggestion (R13): checkbox (label "Giữ điểm dừng N"), number, editable
-  title ("Điểm dừng HH:mm" of its arrival, R5 length check), date · time from the photos (or "Ảnh không có ngày
+  title (the nearest gazetteer place of its photo GPS by R24, e.g. "Phố cổ Đồng Văn"; "Điểm dừng
+  HH:mm" of its arrival when there is none or the card has no location yet; filled again when the
+  card is placed or moved unless the user typed a title; R5 length check), date · time from the photos (or "Ảnh không có ngày
   chụp · dùng <R6 date>"), a red "Chụp ngày …, ngoài thời gian chuyến đi · không thể thêm" warning
   when outside the trip (cannot be kept), place line with "Chọn trên bản đồ" / "Đổi vị trí" → Location picker, thumbnails and
   "N ảnh". Photos without GPS form the last card "Ảnh không có vị trí", unticked until placed.
@@ -672,6 +691,13 @@ The picker returns its result to the step form through the previous screen's sav
 | draft-cover/11-trip-form-cover-row.png | "Sửa chuyến đi": row "Ảnh bìa · Đã chọn · Đổi ảnh bìa" |
 | draft-cover/12-cover-picker-chosen.png | the cover sheet from the form: the chosen photo ringed and ticked |
 | draft-cover/13-trip-list-auto-cover.png | after "Tự động" + "Lưu": the card shows the automatic cover again |
+| place-search/01-search-dong-van-offline.png | picker search (R23) in airplane mode: "dong van" → Đồng Văn (Xã · Tuyên Quang) first |
+| place-search/02-search-trang-an.png | "trang an" → Tràng An (Ninh Bình) first |
+| place-search/03-search-former-province.png | "ha giang" → Tuyên Quang "trước đây Hà Giang", then Hà Giang city (Tuyên Quang) |
+| place-search/04-picker-search-picked.png | "ma pi leng" picked: pin on Mã Pí Lèng Pass, its name on the bottom card |
+| place-search/05-step-auto-name.png | new step after "Dùng vị trí này": "Tên địa điểm" = Mã Pí Lèng Pass (R24) |
+| place-search/06-step-typed-name-kept.png | typed name "Nha nghi cua toi" kept after the pin moved |
+| place-search/07-step-pin-drop-auto-name.png | name cleared, pin dragged: the name is filled again from the nearest place |
 
 ## Accessibility and UI tests
 

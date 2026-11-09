@@ -36,7 +36,8 @@ So "Thêm từ ảnh" (and only it — the step form keeps the Photo Picker):
    work).
 3. Reads date + GPS of every photo (`data/PhotoMetaReader`, `ExifInterface` on the stream)
    **before** import — the stored copy has its GPS stripped (R11). GPS is only used for
-   grouping (R13) and never stored; the date is stored as the photo's `takenAt` (below).
+   grouping (R13) and, on the device, for the suggested name (the nearest place of the bundled
+   gazetteer, R24) — never stored or sent; the date is stored as the photo's `takenAt` (below).
 4. On confirm, imports the kept photos exactly like the step form (below); unticked groups are
    never copied. The URIs are only used during this screen (no persisted permission).
 

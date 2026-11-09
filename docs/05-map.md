@@ -316,11 +316,38 @@ better), no pitch/bearing, own durations.
 * The pin is a fixed overlay in the centre; the user drags the map under it. The coordinate
   label updates when the camera stops (camera-idle event), 5 decimals (~1 m).
 * "Dùng vị trí này" returns the centre point. Back returns nothing (step keeps its old point).
-* No geocoding: the user types the place name; the app does not call Nominatim/LocationIQ in this
-  phase. The picker's chips are "Vị trí của tôi" (one device fix, never stored) and the trip's own steps; there is no built-in place list.
+* No online geocoding: the app does not call Nominatim/LocationIQ in this phase. Place search and
+  automatic names use the bundled gazetteer below (R23, R24). The picker's chips are "Vị trí của
+  tôi" (one device fix, never stored) and the trip's own steps.
+* A search result moves the camera like a chip (zoom 8.5 for a province, else the picker zoom).
 
 *Changed from the reference:* polarsteps docs/22 §1.3/§2.6 search places through LocationIQ and
 tap-to-move the pin; neighbour steps are drawn there as a dotted line, here as small context pins.
+
+## Place search — the offline gazetteer (R23, R24)
+
+* **Data:** `app/src/main/assets/places/vn_places.tsv` (UTF-8, ~0.9 MB, ~0.3 MB compressed in the
+  APK): the 34 provinces of the 2025 merger (with the merged former provinces as aliases), ~3 200
+  communes/wards, cities, towns, villages, hamlets and ~5 000 travel places (attractions,
+  viewpoints, peaks, passes, waterfalls, caves, bays, beaches, islands, lakes, museums/historic
+  sites, camp sites, notable places of worship), each with its province. Format and kinds: the
+  header of `tools/gazetteer/build_gazetteer.py`.
+* **Source and licence:** OpenStreetMap data © OpenStreetMap contributors, **ODbL 1.0** — the
+  asset's first line, `app/src/main/assets/licenses/OpenStreetMap-ODbL.txt`, and the attribution
+  line under every result list ("Địa danh © OpenStreetMap (ODbL)"). The bundled file is a derived
+  database: it is shipped under the ODbL, and the generator is in the repository.
+* **Generator:** `tools/gazetteer/build_gazetteer.py` (pyosmium + shapely) reads the Geofabrik
+  Vietnam extract (`download.geofabrik.de/asia/vietnam-latest.osm.pbf`) at development time; the
+  recipe is `tools/gazetteer/README.md` (~1 min). The same extract gives the same bytes. It stops
+  unless the extract has exactly 34 `admin_level=4` provinces; province polygons are rebuilt from
+  the relations' member ways (the area assembler drops some broken ones).
+* **Loading:** `data/PlaceIndex.kt` parses the asset once per process on a background thread
+  (logcat `PlaceIndex: 21748 places in ~4000 ms` on the debug emulator build; release builds not
+  measured); screens read `PlaceIndex.gazetteer` (null until ready, the picker then shows "Đang tìm
+  địa danh…") and the step form awaits it. Searching is in memory (`Gazetteer.search`, a linear
+  scan of ~22 000 places on a background dispatcher, debounced 120 ms); nothing is sent anywhere.
+* **Updating** after an administrative change: edit `FORMER_PROVINCES` if provinces merge again,
+  re-run the generator, check the counts it prints and `PlacesTest`'s bundled-asset tests.
 
 ## Offline maps (R15)
 

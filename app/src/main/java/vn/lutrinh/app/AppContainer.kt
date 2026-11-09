@@ -5,6 +5,7 @@ import vn.lutrinh.app.data.GalleryReader
 import vn.lutrinh.app.data.LocalPrefs
 import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
+import vn.lutrinh.app.data.PlaceIndex
 import vn.lutrinh.app.data.RoomStepRepository
 import vn.lutrinh.app.data.RoomStopDecisionRepository
 import vn.lutrinh.app.data.RoomTrackRepository
@@ -61,6 +62,9 @@ class AppContainer(context: Context) {
     val publishStep = PublishStep(steps, clock)
     val setTripCover = SetTripCover(trips, clock)
     val deleteTrack = DeleteTrack(tracks, recorder)
+
+    /** Offline gazetteer of Vietnam for place search and auto names (R23, R24). */
+    val places = PlaceIndex(context, appScope)
 
     /** On-device flags, e.g. whether the battery guide has been shown (R22). */
     val prefs = LocalPrefs(context)

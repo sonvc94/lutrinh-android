@@ -104,6 +104,7 @@ import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.ChangeLocationButton
 import vn.lutrinh.app.ui.common.DiscardDialog
 import vn.lutrinh.app.ui.common.placeLines
+import vn.lutrinh.app.ui.common.rememberGazetteer
 import java.time.LocalDateTime
 
 /** "Thêm từ ảnh" flow state (docs/03-screens.md S9). */
@@ -153,7 +154,10 @@ class FromPhotosViewModel(private val c: AppContainer, handle: SavedStateHandle)
             }
             val steps = c.steps.getSteps(tripId)
             val groups = PhotoGrouping.group(c.photoMeta.read(uris))
+            // R24: a group with GPS is named after the nearest gazetteer place.
+            val places = c.places.await()
             val suggestions = suggestStepsFrom(groups, trip, steps, LocalDateTime.now(), titleFor)
+                .map { sg -> sg.location?.let { sg.placed(places?.nearest(it)?.place?.name) } ?: sg }
             _state.update {
                 it.copy(
                     phase = FromPhotosState.Phase.REVIEW,
@@ -180,10 +184,15 @@ class FromPhotosViewModel(private val c: AppContainer, handle: SavedStateHandle)
         placingIndex = index
     }
 
-    fun placeAt(p: GeoPoint) {
+    /** The picker returned [p] ([pickedName] = a search result's name); R24 names the step. */
+    fun placeAt(p: GeoPoint, pickedName: String? = null) {
         val i = placingIndex ?: return
         placingIndex = null
         change(i) { copy(location = p, include = !outsideTrip) }
+        viewModelScope.launch {
+            val name = pickedName ?: c.places.await()?.nearest(p)?.place?.name
+            change(i) { if (location == p) placed(name) else this }
+        }
     }
 
     /** Imports the photos of every kept suggestion (R11 strips GPS) and saves one step each. */
@@ -226,6 +235,7 @@ class FromPhotosViewModel(private val c: AppContainer, handle: SavedStateHandle)
 fun FromPhotosScreen(
     pickedLocation: GeoPoint?,
     onPickedConsumed: () -> Unit,
+    pickedName: String? = null,
     onPickLocation: (GeoPoint?) -> Unit,
     onBack: () -> Unit,
     /** Called when the flow ends; [created] steps were saved. */
@@ -254,7 +264,7 @@ fun FromPhotosScreen(
     BackHandler(enabled = reviewing) { confirmDiscard = true }
     LaunchedEffect(pickedLocation) {
         if (pickedLocation != null) {
-            vm.placeAt(pickedLocation)
+            vm.placeAt(pickedLocation, pickedName)
             onPickedConsumed()
         }
     }
@@ -459,7 +469,7 @@ private fun SuggestionCard(
             }
             val loc = sg.location
             InfoLine(if (loc == null) Icons.Outlined.LocationOff else Icons.Outlined.Place) {
-                val lines = loc?.let { placeLines(it, tripSteps) }
+                val lines = loc?.let { placeLines(it, tripSteps, places = rememberGazetteer()) }
                 Column(Modifier.weight(1f)) {
                     Text(lines?.first ?: stringResource(R.string.from_photos_no_location), style = MaterialTheme.typography.bodyMedium)
                     lines?.second?.let {

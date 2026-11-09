@@ -79,6 +79,16 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 | Guide "Ghi hành trình ổn định": manufacturer sections + "Mở cài đặt pin" | iOS has no OEM kill lists: show one screen of **Background App Refresh** (Settings › General › Background App Refresh) and **Low Power Mode** (Settings › Battery) guidance plus "Always"/"While Using" location notes when a recording needs the background; the button opens `UIApplication.openSettingsURLString` (there is no deep link to the battery page). `BatteryGuide.makerOf` is not needed; keep `ShowOnce` |
 | Shown once after the first recording starts (`LocalPrefs.battery_guide_seen`) | `UserDefaults` key `battery_guide_seen`, same `ShowOnce` rule: `consume()` is true once, opening the screen by hand also marks it seen |
 
+## Offline place search and automatic names (R23, R24)
+
+| Android | iOS |
+| --- | --- |
+| `PlaceText.normalize`: NFD, drop `NON_SPACING_MARK`, đ/Đ → d, lower case, other runs → one space | `s.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)` does **not** fold đ → d: replace "đ"/"Đ" with "d" first, then fold, then map every non-`[a-z0-9]` run to a space. Port the normaliser test cases 1:1 |
+| `assets/places/vn_places.tsv` read once by `PlaceIndex` (coroutine on IO, `StateFlow<Gazetteer?>`) | Bundle the same file (it is platform-neutral, built by `tools/gazetteer`); parse it in a `Task.detached` into an actor/`@Observable` store; keep the same in-memory scan (`Gazetteer.search` tiers + score) — or an SQLite FTS table if the list grows, with the same ranking |
+| `Gazetteer.search`, `nearest`, `AutoTitle.placed`, `PlaceLabel.label(…, places)` | Same pure functions in the domain module; port `PlacesTest` (fixture + bundled-asset cases) |
+| Picker: `OutlinedTextField` over the map, results `LazyColumn` replacing the chips, debounced 120 ms | `.searchable` is tied to a navigation bar; use a plain `TextField` in an overlay with a `List` of results, `.task(id: query)` with a 120 ms sleep for the debounce |
+| ODbL credit: result-list footer, `assets/licenses/OpenStreetMap-ODbL.txt` | Same footer text; include the licence file in the app's acknowledgements (Settings bundle or an about screen) |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;

@@ -17,6 +17,18 @@ import kotlinx.coroutines.launch
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
 import vn.lutrinh.app.map.PickerMove
+import androidx.compose.ui.platform.LocalFocusManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flowOn
+import vn.lutrinh.app.domain.usecase.Gazetteer
+import vn.lutrinh.app.domain.usecase.Geo
+import vn.lutrinh.app.domain.usecase.Place
+import vn.lutrinh.app.domain.usecase.PlaceKind
+import vn.lutrinh.app.domain.usecase.PlaceText
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,7 +83,7 @@ import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatCoord
 import vn.lutrinh.app.ui.steps.contextMarkers
 
-/** A shortcut chip: a step of this trip (D4: no gazetteer, no online search). */
+/** A shortcut chip: a step of this trip (D4). Place search (R23) sits above the chips. */
 data class PlaceChip(val label: String, val point: GeoPoint)
 
 class LocationPickerViewModel(c: AppContainer, handle: SavedStateHandle) : ViewModel() {
@@ -89,7 +101,26 @@ class LocationPickerViewModel(c: AppContainer, handle: SavedStateHandle) : ViewM
     val chips = steps
         .map { stepChips(it, stepId) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** R23: the search text and its results (offline gazetteer, ranked near this trip's steps). */
+    val query = MutableStateFlow("")
+    val gazetteer = c.places.gazetteer
+
+    /** (query, hits) of the last finished search; the UI waits while the query differs. */
+    @OptIn(FlowPreview::class)
+    val results = combine(query.debounce(120), c.places.gazetteer, steps) { q, g, st ->
+        q to g?.search(q, st.filter { it.id != stepId }.map { it.location }).orEmpty()
+    }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "" to emptyList())
 }
+
+/** Zoom for a search result: a whole province is shown wider than a place. */
+fun zoomFor(place: Place): Double = if (place.kind == PlaceKind.PROVINCE) 8.5 else MapConfig.PICKER_ZOOM
+
+/** The picked point keeps the result's name (R24) only while the pin is still on it. */
+fun chosenName(chosen: Place?, center: GeoPoint): String? =
+    chosen?.takeIf { it.kind != PlaceKind.PROVINCE && Geo.distanceKm(it.location, center) < 0.1 }?.name
 
 /** Chips for the picker: every step of the trip except the one being edited, in timeline order. */
 fun stepChips(steps: List<Step>, excludeId: String?): List<PlaceChip> =
@@ -99,11 +130,16 @@ fun stepChips(steps: List<Step>, excludeId: String?): List<PlaceChip> =
 @Composable
 fun LocationPickerScreen(
     onBack: () -> Unit,
-    onPicked: (GeoPoint) -> Unit,
+    onPicked: (GeoPoint, String?) -> Unit,
     vm: LocationPickerViewModel = viewModel(factory = factory { c, h -> LocationPickerViewModel(c, h) }),
 ) {
     val markers by vm.markers.collectAsStateWithLifecycle()
     val chips by vm.chips.collectAsStateWithLifecycle()
+    val query by vm.query.collectAsStateWithLifecycle()
+    val results by vm.results.collectAsStateWithLifecycle()
+    val gazetteer by vm.gazetteer.collectAsStateWithLifecycle()
+    var chosen by remember { mutableStateOf<Place?>(null) }
+    val focus = LocalFocusManager.current
     val start = vm.initial ?: NewStepDefaults.FALLBACK_CENTER
     var center by remember { mutableStateOf(start) }
     var moveTo by remember { mutableStateOf<PickerMove?>(null) }
@@ -149,7 +185,7 @@ fun LocationPickerScreen(
                 onCenterChanged = { center = it },
                 moveTo = moveTo,
                 modifier = Modifier.fillMaxSize(),
-                indicatorTop = 56.dp, // below the quick-place chips
+                indicatorTop = 124.dp, // below the search field and the quick-place chips
             )
             // Fixed centre pin: its tip marks the picked point.
             Icon(
@@ -162,10 +198,29 @@ fun LocationPickerScreen(
                 containerColor = MaterialTheme.colorScheme.surface,
                 disabledContainerColor = MaterialTheme.colorScheme.surface,
             )
-            LazyRow(
+            Column(Modifier.align(Alignment.TopCenter).fillMaxWidth()) {
+            PlaceSearchField(
+                query = query,
+                onQuery = { vm.query.value = it },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 8.dp),
+            )
+            if (query.isNotBlank()) {
+                PlaceResults(
+                    results = results.second,
+                    loading = gazetteer == null || results.first != query,
+                    tooShort = PlaceText.normalize(query).length < Gazetteer.MIN_QUERY,
+                    onPick = { hit ->
+                        chosen = hit.place
+                        moveTo = PickerMove(hit.place.location, zoomFor(hit.place))
+                        vm.query.value = ""
+                        focus.clearFocus()
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 4.dp),
+                )
+            } else LazyRow(
                 contentPadding = PaddingValues(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp),
+                modifier = Modifier.padding(top = 8.dp),
             ) {
                 item {
                     AssistChip(
@@ -184,6 +239,7 @@ fun LocationPickerScreen(
                     )
                 }
             }
+            }
             Surface(
                 tonalElevation = 3.dp,
                 shadowElevation = 6.dp,
@@ -192,8 +248,13 @@ fun LocationPickerScreen(
             ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(stringResource(R.string.picker_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(formatCoord(center.latitude, center.longitude), style = MaterialTheme.typography.titleMedium)
-                    Button(onClick = { onPicked(center) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                    val here = chosenName(chosen, center)
+                    if (here != null) Text(here, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        formatCoord(center.latitude, center.longitude),
+                        style = if (here != null) MaterialTheme.typography.bodySmall else MaterialTheme.typography.titleMedium,
+                    )
+                    Button(onClick = { onPicked(center, chosenName(chosen, center)) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
                         Text(stringResource(R.string.picker_confirm))
                     }
                 }

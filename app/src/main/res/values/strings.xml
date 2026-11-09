@@ -142,6 +142,31 @@
     <string name="picker_permission_title">Dùng vị trí của bạn?</string>
     <string name="picker_permission_body">Lữ Trình chỉ lấy vị trí một lần để đặt ghim ở chỗ bạn đang đứng. Vị trí không được ghi lại và không gửi đi đâu.</string>
     <string name="picker_permission_continue">Tiếp tục</string>
+    <string name="picker_search_hint">Tìm địa danh: Đồng Văn, Tràng An…</string>
+    <string name="picker_search_clear">Xoá tìm kiếm</string>
+    <string name="picker_search_empty">Không tìm thấy địa danh nào khớp. Thử viết khác đi, hoặc kéo bản đồ để chọn.</string>
+    <string name="picker_search_loading">Đang tìm địa danh…</string>
+    <string name="picker_search_attribution">Tìm ngay trên máy, không cần mạng · Địa danh © OpenStreetMap (ODbL)</string>
+    <string name="picker_search_former">trước đây %1$s</string>
+    <string name="place_kind_province">Tỉnh, thành phố</string>
+    <string name="place_kind_city">Thành phố</string>
+    <string name="place_kind_town">Thị trấn</string>
+    <string name="place_kind_commune">Xã, phường</string>
+    <string name="place_kind_bay">Vịnh</string>
+    <string name="place_kind_sight">Điểm tham quan</string>
+    <string name="place_kind_viewpoint">Điểm ngắm cảnh</string>
+    <string name="place_kind_peak">Đỉnh núi</string>
+    <string name="place_kind_pass">Đèo</string>
+    <string name="place_kind_waterfall">Thác</string>
+    <string name="place_kind_cave">Hang động</string>
+    <string name="place_kind_beach">Bãi biển</string>
+    <string name="place_kind_island">Đảo</string>
+    <string name="place_kind_lake">Hồ</string>
+    <string name="place_kind_heritage">Di tích, bảo tàng</string>
+    <string name="place_kind_worship">Chùa, đền</string>
+    <string name="place_kind_camp">Khu cắm trại</string>
+    <string name="place_kind_village">Làng, bản</string>
+    <string name="place_kind_hamlet">Thôn, xóm</string>
 
     <!-- "Vị trí của tôi" button on the maps (R22) -->
     <string name="my_location">Vị trí của tôi</string>
