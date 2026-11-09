@@ -214,4 +214,23 @@
     <string name="stop_suggest_duration">Dừng %1$s</string>
     <string name="stop_suggest_photos">%1$d ảnh chụp lúc này</string>
     <string name="stop_suggest_no_photos">Không có ảnh chụp lúc này</string>
+
+    <!-- Share a trip (R18) -->
+    <string name="share_trip">Chia sẻ chuyến đi</string>
+    <string name="share_kind_image">Ảnh tóm tắt</string>
+    <string name="share_kind_page">Trang tóm tắt</string>
+    <string name="share_kind_image_body">Một ảnh dọc 1080 × 1920: bản đồ, số liệu và tối đa 4 ảnh.</string>
+    <string name="share_kind_page_body">Một tệp HTML mở được không cần mạng: bản đồ, hành trình theo ngày, ghi chú và ảnh.</string>
+    <string name="share_hide_notes">Ẩn ghi chú</string>
+    <string name="share_hide_notes_body">Không đưa ghi chú của các điểm dừng vào trang.</string>
+    <string name="share_action">Chia sẻ</string>
+    <string name="share_save">Lưu vào máy</string>
+    <string name="share_saved">Đã lưu vào %1$s</string>
+    <string name="share_save_failed">Không lưu được: %1$s</string>
+    <string name="share_preparing">Đang tạo…</string>
+    <string name="share_failed">Không tạo được tệp: %1$s</string>
+    <string name="share_privacy">Tệp chia sẻ có bản đồ, tên và thời gian các điểm dừng của bạn. Chỉ gửi cho người bạn tin.</string>
+    <string name="share_no_basemap">Không tải được nền bản đồ (không có mạng và chưa tải vùng offline): tuyến đường được vẽ trên nền trơn.</string>
+    <string name="share_page_info">%1$s · %2$d ảnh</string>
+    <string name="share_page_omitted">Đã lược bớt %1$d ảnh để trang không quá 15 MB.</string>
 </resources>

@@ -44,5 +44,15 @@
             android:name=".tracking.TrackRecordingService"
             android:exported="false"
             android:foregroundServiceType="location" />
+        <!-- "Chia sẻ chuyến đi" (R18): content:// URIs for the exported image/page in cacheDir/share. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/share_paths" />
+        </provider>
     </application>
 </manifest>

@@ -25,8 +25,11 @@ private const val SHADOW = 0x50102A20
  * * CONTEXT (picker): small clay disc (22 dp), white ring.
  * * selected: the same pin 1.3× larger, rice-gold ring, on a translucent gold halo (54 dp).
  */
-internal fun pinBitmap(context: Context, label: String, kind: PinKind, selected: Boolean, colors: PinColors): Bitmap {
-    val d = context.resources.displayMetrics.density
+internal fun pinBitmap(
+    context: Context, label: String, kind: PinKind, selected: Boolean, colors: PinColors,
+    density: Float = context.resources.displayMetrics.density,
+): Bitmap {
+    val d = density
     val base = when (kind) {
         PinKind.STEP -> 24f
         PinKind.START, PinKind.END -> 28f

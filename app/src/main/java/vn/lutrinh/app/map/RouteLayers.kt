@@ -48,7 +48,7 @@ internal fun Style.tuneBasemap() {
         }
 }
 
-private fun colorProperty(name: String, color: String): PropertyValue<*>? = when (name) {
+internal fun colorProperty(name: String, color: String): PropertyValue<*>? = when (name) {
     "background-color" -> PropertyFactory.backgroundColor(color)
     "fill-color" -> PropertyFactory.fillColor(color)
     "fill-outline-color" -> PropertyFactory.fillOutlineColor(color)

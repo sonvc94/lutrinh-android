@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Share exports (R18): only cacheDir/share/ is ever exposed through the FileProvider. -->
+<paths>
+    <cache-path name="share" path="share/" />
+</paths>

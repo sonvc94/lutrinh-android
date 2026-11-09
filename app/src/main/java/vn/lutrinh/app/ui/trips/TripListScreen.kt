@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Landscape
 import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.material.icons.outlined.DownloadForOffline
@@ -96,6 +97,8 @@ fun TripListScreen(
     onCreate: () -> Unit,
     onOpen: (String) -> Unit,
     onEdit: (String) -> Unit,
+    /** "Chia sẻ chuyến đi" (R18) from a card's menu. */
+    onShare: (String) -> Unit,
     onOpenMyMap: () -> Unit,
     onOpenOffline: () -> Unit,
     vm: TripListViewModel = viewModel(factory = factory { c, _ -> TripListViewModel(c) }),
@@ -180,7 +183,7 @@ fun TripListScreen(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(s.value, key = { it.trip.id }) { summary ->
-                        TripCard(summary, onOpen = { onOpen(summary.trip.id) }, onEdit = { onEdit(summary.trip.id) }, onDelete = { toDelete = summary })
+                        TripCard(summary, onOpen = { onOpen(summary.trip.id) }, onEdit = { onEdit(summary.trip.id) }, onShare = { onShare(summary.trip.id) }, onDelete = { toDelete = summary })
                     }
                 }
             }
@@ -199,7 +202,7 @@ fun TripListScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Unit, onDelete: () -> Unit) {
+private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Unit, onShare: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = { menu = true }),
@@ -251,6 +254,11 @@ private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Uni
                         text = { Text(stringResource(R.string.action_edit)) },
                         leadingIcon = { Icon(Icons.Outlined.Edit, null) },
                         onClick = { menu = false; onEdit() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.share_trip)) },
+                        leadingIcon = { Icon(Icons.Outlined.Share, null) },
+                        onClick = { menu = false; onShare() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.action_delete)) },

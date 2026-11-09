@@ -39,6 +39,7 @@ import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material.icons.outlined.SearchOff
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -194,6 +195,8 @@ fun TripDetailScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onOpenMap: () -> Unit,
+    /** "Chia sẻ chuyến đi" (R18). */
+    onShare: () -> Unit,
     onAddStep: () -> Unit,
     /** "Thêm điểm dừng" on a stop suggestion (R17): the step editor prefilled from [Dwell]. */
     onAddFromStop: (Dwell, String) -> Unit,
@@ -219,6 +222,7 @@ fun TripDetailScreen(
                 },
                 actions = {
                     if (detail != null) {
+                        IconButton(onClick = onShare) { Icon(Icons.Outlined.Share, stringResource(R.string.share_trip)) }
                         IconButton(onClick = onOpenMap) { Icon(Icons.Outlined.Map, stringResource(R.string.trip_open_map)) }
                         IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more)) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {

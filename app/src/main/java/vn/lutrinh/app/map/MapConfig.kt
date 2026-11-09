@@ -54,6 +54,16 @@ object MapConfig {
     /** Label layers of the style whose text is replaced by [LABEL_FIELD] and recoloured. */
     val LABEL_LAYER_PREFIXES = listOf("label_", "water_name", "waterway_line_label", "highway-name", "airport")
 
+    /**
+     * The Positron label layers matching [LABEL_LAYER_PREFIXES], listed by id for the share
+     * snapshot (StaticTripMap), which cannot enumerate a style's layers. Another style needs its own.
+     */
+    val LABEL_LAYER_IDS = listOf(
+        "waterway_line_label", "water_name_point_label", "water_name_line_label", "highway-name-path", "highway-name-minor",
+        "highway-name-major", "airport", "label_other", "label_village", "label_town", "label_state", "label_city",
+        "label_city_capital", "label_country_3", "label_country_2", "label_country_1",
+    )
+
     /** Feature properties tried in order for a label: Vietnamese, then Latin script, then local. */
     val LABEL_FIELD = listOf("name:vi", "name:latin", "name")
 

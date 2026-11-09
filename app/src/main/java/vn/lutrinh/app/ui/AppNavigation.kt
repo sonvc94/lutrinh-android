@@ -18,6 +18,7 @@ import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.ui.offline.OfflineMapsScreen
 import vn.lutrinh.app.ui.photos.PhotoViewerScreen
 import vn.lutrinh.app.ui.picker.LocationPickerScreen
+import vn.lutrinh.app.ui.share.ShareTripScreen
 import vn.lutrinh.app.ui.steps.FromPhotosScreen
 import vn.lutrinh.app.ui.steps.StepDetailScreen
 import vn.lutrinh.app.ui.steps.StepEditScreen
@@ -42,10 +43,12 @@ object Routes {
     const val PHOTOS = "trip/{tripId}/step/{stepId}/photos?index={index}"
     const val FROM_PHOTOS = "trip/{tripId}/fromPhotos"
     const val OFFLINE = "offline?tripId={tripId}"
+    const val SHARE = "trip/{tripId}/share"
 
     fun tripEdit(tripId: String? = null) = if (tripId == null) "tripEdit" else "tripEdit?tripId=$tripId"
     fun trip(tripId: String) = "trip/$tripId"
     fun tripMap(tripId: String) = "trip/$tripId/map"
+    fun share(tripId: String) = "trip/$tripId/share"
     fun stepEdit(tripId: String, stepId: String? = null) =
         if (stepId == null) "trip/$tripId/stepEdit" else "trip/$tripId/stepEdit?stepId=$stepId"
     /** New step prefilled from a stop suggestion (R17). */
@@ -83,6 +86,7 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onCreate = { nav.navigate(Routes.tripEdit()) },
                 onOpen = { nav.navigate(Routes.trip(it)) },
                 onEdit = { nav.navigate(Routes.tripEdit(it)) },
+                onShare = { nav.navigate(Routes.share(it)) },
                 onOpenMyMap = { nav.navigate(Routes.MY_MAP) },
                 onOpenOffline = { nav.navigate(Routes.offline()) },
             )
@@ -109,11 +113,15 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onBack = { nav.popBackStack() },
                 onEdit = { nav.navigate(Routes.tripEdit(tripId)) },
                 onOpenMap = { nav.navigate(Routes.tripMap(tripId)) },
+                onShare = { nav.navigate(Routes.share(tripId)) },
                 onAddStep = { nav.navigate(Routes.stepEdit(tripId)) },
                 onAddFromStop = { dwell, title -> nav.navigate(Routes.stepFromStop(tripId, dwell, title)) },
                 onAddFromPhotos = { nav.navigate(Routes.fromPhotos(tripId)) },
                 onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
             )
+        }
+        composable(Routes.SHARE, arguments = listOf(required("tripId"))) {
+            ShareTripScreen(onBack = { nav.popBackStack() })
         }
         composable(Routes.TRIP_MAP, arguments = listOf(required("tripId"))) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!

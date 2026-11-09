@@ -19,6 +19,7 @@ import vn.lutrinh.app.domain.usecase.SetLegTransport
 import vn.lutrinh.app.domain.usecase.TrackRecorder
 import vn.lutrinh.app.map.NetworkMonitor
 import vn.lutrinh.app.map.OfflineMaps
+import vn.lutrinh.app.share.TripExporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -55,4 +56,7 @@ class AppContainer(context: Context) {
 
     val network = NetworkMonitor(context)
     val offlineMaps = OfflineMaps(context, network)
+
+    /** "Chia sẻ chuyến đi" (R18): summary image + page export. */
+    val exporter = TripExporter(context, photos)
 }

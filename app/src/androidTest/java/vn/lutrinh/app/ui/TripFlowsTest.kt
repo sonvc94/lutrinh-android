@@ -74,6 +74,21 @@ class TripFlowsTest {
         clickable("Ghi hành trình").onFirst().assertExists()
     }
 
+    /** R18: "Chia sẻ chuyến đi" on the trip screen offers both outputs; the page has "Ẩn ghi chú". */
+    @Test
+    fun shareTrip_fromTheTripScreen_offersImageAndPage() {
+        seedTripWithTwoSteps(title)
+        rule.onNodeWithText(title).performClick()
+        waitForText("Hồ Gươm")
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithContentDescription("Chia sẻ chuyến đi").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithContentDescription("Chia sẻ chuyến đi").performClick()
+        waitForText("Ảnh tóm tắt")
+        rule.onAllNodesWithText("Ảnh tóm tắt").onFirst().assertExists()
+        rule.onAllNodesWithText("Trang tóm tắt").onFirst().assertExists()
+        rule.onAllNodesWithText("Trang tóm tắt").onFirst().performClick()
+        waitForText("Ẩn ghi chú")
+    }
+
     /**
      * R17: a trip with the sample track (three stays, no steps) shows "Gợi ý điểm dừng" with
      * three suggestions; "Bỏ qua" hides one and the decision is stored.
