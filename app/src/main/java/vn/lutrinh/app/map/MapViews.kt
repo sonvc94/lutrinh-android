@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -120,7 +121,8 @@ internal fun MapLibreMap.applyCommonSettings(interactive: Boolean) {
 fun OsmAttribution(modifier: Modifier = Modifier) {
     Text(
         text = MapConfig.ATTRIBUTION,
-        fontSize = 9.sp,
+        // Fixed 9 dp (not sp): the credit must not grow with the font scale and cover a small map (F25).
+        fontSize = with(LocalDensity.current) { 9.dp.toSp() },
         color = Color(0xFF4A524E),
         modifier = modifier
             .background(Color.White.copy(alpha = 0.75f))
@@ -154,6 +156,8 @@ fun TripMap(
     tracks: List<TrackLine> = emptyList(),
     /** Stop suggestions (R17): rings above the tracks, below badges and pins. */
     stopSuggestions: List<StopMarker> = emptyList(),
+    /** Each change flies the camera back to the whole route ("Xem toàn bộ hành trình"). */
+    fitAllSignal: Int = 0,
 ) {
     val context = LocalContext.current
     val mapView = rememberMapView()
@@ -238,6 +242,7 @@ fun TripMap(
                 state.stops = stopSuggestions
                 state.showRoute = showRoute
                 state.selectedLegTo = selectedLegTo
+                state.fitAllSignal = fitAllSignal
                 state.render(context, mapView, fitPaddingDp, fitExtraBottomDp, interactive)
             },
         )
@@ -255,6 +260,8 @@ private class TripMapState {
     var stops: List<StopMarker> = emptyList()
     var showRoute: Boolean = true
     var selectedLegTo: String? = null
+    var fitAllSignal: Int = 0
+    private var fittedAllSignal: Int = 0
     var pinColors = PinColors(0, 0, 0, 0)
     private var fittedKey: Pair<List<GeoPoint>, Int>? = null
     private var padding = intArrayOf(0, 0, 0, 0)
@@ -346,6 +353,14 @@ private class TripMapState {
             }
         }
         if (!interactive) return
+        // "Xem toàn bộ hành trình": fly back to the whole route (the selection was cleared by the caller).
+        if (fitAllSignal != fittedAllSignal) {
+            fittedAllSignal = fitAllSignal
+            focusedStep = selectedStep
+            focusedLeg = selectedLegTo
+            focusPoints(map, points, padding, MapConfig.FIT_MAX_ZOOM)
+            return
+        }
         // Selecting a step or a leg flies the camera there (only on a change, never on the first fit).
         if (selectedStep != focusedStep) {
             focusedStep = selectedStep
@@ -433,7 +448,7 @@ fun PickerMap(
     contextMarkers: List<MapMarker>,
     onCenterChanged: (GeoPoint) -> Unit,
     modifier: Modifier = Modifier,
-    moveTo: GeoPoint? = null,
+    moveTo: PickerMove? = null,
     /** Space the caller keeps at the top (quick-place chips) so the offline indicator stays visible. */
     indicatorTop: Dp = 0.dp,
 ) {
@@ -487,10 +502,10 @@ fun PickerMap(
             update = {
                 val target = moveTo
                 val map = state.map
-                if (target != null && target != state.lastMoveTo && map != null) {
+                if (target != null && target !== state.lastMoveTo && map != null) {
                     state.lastMoveTo = target
                     map.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(LatLng(target.latitude, target.longitude), MapConfig.PICKER_ZOOM),
+                        CameraUpdateFactory.newLatLngZoom(LatLng(target.point.latitude, target.point.longitude), MapConfig.PICKER_ZOOM),
                     )
                 }
             },
@@ -502,5 +517,8 @@ fun PickerMap(
 
 private class PickerState {
     var map: MapLibreMap? = null
-    var lastMoveTo: GeoPoint? = null
+    var lastMoveTo: PickerMove? = null
 }
+
+/** A request to fly the picker to [point]; a new instance each time, so the same place can be asked again. */
+class PickerMove(val point: GeoPoint)

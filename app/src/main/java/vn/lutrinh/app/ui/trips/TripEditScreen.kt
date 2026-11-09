@@ -156,7 +156,7 @@ fun TripEditScreen(
                     IconButton(onClick = back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
                 },
                 actions = {
-                    if (!isNew) TextButton(onClick = vm::save) { Text(stringResource(R.string.action_save)) }
+                    TextButton(onClick = vm::save) { Text(stringResource(R.string.action_save)) }
                 },
             )
         },

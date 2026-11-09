@@ -98,8 +98,26 @@ object StepValidator {
 /** Start and optional end date of a trip. */
 data class TripDates(val start: LocalDate, val end: LocalDate?)
 
+/** Which sentence the "Kéo dài chuyến đi?" dialog uses (R17). */
+enum class ExtendCase {
+    /** Closed trip, the step is before its start: the start moves back. */
+    BEFORE_START,
+
+    /** Closed trip, the step is after its end: the end moves forward. */
+    AFTER_END,
+
+    /** Trip without an end date, the step is before its start: the start moves back (never "đến"). */
+    OPEN_ENDED,
+}
+
 /** R17: how far a trip must grow to hold a step suggested from a recorded track. */
 object TripExtension {
+    fun caseOf(current: TripDates, widened: TripDates): ExtendCase = when {
+        widened.start.isBefore(current.start) -> if (current.end == null) ExtendCase.OPEN_ENDED else ExtendCase.BEFORE_START
+        else -> ExtendCase.AFTER_END
+    }
+
+
     /**
      * The smallest dates that contain [day]: the start moves back to it, or the end moves forward
      * to it. Null when [day] already lies inside. A trip without an end date (ongoing) never gets one.

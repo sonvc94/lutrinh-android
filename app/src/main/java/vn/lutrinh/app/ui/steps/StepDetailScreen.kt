@@ -19,6 +19,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -69,7 +75,7 @@ import vn.lutrinh.app.ui.common.LocalPhoto
 import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.displayDateTime
 import vn.lutrinh.app.ui.common.factory
-import vn.lutrinh.app.ui.common.formatCoord
+import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.trips.toMarkers
 
 data class StepDetail(val step: Step, val number: Int, val tripSteps: List<Step>)
@@ -102,6 +108,8 @@ fun StepDetailScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onOpenPhoto: (index: Int) -> Unit,
+    /** Prev/next step of the trip (F25): replaces this screen, so Back still returns to the trip. */
+    onOpenStep: (String) -> Unit,
     vm: StepDetailViewModel = viewModel(factory = factory { c, h -> StepDetailViewModel(c, h) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -125,6 +133,7 @@ fun StepDetailScreen(
                 },
             )
         },
+        bottomBar = { if (d != null) StepNeighbours(d, onOpenStep) },
     ) { padding ->
         when (val s = state) {
             Loadable.Loading -> LoadingState(Modifier.padding(padding))
@@ -142,7 +151,11 @@ fun StepDetailScreen(
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(step.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                         InfoRow(Icons.Outlined.Schedule, step.arrivedAt.displayDateTime())
-                        InfoRow(Icons.Outlined.Place, formatCoord(step.location.latitude, step.location.longitude))
+                        val (place, coords) = placeLines(step.location, s.value.tripSteps, step.id)
+                        InfoRow(Icons.Outlined.Place, place)
+                        coords?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 26.dp))
+                        }
                         Spacer(Modifier.height(4.dp))
                         Text(
                             step.note.ifBlank { stringResource(R.string.step_detail_no_note) },
@@ -188,6 +201,31 @@ fun StepDetailScreen(
             onConfirm = { confirmDelete = false; vm.delete() },
             onDismiss = { confirmDelete = false },
         )
+    }
+}
+
+/** Previous / next step in timeline order (F25); a side without a neighbour is left empty. */
+@Composable
+private fun StepNeighbours(d: StepDetail, onOpenStep: (String) -> Unit) {
+    val i = d.number - 1
+    val prev = d.tripSteps.getOrNull(i - 1)
+    val next = d.tripSteps.getOrNull(i + 1)
+    if (prev == null && next == null) return
+    Surface(tonalElevation = 3.dp) {
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f), Alignment.CenterStart) {
+                if (prev != null) TextButton(onClick = { onOpenStep(prev.id) }) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null)
+                    Text(stringResource(R.string.step_detail_prev, prev.title), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            Box(Modifier.weight(1f), Alignment.CenterEnd) {
+                if (next != null) TextButton(onClick = { onOpenStep(next.id) }) {
+                    Text(stringResource(R.string.step_detail_next, next.title), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                }
+            }
+        }
     }
 }
 

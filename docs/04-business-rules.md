@@ -55,9 +55,20 @@ When "Thêm điểm dừng" opens an empty step form:
    trip range.
 2. **Picker start point:** the step's own point (when editing); else the last step's location;
    else the Vietnam overview `(16.0, 106.0)` at zoom 5.
+3. **Picker shortcuts (chips):** "Vị trí của tôi" (one device fix on demand; no stored location, no
+   background permission) followed by the trip's other steps (timeline order, the edited step left
+   out) — `stepChips`. There is no fixed list of places and no online search (D4).
+4. **Default step name:** "Điểm dừng HH:mm" of the arrival, for a step made from a stop suggestion
+   (R17) and for a suggestion from photos (R13) alike; a hand-made step is named by the user.
+5. **Place wording** (step detail, step form, from-photos card): a point without a name is shown as
+   "gần <nearest other step of the trip>, <km>" (`PlaceLabel`, straight line, km rule of
+   docs/03 "Display conventions"; under 50 m just "gần <step>"), with the coordinates as a second
+   line; with no other step the coordinates alone.
 
 *Tests:* `OrderingTest.newStepDefaultsToNowWhenTravellingToday`,
-`OrderingTest.newStepDefaultsToDayAfterLastStepClampedToTrip`, `OrderingTest.pickerOpensAtLastStep`.
+`OrderingTest.newStepDefaultsToDayAfterLastStepClampedToTrip`, `OrderingTest.pickerOpensAtLastStep`,
+`PlaceLabelTest` (nearest/label, own step excluded, no other step → null),
+`PhotoGroupingTest.suggestionsNumberAfterExistingStepsAndFlagDatesOutsideTheTrip` (default names).
 *Inspired by* polarsteps docs/22 §1.3 (later steps default to the next day at a fixed morning
 time, picker starts at the previous step). *Changed:* 09:00 instead of 10:00 and "now" when the
 trip is in progress.
@@ -167,8 +178,7 @@ Grouping (pure function `PhotoGrouping.group`):
 4. Group location = centroid (mean latitude/longitude); arrival = earliest photo date, truncated
    to the minute.
 
-Suggestions (`suggestStepsFrom`): one per group, titled "Điểm dừng N" (N continues after the
-trip's existing steps). Undated groups get the R6 arrival. A group whose date lies outside the
+Suggestions (`suggestStepsFrom`): one per group, titled "Điểm dừng HH:mm" (the group's arrival time, as for a stop suggestion). Undated groups get the R6 arrival. A group whose date lies outside the
 trip (R5) is flagged "ngoài thời gian chuyến đi" and cannot be kept. The group without a
 location is not kept until the user places it on the map (or it is skipped). The user can edit
 titles and untick groups; "Tạo N điểm dừng" imports each kept group's photos (R11 — the stored
@@ -394,8 +404,12 @@ Detection and filtering are pure (`StopDetection`, `StopSuggestions`).
 * **Add outside the trip's dates (extends the trip).** A suggestion can lie outside the trip's
   dates (a track recorded on a day the trip does not cover). Only for a step from a suggestion,
   when "Lưu" fails with nothing but `BEFORE_TRIP_START` / `AFTER_TRIP_END`, the editor asks:
-  "Ngày đến nằm ngoài chuyến đi (<current dates>). Kéo dài chuyến đi đến <new dates>?" with
-  "Kéo dài và lưu" / "Hủy". Accepting widens the trip **only as far as needed** and saves
+  one of three texts (`TripExtension.caseOf` → `ExtendCase`): **after the end** "Điểm dừng này sau ngày
+  kết thúc chuyến đi (<current dates>). Kéo dài chuyến đi đến <new dates>?"; **before the start**
+  "Điểm dừng này trước ngày bắt đầu chuyến đi (<current dates>). Lùi ngày bắt đầu về <new dates>?";
+  **open-ended trip** (always before the start) "Điểm dừng này trước ngày bắt đầu chuyến đi (<từ date>,
+  chưa có ngày kết thúc). Lùi ngày bắt đầu về <new dates>?" — with "Kéo dài và lưu" / "Hủy".
+  *Test:* `PlaceLabelTest` (`ExtendCase` per case, three distinct strings, no "đến từ"). Accepting widens the trip **only as far as needed** and saves
   trip + step in **one transaction** (`StepRepository.saveStepAndTrip`; `SaveStep(…, extendTrip =
   true)`), then writes the `added` decision as usual: a day before the start moves `startDate` to
   that day, a day after the end moves `endDate` to it (date only; `updatedAt` of the trip is

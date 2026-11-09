@@ -56,7 +56,7 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 | App icon | adaptive vector (sun, karst peaks, terraces) | re-draw the same motif as a 1024 px asset | |
 | Sample data | debug-only seeder | `#if DEBUG` seeder | same trips and coordinates |
 | Unit tests | JUnit + Robolectric (in-memory Room) | XCTest / Swift Testing; in-memory `ModelConfiguration(isStoredInMemoryOnly: true)` | port test names 1:1 |
-| UI tests | Compose `createAndroidComposeRule<MainActivity>` (`TripFlowsTest`: create/edit/delete trip, add step via quick-place chip, set a leg's mode from the timeline, open "Bản đồ của tôi"), finds nodes by Vietnamese text / content description | XCUITest with the same twelve flows (incl. the two "Bản đồ offline" ones, the "Ghi hành trình" button, "Gợi ý điểm dừng" on a trip with the sample track, extending the trip from a suggestion outside it and "Chia sẻ chuyến đi" showing both outputs); find by accessibility label (`app.buttons["Chuyến đi mới"]`, `"Bản đồ của tôi"`, `"Thêm từ ảnh"`) | give the FAB-equivalent buttons the same labels |
+| UI tests | Compose `createAndroidComposeRule<MainActivity>` (`TripFlowsTest`: create/edit/delete trip, add step via a trip-step chip of the location picker, set a leg's mode from the timeline, open "Bản đồ của tôi"), finds nodes by Vietnamese text / content description | XCUITest with the same twelve flows (incl. the two "Bản đồ offline" ones, the "Ghi hành trình" button, "Gợi ý điểm dừng" on a trip with the sample track, extending the trip from a suggestion outside it and "Chia sẻ chuyến đi" showing both outputs); find by accessibility label (`app.buttons["Chuyến đi mới"]`, `"Bản đồ của tôi"`, `"Thêm từ ảnh"`) | give the FAB-equivalent buttons the same labels |
 | Picker language | `VietnameseLocale { … }` provides a `vi-VN` `LocalConfiguration` + resources **inside** the dialog content (a dialog window re-provides the device config) | `.environment(\.locale, Locale(identifier: "vi_VN"))` on the `DatePicker` (and the time picker); set `.environment(\.calendar, …)` with `firstWeekday = 2` for Monday-first weeks | device language must not change the picker |
 
 ## Porting checklist
@@ -95,6 +95,12 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
   buttons "Kéo dài và lưu" and `.cancel` "Hủy". Port `TripExtension.widen` 1:1 (pure) and make
   the save one SwiftData `ModelContext` transaction (trip dates + step + photos; with GRDB one
   `db.write`), then store the `added` decision. Do not offer it for manual steps.
+* UX flows batch: port `PlaceLabel` (nearest other step + `DisplayFormat.km`) and `TripExtension.caseOf`
+  (three alert texts) as pure functions with the Kotlin tests. Trip map carousel: a paging
+  `ScrollView` with `.scrollTargetBehavior(.viewAligned)` + `scrollPosition(id:)`; selecting on settle
+  = `onChange` of the position. "Vị trí của tôi": `CLLocationManager.requestLocation()` with
+  `requestWhenInUseAuthorization` after the rationale; never `Always`. From photos: show a `.sheet`
+  intro before the `PHPicker`/document picker and `.confirmationDialog` on back from the review.
 * Photo library access (R19): iOS asks once per app; after "Don't Allow" only Settings can change
   it, so the denied note should open `UIApplication.openSettingsURLString` instead of asking
   again. Limited access shows the system "select more photos" alert on first fetch unless

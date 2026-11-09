@@ -278,7 +278,9 @@ Screens: `img/share-trip/06-airplane-image.png` (offline pack), `img/share-trip/
 | Step selected (pin or card tap, full trip map) | animate to the step at zoom `max(current, 11)` capped at 14 (never zooms the user out), keeping the carousel padding so the step sits above the cards |
 | Leg selected (mode sheet open) | animate to fit the leg's path, zoom ≤ 13, bottom padding = max(carousel padding, 55 % of the map height) so the leg stays visible above the sheet |
 | Picker opening | target point at zoom 13 (see R6 for which point); overview at zoom 5 when none |
-| Quick-place chip | animate to the place at zoom 13 |
+| Picker chip ("Vị trí của tôi" or one of the trip's steps) | fly to that point (`focusZoom`, ≥ 11) |
+| "Xem toàn bộ hành trình" (trip map) | clear the selection, fit all pins above the cards, zoom ≤ `FIT_MAX_ZOOM` (14) |
+| Carousel swipe settles on a card | that card's step is selected and flown to like a pin tap |
 
 Animation length (`CameraMath.flyDurationMs`, tested in `CameraMathTest`):
 `350 ms + 1.5 ms/km + 160 ms per zoom level`, clamped to 450–1600 ms.
@@ -299,7 +301,7 @@ better), no pitch/bearing, own durations.
   label updates when the camera stops (camera-idle event), 5 decimals (~1 m).
 * "Dùng vị trí này" returns the centre point. Back returns nothing (step keeps its old point).
 * No geocoding: the user types the place name; the app does not call Nominatim/LocationIQ in this
-  phase. Quick-place chips cover the main northern destinations offline.
+  phase. The picker's chips are "Vị trí của tôi" (one device fix, never stored) and the trip's own steps; there is no built-in place list.
 
 *Changed from the reference:* polarsteps docs/22 §1.3/§2.6 search places through LocationIQ and
 tap-to-move the pin; neighbour steps are drawn there as a dotted line, here as small context pins.

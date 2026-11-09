@@ -76,10 +76,11 @@ class PhotoGroupingTest {
     @Test fun suggestionsNumberAfterExistingStepsAndFlagDatesOutsideTheTrip() {
         val trip = Trip("t", "Hội An", "", LocalDate.of(2025, 3, 1), LocalDate.of(2025, 3, 1), 0, 0)
         val groups = PhotoGrouping.group(
-            listOf(photo(at(1, 9), hoiAn), photo(at(2, 9), myson), photo(null, null)),
+            listOf(photo(at(1, 9), hoiAn), photo(at(2, 11, 30), myson), photo(null, null)),
         )
-        val s = suggestStepsFrom(groups, trip, emptyList(), LocalDateTime.of(2026, 1, 1, 12, 0)) { "Điểm dừng $it" }
-        assertEquals(listOf("Điểm dừng 1", "Điểm dừng 2", "Điểm dừng 3"), s.map { it.title })
+        val s = suggestStepsFrom(groups, trip, emptyList(), LocalDateTime.of(2026, 1, 1, 12, 0)) { "Điểm dừng %02d:%02d".format(it.hour, it.minute) }
+        // F17: named by arrival time, like a stop suggestion (the undated group gets the R6 09:00).
+        assertEquals(listOf("Điểm dừng 09:00", "Điểm dừng 11:30", "Điểm dừng 09:00"), s.map { it.title })
         assertEquals(listOf(true, false, false), s.map { it.include })
         assertEquals(listOf(false, true, false), s.map { it.outsideTrip })
         // undated, unlocated: R6 default arrival (trip start, 09:00)

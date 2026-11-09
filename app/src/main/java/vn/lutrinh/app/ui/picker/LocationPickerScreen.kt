@@ -1,5 +1,22 @@
 package vn.lutrinh.app.ui.picker
 
+import android.os.CancellationSignal
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.outlined.MyLocation
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import kotlinx.coroutines.launch
+import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.usecase.inTimelineOrder
+import vn.lutrinh.app.map.PickerMove
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,18 +71,8 @@ import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatCoord
 import vn.lutrinh.app.ui.steps.contextMarkers
 
-/** Offline shortcuts (no geocoding service yet): well-known travel areas in Vietnam. */
-val QUICK_PLACES = listOf(
-    "Hà Giang" to GeoPoint(22.8233, 104.9836),
-    "Đồng Văn" to GeoPoint(23.2786, 105.3621),
-    "Mã Pí Lèng" to GeoPoint(23.2397, 105.4096),
-    "Ninh Bình" to GeoPoint(20.2506, 105.9745),
-    "Tràng An" to GeoPoint(20.2546, 105.8954),
-    "Hà Nội" to GeoPoint(21.0285, 105.8542),
-    "Sa Pa" to GeoPoint(22.3364, 103.8438),
-    "Hội An" to GeoPoint(15.8801, 108.3380),
-    "Đà Lạt" to GeoPoint(11.9404, 108.4583),
-)
+/** A shortcut chip: a step of this trip (D4: no gazetteer, no online search). */
+data class PlaceChip(val label: String, val point: GeoPoint)
 
 class LocationPickerViewModel(c: AppContainer, handle: SavedStateHandle) : ViewModel() {
     private val tripId: String = checkNotNull(handle["tripId"])
@@ -73,10 +80,20 @@ class LocationPickerViewModel(c: AppContainer, handle: SavedStateHandle) : ViewM
     val initial: GeoPoint? = handle.get<String>("lat")?.toDoubleOrNull()?.let { lat ->
         handle.get<String>("lng")?.toDoubleOrNull()?.let { lng -> GeoPoint(lat, lng) }
     }
-    val markers = c.steps.observeSteps(tripId)
+    private val steps = c.steps.observeSteps(tripId)
+    val markers = steps
         .map { contextMarkers(it, stepId) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** The trip's other steps in timeline order, named as in the timeline. */
+    val chips = steps
+        .map { stepChips(it, stepId) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }
+
+/** Chips for the picker: every step of the trip except the one being edited, in timeline order. */
+fun stepChips(steps: List<Step>, excludeId: String?): List<PlaceChip> =
+    steps.inTimelineOrder().filter { it.id != excludeId }.map { PlaceChip(it.title, it.location) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,9 +103,32 @@ fun LocationPickerScreen(
     vm: LocationPickerViewModel = viewModel(factory = factory { c, h -> LocationPickerViewModel(c, h) }),
 ) {
     val markers by vm.markers.collectAsStateWithLifecycle()
+    val chips by vm.chips.collectAsStateWithLifecycle()
     val start = vm.initial ?: NewStepDefaults.FALLBACK_CENTER
     var center by remember { mutableStateOf(start) }
-    var moveTo by remember { mutableStateOf<GeoPoint?>(null) }
+    var moveTo by remember { mutableStateOf<PickerMove?>(null) }
+    val context = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    var locating by remember { mutableStateOf(false) }
+    var askPermission by remember { mutableStateOf(false) }
+    var signal by remember { mutableStateOf<CancellationSignal?>(null) }
+    DisposableEffect(Unit) { onDispose { signal?.cancel() } }
+
+    fun say(res: Int) = scope.launch { snackbar.showSnackbar(context.getString(res)) }
+    // "Vị trí của tôi": one fix, then the camera flies there; the user still confirms with the button.
+    fun locate() {
+        if (!DeviceLocation.isEnabled(context)) { say(R.string.picker_location_off); return }
+        locating = true
+        signal = DeviceLocation.request(context) { p ->
+            locating = false
+            if (p != null) moveTo = PickerMove(p) else say(R.string.picker_location_failed)
+        }
+    }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        if (DeviceLocation.hasPermission(context)) locate() else say(R.string.picker_location_denied)
+    }
+    val onMyLocation = { if (DeviceLocation.hasPermission(context)) locate() else askPermission = true }
 
     Scaffold(
         topBar = {
@@ -99,6 +139,7 @@ fun LocationPickerScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Box(Modifier.padding(padding).fillMaxSize()) {
             PickerMap(
@@ -117,16 +158,29 @@ fun LocationPickerScreen(
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = (-22).dp),
             )
+            val chipColors = AssistChipDefaults.assistChipColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                disabledContainerColor = MaterialTheme.colorScheme.surface,
+            )
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp),
             ) {
-                items(QUICK_PLACES) { (name, point) ->
+                item {
                     AssistChip(
-                        onClick = { moveTo = point },
-                        label = { Text(name) },
-                        colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surface),
+                        onClick = onMyLocation,
+                        enabled = !locating,
+                        leadingIcon = { Icon(Icons.Outlined.MyLocation, null, Modifier.size(18.dp)) },
+                        label = { Text(stringResource(if (locating) R.string.picker_locating else R.string.picker_my_location)) },
+                        colors = chipColors,
+                    )
+                }
+                items(chips) { chip ->
+                    AssistChip(
+                        onClick = { moveTo = PickerMove(chip.point) },
+                        label = { Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 160.dp)) },
+                        colors = chipColors,
                     )
                 }
             }
@@ -145,5 +199,19 @@ fun LocationPickerScreen(
                 }
             }
         }
+    }
+
+    if (askPermission) {
+        AlertDialog(
+            onDismissRequest = { askPermission = false },
+            title = { Text(stringResource(R.string.picker_permission_title)) },
+            text = { Text(stringResource(R.string.picker_permission_body)) },
+            confirmButton = {
+                TextButton(onClick = { askPermission = false; permissionLauncher.launch(DeviceLocation.PERMISSIONS) }) {
+                    Text(stringResource(R.string.picker_permission_continue))
+                }
+            },
+            dismissButton = { TextButton(onClick = { askPermission = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
     }
 }

@@ -70,6 +70,9 @@
 
     <!-- Trip map -->
     <string name="trip_map_title">Bản đồ hành trình</string>
+    <string name="trip_map_start">Điểm xuất phát</string>
+    <string name="trip_map_details">Xem chi tiết</string>
+    <string name="trip_map_fit">Xem toàn bộ hành trình</string>
     <string name="trip_map_empty">Chuyến đi chưa có điểm dừng nào để hiển thị.</string>
 
     <!-- Legs / transport (R12) -->
@@ -118,7 +121,9 @@
     <string name="err_step_too_many_photos">Tối đa %1$d ảnh mỗi điểm dừng</string>
     <string name="err_step_trip_missing">Chuyến đi không còn tồn tại</string>
     <string name="extend_trip_title">Kéo dài chuyến đi?</string>
-    <string name="extend_trip_body">Ngày đến nằm ngoài chuyến đi (%1$s). Kéo dài chuyến đi đến %2$s?</string>
+    <string name="extend_trip_body_before_start">Điểm dừng này trước ngày bắt đầu chuyến đi (%1$s). Lùi ngày bắt đầu về %2$s?</string>
+    <string name="extend_trip_body_after_end">Điểm dừng này sau ngày kết thúc chuyến đi (%1$s). Kéo dài chuyến đi đến %2$s?</string>
+    <string name="extend_trip_body_open_ended">Điểm dừng này trước ngày bắt đầu chuyến đi (%1$s, chưa có ngày kết thúc). Lùi ngày bắt đầu về %2$s?</string>
     <string name="extend_trip_confirm">Kéo dài và lưu</string>
     <string name="discard_title">Bỏ các thay đổi?</string>
     <string name="discard_body">Những gì bạn vừa nhập sẽ không được lưu.</string>
@@ -129,10 +134,19 @@
     <string name="picker_title">Chọn vị trí</string>
     <string name="picker_hint">Kéo bản đồ để đặt ghim vào đúng chỗ</string>
     <string name="picker_confirm">Dùng vị trí này</string>
-    <string name="picker_quick">Đi nhanh tới</string>
+    <string name="picker_my_location">Vị trí của tôi</string>
+    <string name="picker_locating">Đang tìm vị trí của bạn…</string>
+    <string name="picker_location_denied">Chưa được phép dùng vị trí của máy. Bạn vẫn có thể kéo bản đồ để chọn.</string>
+    <string name="picker_location_off">Vị trí của máy đang tắt. Hãy bật GPS rồi thử lại.</string>
+    <string name="picker_location_failed">Chưa xác định được vị trí của bạn. Hãy thử lại ở nơi thoáng hơn.</string>
+    <string name="picker_permission_title">Dùng vị trí của bạn?</string>
+    <string name="picker_permission_body">Lữ Trình chỉ lấy vị trí một lần để đặt ghim ở chỗ bạn đang đứng. Vị trí không được ghi lại và không gửi đi đâu.</string>
+    <string name="picker_permission_continue">Tiếp tục</string>
 
     <!-- Step detail / photos -->
     <string name="step_detail_photos">Ảnh (%1$d)</string>
+    <string name="step_detail_prev">Trước: %1$s</string>
+    <string name="step_detail_next">Sau: %1$s</string>
     <string name="step_detail_no_note">Chưa có ghi chú.</string>
     <string name="photo_viewer_counter">%1$d / %2$d</string>
     <string name="photo_missing">Không tìm thấy tệp ảnh</string>
@@ -140,7 +154,13 @@
     <string name="from_photos_title">Thêm từ ảnh</string>
     <string name="from_photos_pick">Chọn ảnh</string>
     <string name="from_photos_pick_hint">Chọn nhiều ảnh: ảnh có vị trí và ngày chụp sẽ được gom thành các điểm dừng gợi ý. Cho phép truy cập vị trí trong ảnh để gom theo nơi chụp.</string>
-    <string name="from_photos_default_title">Điểm dừng %1$d</string>
+    <string name="from_photos_default_title">Điểm dừng %1$s</string>
+    <string name="from_photos_intro_title">Thêm điểm dừng từ ảnh</string>
+    <string name="from_photos_intro_gps">Chọn ảnh có vị trí GPS và ngày chụp: Lữ Trình gom ảnh cùng ngày, cùng nơi thành các điểm dừng gợi ý để bạn xem lại.</string>
+    <string name="from_photos_intro_review">Chưa có gì được tạo cho đến khi bạn bấm “Tạo điểm dừng”. Ảnh gốc trong máy không bị thay đổi.</string>
+    <string name="from_photos_intro_permission">Máy sẽ hỏi quyền xem vị trí trong ảnh; nếu từ chối, ảnh vẫn được thêm nhưng bạn phải tự chọn vị trí.</string>
+    <string name="from_photos_discard_title">Bỏ các điểm dừng gợi ý?</string>
+    <string name="from_photos_discard_body">Chưa có điểm dừng nào được tạo từ %1$d ảnh này. Thoát bây giờ sẽ bỏ phần đã gom.</string>
     <string name="from_photos_summary">%1$d ảnh → %2$d điểm dừng gợi ý</string>
     <string name="from_photos_summary_hint">Gom theo ngày chụp và vị trí (cách nhau dưới 2 km). Sửa tên, bỏ chọn nhóm không cần, đặt vị trí cho ảnh không có vị trí.</string>
     <string name="from_photos_keep">Giữ điểm dừng %1$d</string>
@@ -233,9 +253,11 @@
     <string name="stop_photos_window">Ảnh trong máy chụp trong khoảng %1$s (từ 10 phút trước đến 10 phút sau lúc dừng)</string>
     <string name="stop_photos_explain">Lữ Trình có thể tìm trong thư viện ảnh của máy những ảnh bạn chụp lúc dừng ở đây. Ảnh chỉ được sao chép vào chuyến đi khi bạn bấm Lưu; không có gì được gửi đi.</string>
     <string name="stop_photos_allow">Cho phép xem ảnh</string>
-    <string name="stop_photos_denied">Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh” bên dưới.</string>
+    <string name="stop_photos_denied">Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh” ở mục Ảnh phía trên.</string>
     <string name="stop_photos_none">Không có ảnh nào trong máy chụp trong khoảng này.</string>
-    <string name="stop_photos_selected">Đã chọn %1$d/%2$d ảnh · thêm vào điểm dừng khi lưu. Chạm để bỏ chọn.</string>
+    <string name="stop_photos_added">Đã thêm %1$d/%2$d ảnh vào mục Ảnh ở trên; ảnh được sao chép khi bạn bấm Lưu.</string>
+    <string name="stop_photos_unticked">Chưa thêm — chạm để thêm lại:</string>
+    <string name="step_photo_from_gallery">Từ thư viện</string>
     <string name="stop_photos_partial">Bạn chỉ cho phép xem một số ảnh.</string>
     <string name="stop_photos_pick_more">Chọn thêm ảnh</string>
     <string name="stop_photos_item">Ảnh lúc %1$s</string>

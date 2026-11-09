@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -43,6 +44,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -54,6 +56,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -81,6 +84,7 @@ import kotlinx.coroutines.launch
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
@@ -96,7 +100,10 @@ import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.display
 import vn.lutrinh.app.ui.common.displayDateTime
 import vn.lutrinh.app.ui.common.factory
-import vn.lutrinh.app.ui.common.formatCoord
+import vn.lutrinh.app.ui.common.ChangeLocationButton
+import vn.lutrinh.app.ui.common.DiscardDialog
+import vn.lutrinh.app.ui.common.displayTime
+import vn.lutrinh.app.ui.common.placeLines
 import java.time.LocalDateTime
 
 /** "Thêm từ ảnh" flow state (docs/03-screens.md S9). */
@@ -107,6 +114,8 @@ data class FromPhotosState(
     val suggestions: List<StepSuggestion> = emptyList(),
     /** Where the location picker opens for a group without a location. */
     val fallbackLocation: GeoPoint? = null,
+    /** Steps of the trip, for "gần <điểm dừng>" under a suggestion's place (F15). */
+    val tripSteps: List<Step> = emptyList(),
     val savedSteps: Int = 0,
     val failedPhotos: Int = 0,
     val failedSteps: Int = 0,
@@ -129,8 +138,8 @@ class FromPhotosViewModel(private val c: AppContainer, handle: SavedStateHandle)
     var placingIndex: Int? = null
         private set
 
-    /** [titleFor] gives the default title of the n-th step (localised). */
-    fun onPicked(uris: List<Uri>, titleFor: (Int) -> String) {
+    /** [titleFor] gives the default title of a step arriving at the given time ("Điểm dừng HH:mm", F17). */
+    fun onPicked(uris: List<Uri>, titleFor: (LocalDateTime) -> String) {
         if (uris.isEmpty()) {
             _state.update { it.copy(phase = FromPhotosState.Phase.DONE) }
             return
@@ -150,6 +159,7 @@ class FromPhotosViewModel(private val c: AppContainer, handle: SavedStateHandle)
                     phase = FromPhotosState.Phase.REVIEW,
                     trip = trip,
                     suggestions = suggestions,
+                    tripSteps = steps,
                     fallbackLocation = groups.firstNotNullOfOrNull { g -> g.location } ?: NewStepDefaults.location(steps),
                 )
             }
@@ -227,7 +237,7 @@ fun FromPhotosScreen(
     // R13: the system Photo Picker redacts GPS, so this flow uses the system file picker and
     // ACCESS_MEDIA_LOCATION (docs/06-photos.md). Denied -> photos come without location.
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        vm.onPicked(uris) { n -> context.getString(R.string.from_photos_default_title, n) }
+        vm.onPicked(uris) { at -> context.getString(R.string.from_photos_default_title, at.displayTime()) }
     }
     val pick = { picker.launch(arrayOf("image/*")) }
     val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { pick() }
@@ -237,13 +247,11 @@ fun FromPhotosScreen(
         ) askLocation.launch(Manifest.permission.ACCESS_MEDIA_LOCATION)
         else pick()
     }
-    var launched by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        if (!launched && s.phase == FromPhotosState.Phase.PICKING) {
-            launched = true
-            startPicking()
-        }
-    }
+    // F14: explain before opening the system file picker (no auto-launch), and confirm before a review is thrown away.
+    var introDone by rememberSaveable { mutableStateOf(false) }
+    var confirmDiscard by remember { mutableStateOf(false) }
+    val reviewing = s.phase == FromPhotosState.Phase.REVIEW
+    BackHandler(enabled = reviewing) { confirmDiscard = true }
     LaunchedEffect(pickedLocation) {
         if (pickedLocation != null) {
             vm.placeAt(pickedLocation)
@@ -257,7 +265,9 @@ fun FromPhotosScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.from_photos_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = { if (reviewing) confirmDiscard = true else onBack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                    }
                 },
             )
         },
@@ -286,7 +296,7 @@ fun FromPhotosScreen(
                     stringResource(R.string.from_photos_pick_hint),
                     Modifier.padding(padding),
                     actionLabel = stringResource(R.string.from_photos_pick),
-                    onAction = { startPicking() },
+                    onAction = { introDone = true; startPicking() },
                 )
             FromPhotosState.Phase.READING -> LoadingState(Modifier.padding(padding))
             FromPhotosState.Phase.MISSING ->
@@ -296,6 +306,42 @@ fun FromPhotosScreen(
                     vm.startPlacing(i)
                     onPickLocation(at ?: s.fallbackLocation)
                 })
+        }
+    }
+
+    if (s.phase == FromPhotosState.Phase.PICKING && !introDone) {
+        FromPhotosIntro(
+            onChoose = { introDone = true; startPicking() },
+            onCancel = onBack,
+            onDismiss = { introDone = true },
+        )
+    }
+    if (confirmDiscard) {
+        DiscardDialog(
+            title = stringResource(R.string.from_photos_discard_title),
+            body = stringResource(R.string.from_photos_discard_body, s.photoCount),
+            onDiscard = { confirmDiscard = false; onBack() },
+            onDismiss = { confirmDiscard = false },
+        )
+    }
+}
+
+/** What "Thêm từ ảnh" does and asks for, shown before the system file picker opens (F14). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FromPhotosIntro(onChoose: () -> Unit, onCancel: () -> Unit, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.from_photos_intro_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.from_photos_intro_gps), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.from_photos_intro_review), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                stringResource(R.string.from_photos_intro_permission),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onChoose, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.from_photos_pick)) }
+            TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_cancel)) }
         }
     }
 }
@@ -340,6 +386,7 @@ private fun Review(
                 titleOk = s.titleOk(sg),
                 enabled = s.phase == FromPhotosState.Phase.REVIEW,
                 tripDates = s.trip,
+                tripSteps = s.tripSteps,
                 onTitle = { vm.setTitle(i, it) },
                 onInclude = { vm.setInclude(i, it) },
                 onPickLocation = { onPickLocation(i, sg.location) },
@@ -355,6 +402,7 @@ private fun SuggestionCard(
     titleOk: Boolean,
     enabled: Boolean,
     tripDates: Trip?,
+    tripSteps: List<Step>,
     onTitle: (String) -> Unit,
     onInclude: (Boolean) -> Unit,
     onPickLocation: () -> Unit,
@@ -411,17 +459,14 @@ private fun SuggestionCard(
             }
             val loc = sg.location
             InfoLine(if (loc == null) Icons.Outlined.LocationOff else Icons.Outlined.Place) {
-                Text(
-                    if (loc == null) stringResource(R.string.from_photos_no_location)
-                    else formatCoord(loc.latitude, loc.longitude),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = onPickLocation, enabled = enabled && !sg.outsideTrip) {
-                    Icon(Icons.Outlined.EditLocationAlt, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(if (loc == null) R.string.step_location_pick else R.string.step_location_change))
+                val lines = loc?.let { placeLines(it, tripSteps) }
+                Column(Modifier.weight(1f)) {
+                    Text(lines?.first ?: stringResource(R.string.from_photos_no_location), style = MaterialTheme.typography.bodyMedium)
+                    lines?.second?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
+                ChangeLocationButton(hasLocation = loc != null, onClick = onPickLocation, enabled = enabled && !sg.outsideTrip)
             }
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(sg.photos, key = { it.key }) { p ->

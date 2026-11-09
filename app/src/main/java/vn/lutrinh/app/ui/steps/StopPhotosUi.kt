@@ -49,8 +49,10 @@ private const val COLUMNS = 3
 
 /**
  * "Ảnh chụp trong lúc dừng" (R19, docs/03-screens.md §5): gallery photos taken during the stop,
- * all ticked; the ticked ones are copied into the step on "Lưu". Without access it explains
- * first and asks on tap; denied leaves a note (the "Thêm ảnh" Photo Picker button stays below).
+ * all ticked at first. The ticked ones are shown in the step form's single "Ảnh (N)" grid (badge
+ * "Từ thư viện") and copied into the step on "Lưu"; this card only asks for access, lists the
+ * unticked ones to add back, and offers "Chọn thêm ảnh". Denied leaves a note (the "Thêm ảnh"
+ * Photo Picker button stays in the grid's header).
  */
 @Composable
 fun StopPhotosSection(
@@ -99,17 +101,23 @@ fun StopPhotosSection(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
+                        // F3: ticked photos live in the "Ảnh (N)" grid above; only the unticked show here.
+                        val ticked = s.selection.selected.size
                         Text(
-                            stringResource(R.string.stop_photos_selected, s.selection.selected.size, photos.size),
+                            stringResource(R.string.stop_photos_added, ticked, photos.size),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        photos.chunked(COLUMNS).forEach { row ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                row.forEach { p ->
-                                    GalleryTile(p, s.selection.isSelected(p.id), { onToggle(p.id) }, Modifier.weight(1f))
+                        val unticked = photos.filterNot { s.selection.isSelected(it.id) }
+                        if (unticked.isNotEmpty()) {
+                            Text(stringResource(R.string.stop_photos_unticked), style = MaterialTheme.typography.bodySmall)
+                            unticked.chunked(COLUMNS).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    row.forEach { p ->
+                                        GalleryTile(p, false, { onToggle(p.id) }, Modifier.weight(1f))
+                                    }
+                                    repeat(COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
                                 }
-                                repeat(COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
                             }
                         }
                     }

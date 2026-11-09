@@ -61,6 +61,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -87,7 +89,10 @@ import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.usecase.GalleryPhoto
 import vn.lutrinh.app.domain.usecase.GallerySelection
+import vn.lutrinh.app.domain.usecase.PlaceLabel
+import vn.lutrinh.app.domain.usecase.ExtendCase
 import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.domain.usecase.PhotoWindow
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
@@ -107,10 +112,11 @@ import vn.lutrinh.app.ui.common.DiscardDialog
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.LocalPhoto
 import vn.lutrinh.app.ui.common.MessageState
-import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.ui.common.display
 import vn.lutrinh.app.ui.common.factory
-import vn.lutrinh.app.ui.common.formatCoord
+import vn.lutrinh.app.ui.common.ChangeLocationButton
+import vn.lutrinh.app.ui.common.displayTime
+import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.trips.DateField
 import vn.lutrinh.app.ui.trips.DatePickDialog
 import java.time.LocalDate
@@ -140,7 +146,15 @@ data class StepForm(
     val extendOffer: ExtendOffer? = null,
     /** R19: "Ảnh chụp trong lúc dừng"; only for a step opened from a stop suggestion. */
     val stopPhotos: StopPhotosState? = null,
-)
+    /** Steps of the trip (for "gần <điểm dừng>" under the location, F15); includes the edited one. */
+    val tripSteps: List<Step> = emptyList(),
+) {
+    /** Gallery photos that "Lưu" will copy into the step (R19), in grid order. */
+    val galleryPhotos: List<GalleryPhoto> get() = stopPhotos?.selection?.selected.orEmpty()
+
+    /** What the single photo grid shows and the "Ảnh (N)" title counts: picked files, then ticked gallery photos. */
+    val photoCount: Int get() = photos.size + galleryPhotos.size
+}
 
 /** Gallery photos taken during the stop (R19): access, ticks and the time window. */
 data class StopPhotosState(
@@ -192,7 +206,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                 return@launch
             }
             _form.update {
-                if (step != null) it.fromStep(trip, step)
+                if (step != null) it.fromStep(trip, step).copy(tripSteps = steps)
                 else if (fromStop != null) {
                     // R17: location = the stay's centre, arrival = its start, title = "Điểm dừng HH:mm".
                     val arrival = StopSuggestions.localMinute(fromStop.startAt, ZoneId.systemDefault())
@@ -204,6 +218,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                         date = arrival.toLocalDate(),
                         time = arrival.toLocalTime(),
                         suggestedLocation = fromStop.location,
+                        tripSteps = steps,
                     )
                 } else {
                     val arrival = NewStepDefaults.arrival(trip, steps, LocalDateTime.now())
@@ -213,6 +228,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                         date = arrival.toLocalDate(),
                         time = arrival.toLocalTime(),
                         suggestedLocation = NewStepDefaults.location(steps),
+                        tripSteps = steps,
                     )
                 }
             }
@@ -297,7 +313,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
     private suspend fun importTickedGalleryPhotos(f: StepForm): List<String>? {
         val ticked = f.stopPhotos?.selection?.selected.orEmpty()
         if (ticked.isEmpty()) return emptyList()
-        if (f.photos.size + ticked.size > Limits.PHOTOS_PER_STEP_MAX) {
+        if (f.photoCount > Limits.PHOTOS_PER_STEP_MAX) {
             _form.update { it.copy(errors = setOf(StepError.TOO_MANY_PHOTOS)) }
             return null
         }
@@ -460,15 +476,15 @@ fun StepEditScreen(
                     supportingText = titleError?.let { { Text(it) } },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                LocationCard(f, onPick = { onPickLocation(f.location ?: f.suggestedLocation) })
+                LocationCard(f, vm.stepId, onPick = { onPickLocation(f.location ?: f.suggestedLocation) })
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateField(stringResource(R.string.step_field_date), f.date.display(), Modifier.weight(1f)) { pickDate = true }
                     OutlinedButton(onClick = { pickTime = true }, modifier = Modifier.weight(0.7f).height(64.dp)) {
                         Icon(Icons.Outlined.Schedule, null)
                         Spacer(Modifier.padding(4.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.step_field_time), style = MaterialTheme.typography.labelSmall)
-                            Text("%02d:%02d".format(f.time.hour, f.time.minute), style = MaterialTheme.typography.bodyMedium)
+                            Text(stringResource(R.string.step_field_time), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(f.time.displayTime(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -492,6 +508,14 @@ fun StepEditScreen(
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                // F3: one grid of what "Lưu" saves; the gallery card below only gives access / re-adds.
+                PhotosSection(
+                    f = f,
+                    onAdd = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    onRemove = vm::removePhoto,
+                    onCover = vm::makeCover,
+                    onUntick = vm::toggleGalleryPhoto,
+                )
                 f.stopPhotos?.let { sp ->
                     StopPhotosSection(
                         sp,
@@ -499,12 +523,6 @@ fun StepEditScreen(
                         onToggle = vm::toggleGalleryPhoto,
                     )
                 }
-                PhotosSection(
-                    f = f,
-                    onAdd = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                    onRemove = vm::removePhoto,
-                    onCover = vm::makeCover,
-                )
                 Spacer(Modifier.height(4.dp))
                 Button(onClick = vm::save, enabled = !f.importing, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Text(stringResource(R.string.action_save))
@@ -529,18 +547,26 @@ fun StepEditScreen(
     if (confirmDelete) {
         ConfirmDeleteDialog(
             title = stringResource(R.string.step_delete_confirm_title),
-            body = stringResource(R.string.step_delete_confirm_body, f.title, f.photos.size),
+            body = stringResource(R.string.step_delete_confirm_body, f.title, f.photoCount),
             onConfirm = { confirmDelete = false; vm.delete() },
             onDismiss = { confirmDelete = false },
         )
     }
     f.extendOffer?.let { offer ->
-        val openEnded = stringResource(R.string.trip_open_ended, "%s")
-        val fmt = { d: TripDates -> dateRange(d.start, d.end) { openEnded.format(it) } }
+        // F12: three wordings (R17); an open-ended trip has no end to "kéo dài đến".
+        val bodyRes = when (TripExtension.caseOf(offer.current, offer.widened)) {
+            ExtendCase.BEFORE_START -> R.string.extend_trip_body_before_start
+            ExtendCase.AFTER_END -> R.string.extend_trip_body_after_end
+            ExtendCase.OPEN_ENDED -> R.string.extend_trip_body_open_ended
+        }
+        val (was, now) = when (TripExtension.caseOf(offer.current, offer.widened)) {
+            ExtendCase.AFTER_END -> (offer.current.end ?: offer.current.start).display() to (offer.widened.end ?: offer.widened.start).display()
+            else -> offer.current.start.display() to offer.widened.start.display()
+        }
         AlertDialog(
             onDismissRequest = vm::dismissExtendOffer,
             title = { Text(stringResource(R.string.extend_trip_title)) },
-            text = { Text(stringResource(R.string.extend_trip_body, fmt(offer.current), fmt(offer.widened))) },
+            text = { Text(stringResource(bodyRes, was, now)) },
             confirmButton = { TextButton(onClick = { vm.save(extendTrip = true) }) { Text(stringResource(R.string.extend_trip_confirm)) } },
             dismissButton = { TextButton(onClick = vm::dismissExtendOffer) { Text(stringResource(R.string.action_cancel)) } },
         )
@@ -549,7 +575,7 @@ fun StepEditScreen(
 }
 
 @Composable
-private fun LocationCard(f: StepForm, onPick: () -> Unit) {
+private fun LocationCard(f: StepForm, excludeId: String?, onPick: () -> Unit) {
     val error = when {
         StepError.LOCATION_MISSING in f.errors -> stringResource(R.string.err_step_location_missing)
         StepError.LOCATION_INVALID in f.errors -> stringResource(R.string.err_step_location_invalid)
@@ -571,28 +597,37 @@ private fun LocationCard(f: StepForm, onPick: () -> Unit) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.step_location), style = MaterialTheme.typography.labelMedium)
+                val lines = loc?.let { placeLines(it, f.tripSteps, excludeId) }
                 Text(
-                    loc?.let { formatCoord(it.latitude, it.longitude) } ?: stringResource(R.string.step_location_none),
+                    lines?.first ?: stringResource(R.string.step_location_none),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                 )
+                lines?.second?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
-            FilledTonalButton(onClick = onPick) {
-                Icon(Icons.Outlined.EditLocationAlt, null)
-                Spacer(Modifier.padding(3.dp))
-                Text(stringResource(if (loc == null) R.string.step_location_pick else R.string.step_location_change))
-            }
+            ChangeLocationButton(hasLocation = loc != null, onClick = onPick)
         }
     }
 }
 
 @Composable
-private fun PhotosSection(f: StepForm, onAdd: () -> Unit, onRemove: (String) -> Unit, onCover: (String) -> Unit) {
+private fun PhotosSection(
+    f: StepForm,
+    onAdd: () -> Unit,
+    onRemove: (String) -> Unit,
+    onCover: (String) -> Unit,
+    onUntick: (String) -> Unit,
+) {
+    val gallery = f.galleryPhotos
+    // The first tile of the grid is the cover: a picked file, else the first gallery photo.
+    val coverIsGallery = f.photos.isEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${stringResource(R.string.step_photos)} (${f.photos.size})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            FilledTonalButton(onClick = onAdd, enabled = !f.importing && f.photos.size < Limits.PHOTOS_PER_STEP_MAX) {
+            Text("${stringResource(R.string.step_photos)} (${f.photoCount})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            FilledTonalButton(onClick = onAdd, enabled = !f.importing && f.photoCount < Limits.PHOTOS_PER_STEP_MAX) {
                 Icon(Icons.Outlined.AddPhotoAlternate, null)
                 Spacer(Modifier.padding(3.dp))
                 Text(stringResource(R.string.step_photos_add))
@@ -603,29 +638,62 @@ private fun PhotosSection(f: StepForm, onAdd: () -> Unit, onRemove: (String) -> 
         if (StepError.TOO_MANY_PHOTOS in f.errors) {
             Text(stringResource(R.string.err_step_too_many_photos, Limits.PHOTOS_PER_STEP_MAX), color = MaterialTheme.colorScheme.error)
         }
-        if (f.photos.isNotEmpty()) {
+        if (f.photoCount > 0) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(f.photos, key = { it }) { name ->
-                    val isCover = name == f.photos.first()
-                    Box(Modifier.size(104.dp).clip(RoundedCornerShape(12.dp)).clickable { onCover(name) }) {
+                    PhotoTile(isCover = name == f.photos.first(), onClick = { onCover(name) }, onRemove = { onRemove(name) }) {
                         LocalPhoto(name, Modifier.fillMaxSize())
-                        if (isCover) {
-                            Text(
-                                stringResource(R.string.step_photo_cover),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onTertiary,
-                                modifier = Modifier.align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiary).padding(horizontal = 6.dp, vertical = 2.dp),
-                            )
-                        }
-                        IconButton(
-                            onClick = { onRemove(name) },
-                            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape),
-                        ) { Icon(Icons.Filled.Close, stringResource(R.string.step_photo_remove), tint = Color.White, modifier = Modifier.size(16.dp)) }
+                    }
+                }
+                items(gallery, key = { "g" + it.id }) { g ->
+                    PhotoTile(isCover = coverIsGallery && g == gallery.first(), fromGallery = true, onClick = null, onRemove = { onUntick(g.id) }) {
+                        AsyncImage(
+                            model = Uri.parse(g.uri),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
+                        )
                     }
                 }
             }
-            Text(stringResource(R.string.step_photos_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (f.photos.isNotEmpty()) {
+                Text(stringResource(R.string.step_photos_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
+    }
+}
+
+/** One tile of the photo grid: the picture, "Ảnh bìa" on the first, "Từ thư viện" on a gallery photo, ✕ to remove. */
+@Composable
+private fun PhotoTile(
+    isCover: Boolean,
+    onClick: (() -> Unit)?,
+    onRemove: () -> Unit,
+    fromGallery: Boolean = false,
+    picture: @Composable () -> Unit,
+) {
+    Box(Modifier.size(104.dp).clip(RoundedCornerShape(12.dp)).let { if (onClick != null) it.clickable(onClick = onClick) else it }) {
+        picture()
+        if (isCover) {
+            Text(
+                stringResource(R.string.step_photo_cover),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onTertiary,
+                modifier = Modifier.align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiary).padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
+        if (fromGallery) {
+            Text(
+                stringResource(R.string.step_photo_from_gallery),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                modifier = Modifier.align(Alignment.TopStart).background(Color.Black.copy(alpha = 0.55f)).padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
+        IconButton(
+            onClick = onRemove,
+            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape),
+        ) { Icon(Icons.Filled.Close, stringResource(R.string.step_photo_remove), tint = Color.White, modifier = Modifier.size(16.dp)) }
     }
 }
 

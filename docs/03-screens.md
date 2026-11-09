@@ -27,6 +27,8 @@ ported 1:1 from `DisplayFormatTest`); no screen formats km, durations or in-trip
 | Trip dates (list, header, pickers, errors) | "d MMM, yyyy" with year | "20 thg 10 – 23 thg 10, 2025" |
 | Shared page (leaves the app) | weekday + dd/MM/yyyy | "Thứ Hai, 20/10/2025" |
 | Km tile (trip detail) | label "km", a second line names the source: "đường chim bay" (straight line through the steps) or "đã ghi GPS" (sum of the finished tracks, used when it is at least the straight line, R10) | "139 / km / đường chim bay" |
+| Place without a name (step detail, step form, from-photos card) | "gần <điểm dừng gần nhất của chuyến>, <km>" (the km rule above; "gần <điểm dừng>" alone under 50 m); coordinates `lat, lng` as a smaller second line; no other step → coordinates only. No gazetteer (`PlaceLabel`, Swift: same pure function) | "gần TP Hà Giang, 9,7 km" / "22.91042, 104.97814" |
+| Default step name (from photos, stop suggestion) | "Điểm dừng HH:mm" of the step's arrival | "Điểm dừng 09:05" |
 | Stat order (trip detail, share image, share page; My map keeps its own set in the same order) | điểm dừng, ảnh, km, ngày (My map: chuyến đi, điểm dừng, km) | |
 
 Theme: the app is light-only. The system bars are forced to the light style (dark icons) so the
@@ -213,8 +215,11 @@ The picker returns its result to the step form through the previous screen's sav
   Saving adds the step to the timeline as usual and the card disappears (a stored `added`
   decision); back without saving keeps the card.
   **Outside the trip's dates:** when the suggestion's day is before the trip's start or after its
-  end, "Lưu" opens a dialog "Kéo dài chuyến đi?" — "Ngày đến nằm ngoài chuyến đi (20 thg 10 – 23
-  thg 10, 2025). Kéo dài chuyến đi đến 20 thg 10 – 27 thg 10, 2025?" — with "Hủy" (text) and
+  end, "Lưu" opens a dialog "Kéo dài chuyến đi?" with one of three bodies (R17): after the end —
+  "Điểm dừng này sau ngày kết thúc chuyến đi (20 thg 10 – 23 thg 10, 2025). Kéo dài chuyến đi đến
+  20 thg 10 – 27 thg 10, 2025?"; before the start — "Điểm dừng này trước ngày bắt đầu chuyến đi (…).
+  Lùi ngày bắt đầu về …?"; open-ended trip — "Điểm dừng này trước ngày bắt đầu chuyến đi (từ 20 thg 10,
+  2025, chưa có ngày kết thúc). Lùi ngày bắt đầu về …?" — with "Hủy" (text) and
   "Kéo dài và lưu". "Kéo dài và lưu" widens the start or end as little as needed and saves the
   step (R17, docs/04); "Hủy" closes the dialog, the editor stays open and the red R5 line
   ("Ngày đến phải trước hoặc bằng …") stays under the date. An ongoing trip (no end) is shown
@@ -277,15 +282,23 @@ The picker returns its result to the step form through the previous screen's sav
   (§3b), fitted to the whole
   route (camera rules) in the area above the card carousel, so no pin hides under a card; first
   pin white with a green ring (start), last pin clay (end); a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
-  date · time; from card 2 on, the chip of the leg that arrives at this step).
+  date · time; from card 2 on, the chip of the leg that arrives at this step, on card 1 the text "Điểm xuất phát"
+  — every card has the same height); a small round "Xem toàn bộ hành trình" button (fit icon) above the carousel's
+  right end.
 * **Behaviour:** tapping a pin selects it (larger, gold ring + halo) and scrolls the carousel to
-  its card; tapping a card selects its step, tapping the selected card opens Step detail; each
+  its card; the carousel **snaps** so one card is centred (the first and last can reach the centre), and
+  when a swipe settles the centred card's step becomes the selected one (pin highlighted, camera flies to it);
+  tapping a card selects its step, and the selected card shows "Xem chi tiết ›" — tapping it opens Step detail;
+  "Xem toàn bộ hành trình" clears the selection and refits the whole route above the cards; each
   selection flies the camera to that step (zoom ≥ 11, never zooming the user out); tapping a badge, a leg line or a
   card's leg chip opens the Leg mode sheet, and the leg turns gold and is framed above the sheet. Empty
   trip: message "Chuyến đi chưa có điểm dừng nào để hiển thị."
 * **Screens:** `img/09-trip-map-route.png`, `img/16-sample-hagiang-map.png`,
   `img/20-trip-map-pins-above-cards.png`, `img/23-trip-map-leg-modes.png`,
-  `img/24-trip-map-legs-zoomed.png`; before/after the route redraw: `img/route-redraw/`.
+  `img/24-trip-map-legs-zoomed.png`; before/after the route redraw: `img/route-redraw/`; the snapping,
+  selecting carousel with the fit-all button: `img/ux-flows/01-trip-map-selected.png`. Pins 4 and 5 of the
+  sample trip lie a few hundred metres apart, so they touch at the overview zoom; the selected pin is drawn on top
+  and the carousel/pin tap zooms in (no pin clustering).
 * **Inspired by:** docs/22 §1.1/§2 (map with step-card carousel, fit-to-steps camera, transport
   mode per leg) and docs/23 (route rendering: casing + shadow on ground legs, zoom-dependent
   widths, flight arc, simplification). **Changed:** straight legs (no snap-to-roads), one route
@@ -325,11 +338,16 @@ The picker returns its result to the step form through the previous screen's sav
 * **Fields:** Tên địa điểm (required, n/80), Vị trí card (mini map + coordinates; "Chọn trên bản
   đồ" / "Đổi vị trí"), Ngày đến + Giờ đến (Material pickers, Vietnamese), Ghi chú (multi-line), Ảnh (n) with
   "Thêm ảnh", thumbnails with a remove (×) button, first photo marked "Ảnh bìa"; tapping a photo
-  makes it the cover.
+  makes it the cover. **One grid:** photos picked from the gallery section below (R19) are
+  part of it, badged "Từ thư viện", and counted in "Ảnh (n)" (n = saved photos + ticked gallery photos);
+  removing a badged tile (×) unticks it. The Vị trí card shows the R-label "gần <điểm dừng>, N km"
+  (Display conventions) with the coordinates as a smaller second line; "Đổi vị trí" / "Chọn trên bản đồ" is the
+  same tonal-less text button here, in from-photos cards and in the picker flow. The time/date chips use the same
+  colour. "Lưu" is in the top bar and as the bottom button, like the trip form.
 * **Defaults (new step):** R6 — date/time and the point where the picker opens. From a stop
   suggestion (§3c, R17): name "Điểm dừng HH:mm", the stay's date/time and centre.
-* **"Ảnh chụp trong lúc dừng" (only when opened from a stop suggestion, R19):** a card above
-  "Ảnh (n)": photo-library icon, title, "Ảnh trong máy chụp trong khoảng 08:50–09:36 (từ 10 phút
+* **"Ảnh chụp trong lúc dừng" (only when opened from a stop suggestion, R19):** a card below
+  "Ảnh (n)" (which already holds the ticked photos): photo-library icon, title, "Ảnh trong máy chụp trong khoảng 08:50–09:36 (từ 10 phút
   trước đến 10 phút sau lúc dừng)", then one of:
   * **No access yet:** "Lữ Trình có thể tìm trong thư viện ảnh của máy những ảnh bạn chụp lúc
     dừng ở đây. Ảnh chỉ được sao chép vào chuyến đi khi bạn bấm Lưu; không có gì được gửi đi."
@@ -338,10 +356,10 @@ The picker returns its result to the step form through the previous screen's sav
   * **Denied:** "Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh” bên
     dưới." and a text button "Cho phép xem ảnh" (asks again; when the system no longer shows the
     dialog nothing happens and the note stays). "Thêm ảnh" (Photo Picker) works as always.
-  * **Access:** "Đã chọn x/y ảnh · thêm vào điểm dừng khi lưu. Chạm để bỏ chọn." and a 3-column
-    grid of square thumbnails, oldest first, each with its time ("09:12") and a tick (filled
-    check = selected; unticked tiles are washed out with an empty circle). All start ticked; a tap
-    toggles (checkbox semantics, label "Ảnh lúc HH:mm"). None in the window: "Không có ảnh nào
+  * **Access:** "Đã thêm x/y ảnh vào mục Ảnh ở trên; ảnh được sao chép khi bạn bấm Lưu." All start
+    ticked and sit in the "Ảnh (n)" grid; the photos the user unticked (× on the tile) are listed
+    here under "Chưa thêm — chạm để thêm lại:" as a 3-column grid of washed-out square thumbnails with their time
+    ("09:12") and an empty circle; a tap ticks one again (checkbox semantics, label "Ảnh lúc HH:mm"). None in the window: "Không có ảnh nào
     trong máy chụp trong khoảng này."
   * **Partial access (Android 14+):** the grid shows only the photos the user allowed, then "Bạn
     chỉ cho phép xem một số ảnh." and "Chọn thêm ảnh" (re-opens the system dialog, where the user
@@ -349,38 +367,51 @@ The picker returns its result to the step form through the previous screen's sav
     photos and videos…" with "Allow limited access / Allow all / Don’t select more"). Photos
     added there arrive ticked.
   The section re-reads the gallery when the screen resumes (back from settings or the system
-  sheet). The ticked photos are copied into the step on "Lưu" (after the regular "Ảnh (n)"
-  photos); they are not shown in "Ảnh (n)" before that. Back without saving copies nothing.
+  sheet). The ticked photos are copied into the step on "Lưu" (after the regular photos, in the grid's order); until then
+  the grid shows them straight from the gallery. Back without saving copies nothing.
 * **Photo times:** each added photo's EXIF capture time is read before import and saved with the
   photo (`takenAt`, docs/06); nothing is shown for it on this screen.
 * **Save:** top-bar "Lưu" and bottom button; errors per field. Edit mode also has delete.
-* **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`, `img/stop-photos/01-…09-*.png`.
+* **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`, `img/stop-photos/01-…09-*.png` (before the
+  single grid), `img/ux-flows/02-step-form-from-suggestion.png`, `03-step-form-one-photo-grid.png`.
 * **Inspired by:** docs/22 §1.3 (New/Edit Step: map header with edit pencil, name, arrival date +
   time, media box, note). **Changed:** no "Publish / Save as draft" sheet (a step is saved
-  directly), no location search (offline: map + quick places), suggested photos only for a step made
+  directly), no location search (offline: the picker offers "Vị trí của tôi" and this trip's steps), suggested photos only for a step made
   from a stop suggestion (its window, not the whole day), no top spots/activities, default time 09:00 instead of 10:00, name typed by the user
   instead of reverse-geocoded.
 
 ## 6. Location picker — "Chọn vị trí"
 
-* **Content:** full map with a fixed pin in the centre; chips "Đi nhanh tới" (Hà Giang, Đồng Văn,
-  Mã Pí Lèng, Ninh Bình, Tràng An, Hà Nội, Sa Pa, Hội An, …); the other steps of the trip as small
-  context pins; bottom card "Kéo bản đồ để đặt ghim vào đúng chỗ", live coordinates, button
-  "Dùng vị trí này".
+* **Content:** full map with a fixed pin in the centre; one row of chips — "Vị trí của tôi" first,
+  then **this trip's other steps** by title in timeline order (the step being edited is left out;
+  a trip with no other step shows only "Vị trí của tôi"); the other steps also as small context
+  pins; bottom card "Kéo bản đồ để đặt ghim vào đúng chỗ", live coordinates, button "Dùng vị trí
+  này". No fixed list of places, no online search (D4).
+* **"Vị trí của tôi":** asks for approximate/precise location with a short rationale first ("Dùng vị
+  trí của bạn?" · "Lữ Trình chỉ lấy vị trí một lần để đặt ghim ở chỗ bạn đang đứng. Vị trí không
+  được ghi lại và không gửi đi đâu." · "Tiếp tục"), then reads **one** fix (no background location,
+  nothing stored) and flies the pin there (zoom ≥ 11 like every camera move); while waiting "Đang tìm vị trí của bạn…". Denied,
+  GPS off and timeout each show a snackbar ("Chưa được phép dùng vị trí của máy…", "Vị trí của máy
+  đang tắt…", "Chưa xác định được vị trí của bạn…"); the user can still drag the map. A step chip
+  flies to that step's point.
 * **Opens at:** the step's current point; else the last step of the trip; else Vietnam overview.
 * **Screen:** `img/05-location-picker.png`.
 * **Inspired by:** docs/22 §1.3 ("Search step location" map + pin; "Change step location" shows
   neighbours). **Changed:** drag-the-map-under-a-fixed-pin instead of tap-to-move, quick-place
-  chips instead of online search (no geocoding API in the local-only phase).
+  "my location" + trip-step chips instead of online search (no geocoding API in the local-only phase).
 
 ## 7. Step detail
 
-* **Content:** cover photo (only when the step has photos), title, date · time, coordinates,
-  note ("Chưa có ghi chú." when empty), mini map of the trip with this step highlighted, photo
+* **Content:** cover photo (only when the step has photos), title, date · time, place line
+  "gần <điểm dừng khác>, N km" with the coordinates as a smaller line (Display conventions; with no other step the
+  coordinates alone), note ("Chưa có ghi chú." when empty), mini map of the trip with this step highlighted, photo
   grid "Ảnh (n)".
 * **Actions:** pencil → Step form (edit); bin → "Xóa điểm dừng này?" (shows the photo count);
-  tap photo → viewer at that index.
-* **Screens:** `img/10-step-detail.png`, `img/13-step-delete-confirm.png`.
+  tap photo → viewer at that index. **Bottom bar:** "‹ Trước: <title>" and "Sau: <title> ›" for the
+  neighbouring steps in timeline order (a side without a neighbour is empty; none at all when the trip
+  has one step); a tap replaces this screen with that step's detail, so Back still returns to the trip. The mini map's
+  OpenStreetMap attribution keeps a fixed 9 dp text size so it stays a thin strip at any font scale.
+* **Screens:** `img/10-step-detail.png`, `img/13-step-delete-confirm.png`, `img/ux-flows/04-step-detail-prev-next.png`.
 * **Inspired by:** docs/22 §1.3 (step story with ⋮ Edit / Delete, delete confirm). **Changed:** a
   scrolling detail page instead of a full-screen story; delete is never blocked (no sync).
 
@@ -398,21 +429,29 @@ The picker returns its result to the step form through the previous screen's sav
 
 ## 10. From photos — "Thêm từ ảnh"
 
-* **Opens:** on Android 10+ first the system permission dialog for photo location
+* **Opens:** first a bottom sheet "Thêm điểm dừng từ ảnh" (what to pick: photos with a GPS location and a
+  date; nothing is created until "Tạo điểm dừng"; originals untouched; the phone asks for the photo-location
+  permission and, if refused, the photos still come in but need a place) with "Chọn ảnh" and "Hủy"
+  (dismiss/Hủy return to the trip); only then, on Android 10+, the system permission dialog for photo location
   (`ACCESS_MEDIA_LOCATION`; on Android 14+ the "photos and videos" dialog), then the system
   **file picker** (multi-select, images) — not the Photo Picker, which hides GPS (06-photos.md).
   Cancelling the picker with nothing picked returns to the trip. While reading: progress.
 * **Review content:** a 180 dp map with the numbered kept suggestions; "N ảnh → M điểm dừng gợi
   ý" + hint; one card per suggestion (R13): checkbox (label "Giữ điểm dừng N"), number, editable
-  title ("Điểm dừng N", R5 length check), date · time from the photos (or "Ảnh không có ngày
+  title ("Điểm dừng HH:mm" of its arrival, R5 length check), date · time from the photos (or "Ảnh không có ngày
   chụp · dùng <R6 date>"), a red "Chụp ngày …, ngoài thời gian chuyến đi · không thể thêm" warning
   when outside the trip (cannot be kept), place line with "Chọn trên bản đồ" / "Đổi vị trí" → Location picker, thumbnails and
   "N ảnh". Photos without GPS form the last card "Ảnh không có vị trí", unticked until placed.
+* **Back from the review** (system Back or the top-bar arrow) asks "Bỏ các điểm dừng gợi ý?" ("Chưa có
+  điểm dừng nào được tạo từ N ảnh này. Thoát bây giờ sẽ bỏ phần đã gom.") with "Bỏ" / "Tiếp tục sửa"; nothing
+  is saved either way. The place line of a card is "gần <điểm dừng>, N km" (existing steps of the trip)
+  with the coordinates below, and the same "Đổi vị trí" button as the step form.
 * **Confirm:** bottom button "Tạo N điểm dừng" (disabled while no card is kept or a kept card has
   no title/place) → imports the kept photos (R11), saves one step per card, back to Trip detail
   with a toast "Đã tạo N điểm dừng từ ảnh" (+ "Không đọc được M ảnh" when an import failed; such
   photos are skipped, the step is still made).
-* **Screens:** `img/29-from-photos-review.png`, `img/30-from-photos-result.png`.
+* **Screens:** `img/29-from-photos-review.png`, `img/30-from-photos-result.png`,
+  `img/ux-flows/05-from-photos-intro.png`, `06-from-photos-discard.png`.
 * **Inspired by:** docs/22/16 (steps suggested from photo location/date). **Changed:** the user
   picks the photos (no gallery scan), an explicit review screen with editable titles, same-day +
   2 km grouping, no place-name lookup.
@@ -529,6 +568,13 @@ The picker returns its result to the step form through the previous screen's sav
 | stop-photos/07-access-denied.png | media permission revoked, "Don’t allow": the note and "Thêm ảnh" below |
 | stop-photos/08-partial-access-grid.png | "Allow limited access", 08:58 and 09:12 selected in the system sheet: "Đã chọn 2/2", "Bạn chỉ cho phép xem một số ảnh.", "Chọn thêm ảnh" |
 | stop-photos/09-partial-pick-more.png | "Chọn thêm ảnh" → "Allow limited access", 09:31 added: "Đã chọn 3/3" |
+| ux-flows/01-trip-map-selected.png | trip map after a swipe: centred, selected card with "Xem chi tiết ›", highlighted pin, fit-all button |
+| ux-flows/02-step-form-from-suggestion.png | step form from a stop suggestion: "gần …" place line, name "Điểm dừng 09:05", one "Ảnh (3)" grid |
+| ux-flows/03-step-form-one-photo-grid.png | the same form scrolled: gallery photos badged "Từ thư viện" and the card below ("Đã thêm 3/3 ảnh…") |
+| ux-flows/04-step-detail-prev-next.png | step detail with "Trước: …" / "Sau: …" bottom bar and the "gần …" place line |
+| ux-flows/05-from-photos-intro.png | "Thêm điểm dừng từ ảnh" intro sheet before the file picker |
+| ux-flows/06-from-photos-discard.png | "Bỏ các điểm dừng gợi ý?" after Back from the review |
+| ux-flows/07-location-picker-chips.png | location picker: "Vị trí của tôi" + the trip's steps as chips |
 
 ## Accessibility and UI tests
 
@@ -538,8 +584,7 @@ The picker returns its result to the step form through the previous screen's sav
   "Bản đồ của tôi" carry their label as content description:
   Material 3 1.3 exposes no text for them, so TalkBack would only say "Button".
 * Instrumented Compose tests (`app/src/androidTest/.../ui/TripFlowsTest.kt`) drive the real app
-  on a device: create trip, edit trip, delete trip, add a step with the "Mã Pí Lèng" quick-place
-  chip, set a leg's mode to "Xe máy" from the timeline (checked in the database), open "Bản đồ
+  on a device: create trip, edit trip, delete trip, add a step with a trip-step chip of the location picker ("Mã Pí Lèng", next to "Vị trí của tôi"), set a leg's mode to "Xe máy" from the timeline (checked in the database), open "Bản đồ
   của tôi" from the list, open "Bản đồ offline" from the list menu (ready-made regions listed) and
   from a trip map ("Tải vùng của chuyến đi này"), check that a trip shows the "Ghi hành
   trình" button (not tapped: it would raise the system location prompt), and open a trip with the

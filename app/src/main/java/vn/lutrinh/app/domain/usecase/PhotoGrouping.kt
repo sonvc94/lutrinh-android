@@ -102,7 +102,7 @@ data class StepSuggestion(
 )
 
 /**
- * R13: one suggestion per group, titled by [titleFor] (1-based number after the existing steps).
+ * R13: one suggestion per group, titled by [titleFor] ("Điểm dừng HH:mm" of its arrival, like a stop suggestion).
  * Undated groups get the R6 default arrival; groups outside the trip dates are flagged and not included.
  */
 fun suggestStepsFrom(
@@ -110,14 +110,14 @@ fun suggestStepsFrom(
     trip: Trip,
     existingSteps: List<Step>,
     now: LocalDateTime,
-    titleFor: (Int) -> String,
-): List<StepSuggestion> = groups.mapIndexed { i, g ->
+    titleFor: (LocalDateTime) -> String,
+): List<StepSuggestion> = groups.map { g ->
     val arrival = g.arrivedAt ?: NewStepDefaults.arrival(trip, existingSteps, now)
     val day = arrival.toLocalDate()
     val outside = day.isBefore(trip.startDate) || (trip.endDate != null && day.isAfter(trip.endDate))
     StepSuggestion(
         photos = g.photos,
-        title = titleFor(existingSteps.size + i + 1),
+        title = titleFor(arrival),
         location = g.location,
         arrivedAt = arrival,
         datedFromPhotos = g.arrivedAt != null,

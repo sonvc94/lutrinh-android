@@ -54,6 +54,7 @@ fun LocalDate.display(): String = format(DATE_FMT)
 /** In-trip day: "Thứ Hai, 20/10". */
 fun LocalDate.displayDay(): String = DisplayFormat.day(this)
 fun LocalDateTime.displayTime(): String = format(TIME_FMT)
+fun java.time.LocalTime.displayTime(): String = format(TIME_FMT)
 /** In-trip moment: "Thứ Hai, 20/10 · 08:10" (a date with year only where a trip is picked: [display]). */
 fun LocalDateTime.displayDateTime(): String = "${toLocalDate().displayDay()} · ${displayTime()}"
 
@@ -175,11 +176,16 @@ fun ConfirmDeleteDialog(title: String, body: String, onConfirm: () -> Unit, onDi
 }
 
 @Composable
-fun DiscardDialog(onDiscard: () -> Unit, onDismiss: () -> Unit) {
+fun DiscardDialog(
+    onDiscard: () -> Unit,
+    onDismiss: () -> Unit,
+    title: String = stringResource(R.string.discard_title),
+    body: String = stringResource(R.string.discard_body),
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.discard_title)) },
-        text = { Text(stringResource(R.string.discard_body)) },
+        title = { Text(title) },
+        text = { Text(body) },
         confirmButton = { TextButton(onClick = onDiscard) { Text(stringResource(R.string.discard_confirm)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.keep_editing)) } },
     )

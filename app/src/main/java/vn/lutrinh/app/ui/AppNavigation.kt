@@ -222,6 +222,8 @@ private fun NavGraph(nav: NavHostController) {
                 onBack = { nav.popBackStack() },
                 onEdit = { nav.navigate(Routes.stepEdit(tripId, stepId)) },
                 onOpenPhoto = { nav.navigate(Routes.photos(tripId, stepId, it)) },
+                // Replace this step with its neighbour, so Back keeps returning to where the user came from.
+                onOpenStep = { id -> nav.navigate(Routes.step(tripId, id)) { popUpTo(Routes.STEP) { inclusive = true } } },
             )
         }
         composable(

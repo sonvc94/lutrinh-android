@@ -227,17 +227,26 @@ class TripFlowsTest {
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(title).fetchSemanticsNodes().isEmpty() }
     }
 
+    /** F13/D4: the picker's chips are "Vị trí của tôi" + this trip's other steps (no fixed place list). */
     @Test
-    fun addStep_withQuickPlaceChip_showsItInTheTimeline() {
-        createTrip(title)
-        waitForText("Chưa có điểm dừng")
+    fun addStep_withATripStepChip_showsItInTheTimeline() {
+        val today = LocalDate.now()
+        runBlocking {
+            val c = container()
+            val id = (c.saveTrip(null, TripInput(title, "", today.minusDays(1), null)) as SaveResult.Saved).id
+            c.saveStep(id, null, StepInput("Mã Pí Lèng", "", GeoPoint(23.2397, 105.4096), today.atTime(8, 0), emptyList()))
+        }
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
+        rule.onAllNodesWithText(title).onFirst().performClick()
+        waitForText("Mã Pí Lèng")
         clickable("Thêm điểm dừng").onFirst().performClick()
 
         waitForText("Điểm dừng mới")
-        rule.onNode(hasSetTextAction() and hasText("Tên địa điểm")).performTextInput("Đèo Mã Pí Lèng")
+        rule.onNode(hasSetTextAction() and hasText("Tên địa điểm")).performTextInput("Đèo Hoàng Su Phì")
         rule.onNodeWithText("Chọn trên bản đồ").performClick()
 
         waitForText("Dùng vị trí này")
+        waitForText("Vị trí của tôi")
         rule.onNodeWithText("Mã Pí Lèng").performClick()
         // The centre coordinate updates when the camera animation to the chip's place ends.
         waitForText("23.23970, 105.40960")
@@ -246,9 +255,7 @@ class TripFlowsTest {
         waitForText("23.23970, 105.40960") // shown on the location card of the form
         clickable("Lưu").onFirst().performClick()
 
-        waitForText(title)
-        waitForText("Đèo Mã Pí Lèng")
-        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText("Chưa có điểm dừng").fetchSemanticsNodes().isEmpty() }
+        waitForText("Đèo Hoàng Su Phì")
     }
 
     @Test
