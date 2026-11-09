@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.tracks
 
 import androidx.compose.foundation.clickable
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.BatteryChargingFull
-import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -87,7 +87,7 @@ fun GpsCard(
                 Modifier.fillMaxWidth().clickable { expanded = !expanded; if (expanded) onOpened() }.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.Route, null, tint = TrackInk)
+                Icon(AtlasIcons.Route, null, tint = TrackInk)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text(stringResource(R.string.gps_card_title), style = MaterialTheme.typography.titleSmall)
                     Text(

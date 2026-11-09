@@ -108,7 +108,7 @@ private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, steps: List<St
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = { onDismiss(s) }) { Text(stringResource(R.string.stop_suggest_dismiss)) }
-                FilledTonalButton(onClick = { onAdd(s, defaultTitle) }) { Text(stringResource(R.string.stop_suggest_add)) }
+                FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = { onAdd(s, defaultTitle) }) { Text(stringResource(R.string.stop_suggest_add)) }
             }
         }
     }

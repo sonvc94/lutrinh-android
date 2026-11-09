@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.photos
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -12,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -100,7 +99,7 @@ fun PhotoViewerScreen(
             )
         }
         IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(4.dp)) {
-            Icon(Icons.Filled.Close, stringResource(R.string.action_close), tint = Color.White)
+            Icon(AtlasIcons.Close, stringResource(R.string.action_close), tint = Color.White)
         }
     }
 }

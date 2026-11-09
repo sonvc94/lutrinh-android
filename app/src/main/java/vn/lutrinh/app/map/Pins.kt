@@ -15,14 +15,15 @@ internal data class PinColors(val route: Int, val end: Int, val accent: Int, val
 /** Map image id of a pin; one bitmap per label × kind × selection, drawn once per style. */
 internal fun pinImageId(label: String, kind: PinKind, selected: Boolean) = "pin-$label-${kind.name}-$selected"
 
-/** Faint ink shadow under a pin (31 % ink, docs/08), so a pin still reads on satellite imagery. */
-private const val SHADOW = 0x50171E23
+/** Ink edge around a pin (31 % ink, docs/08): a line instead of a drop shadow, so a pin still reads on imagery. */
+private const val EDGE = 0x50171E23
 
 /**
- * Numbered pin drawn in code (no image assets), with a soft drop shadow:
+ * Numbered pin drawn in code (no image assets), edged with a 1 dp ink line (no shadow, docs/08).
+ * The three route roles differ by shape as well as colour, like the route cover and the app mark:
  * * STEP: route chàm disc (24 dp), 2 dp white ring, white number.
- * * START: white disc (28 dp), 3 dp chàm ring, chàm number: reads as "set off here".
- * * END: ink disc (28 dp), 2.5 dp white ring, white number.
+ * * START: white disc (28 dp), 3 dp chàm ring, chàm number: an open ring, "set off here".
+ * * END: ink square (26 dp, 4 dp corners), 2.5 dp white ring, white number: "arrived".
  * * CONTEXT (picker): small ink disc (22 dp), white ring.
  * * DRAFT (R20): hollow pin (22 dp): translucent white disc, dashed chàm ring, no number.
  * * selected: the same pin 1.3× larger, bright chàm ring, on a translucent bright chàm halo (54 dp).
@@ -34,7 +35,8 @@ internal fun pinBitmap(
     val d = density
     val base = when (kind) {
         PinKind.STEP -> 24f
-        PinKind.START, PinKind.END -> 28f
+        PinKind.START -> 28f
+        PinKind.END -> 26f
         PinKind.CONTEXT, PinKind.DRAFT -> 22f
     }
     val disc = (if (selected) base * 1.3f else base) * d
@@ -55,10 +57,9 @@ internal fun pinBitmap(
         // Hollow and dashed: "not on the route yet".
         paint.color = android.graphics.Color.WHITE
         paint.alpha = 225
-        paint.setShadowLayer(2f * d, 0f, 1f * d, SHADOW)
         c.drawCircle(cx, cx, r, paint)
-        paint.clearShadowLayer()
         paint.alpha = 255
+        drawEdge(c, cx, r, false, d, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 2.5f * d
         paint.color = if (selected) colors.accent else colors.route
@@ -77,13 +78,13 @@ internal fun pinBitmap(
         PinKind.END -> 2.5f
         else -> 2f
     } * d * (if (selected) 1.2f else 1f)
-    // Ring disc with the shadow, then the fill inside it.
+    // Ring shape, the fill inside it, then the ink edge.
+    val square = kind == PinKind.END
     paint.color = if (selected) colors.accent else ring
-    paint.setShadowLayer(2.5f * d, 0f, 1.2f * d, SHADOW)
-    c.drawCircle(cx, cx, r, paint)
-    paint.clearShadowLayer()
+    drawShape(c, cx, r, square, d, paint)
     paint.color = fill
-    c.drawCircle(cx, cx, r - ringWidth, paint)
+    drawShape(c, cx, r - ringWidth, square, d, paint)
+    drawEdge(c, cx, r, square, d, paint)
     if (label.isNotEmpty()) {
         paint.color = text
         paint.typeface = Typeface.DEFAULT_BOLD
@@ -93,4 +94,29 @@ internal fun pinBitmap(
         c.drawText(label, cx, y, paint)
     }
     return bmp
+}
+
+/** A disc, or for END a square with 4 dp corners, of half-size [r] around ([cx], [cx]). */
+private fun drawShape(c: Canvas, cx: Float, r: Float, square: Boolean, d: Float, paint: Paint) {
+    if (square) {
+        val corner = (4f * d * r / (13f * d)).coerceAtLeast(1f)
+        c.drawRoundRect(cx - r, cx - r, cx + r, cx + r, corner, corner, paint)
+    } else {
+        c.drawCircle(cx, cx, r, paint)
+    }
+}
+
+/** The 1 dp ink edge just outside a pin's shape. */
+private fun drawEdge(c: Canvas, cx: Float, r: Float, square: Boolean, d: Float, paint: Paint) {
+    val style = paint.style
+    val width = paint.strokeWidth
+    val effect = paint.pathEffect
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 1f * d
+    paint.pathEffect = null
+    paint.color = EDGE
+    drawShape(c, cx, r + 0.5f * d, square, d, paint)
+    paint.style = style
+    paint.strokeWidth = width
+    paint.pathEffect = effect
 }

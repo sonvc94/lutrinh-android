@@ -456,7 +456,7 @@ Rendering (map, image, photo encoding, files) is `share/TripExporter.kt`, `share
 and `map/StaticTripMap.kt` (docs/05 "Static map for sharing", docs/06 "Export").
 
 * **What.** Two outputs of one trip, made on the phone, nothing uploaded (no link, no server):
-  **"Ảnh dọc cho mạng xã hội"** = one portrait PNG 1080 × 1920; **"Trang xem offline"** = one self-contained HTML
+  **"Ảnh dọc"** = one portrait PNG 1080 × 1920; **"Trang xem offline"** = one self-contained HTML
   file that opens offline in any browser. Both are rebuilt live while the share screen is open
   (trip, steps, tracks, "Ẩn ghi chú").
 * **Image contents.** Title (max 2 lines, then "…"), the trip dates as on the trip screen
@@ -650,7 +650,7 @@ Code: `ui/common/MyLocation.kt` (state + button + rationale), `ui/picker/DeviceL
 **My location (trip map, My map)**
 
 * **One fix per tap.** Nothing is tracked while the screen is open and nothing is stored or sent;
-  the blue dot is the fix of the last tap and goes with the screen.
+  the chàm dot is the fix of the last tap and goes with the screen.
 * **Flow.** Tap → location permission granted (fine or coarse)? No: the explanation dialog "Dùng vị
   trí của bạn?" (Hủy / Tiếp tục) → system prompt. Granted → location switched on in the system?
   No: snackbar "Vị trí của máy đang tắt." + "Mở cài đặt" (location settings). Yes → one fix

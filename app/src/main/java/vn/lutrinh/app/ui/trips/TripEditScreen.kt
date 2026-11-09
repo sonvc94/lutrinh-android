@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.activity.compose.BackHandler
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,11 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -63,7 +61,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import vn.lutrinh.app.domain.usecase.SaveResult
@@ -178,7 +175,7 @@ fun TripEditScreen(
             TopAppBar(
                 title = { Text(stringResource(if (isNew) R.string.trip_create_title else R.string.trip_edit_title)) },
                 navigationIcon = {
-                    IconButton(onClick = back) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = back) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
                 actions = {
                     TextButton(onClick = vm::save) { Text(stringResource(R.string.action_save)) }
@@ -256,16 +253,16 @@ fun TripEditScreen(
                 }
                 if (!isNew) CoverRow(f, onChange = { pickCover = true })
                 Spacer(Modifier.height(8.dp))
-                Button(onClick = vm::save, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                Button(shape = MaterialTheme.shapes.small, onClick = vm::save, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Text(stringResource(if (isNew) R.string.trip_create_button else R.string.action_save))
                 }
                 if (!isNew) {
-                    OutlinedButton(
+                    OutlinedButton(shape = MaterialTheme.shapes.small,
                         onClick = { confirmDelete = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
-                        Icon(Icons.Outlined.Delete, null)
+                        Icon(AtlasIcons.Delete, null)
                         Spacer(Modifier.padding(4.dp))
                         Text(stringResource(R.string.trip_delete_button))
                     }
@@ -294,10 +291,10 @@ fun TripEditScreen(
 @Composable
 private fun CoverRow(f: TripForm, onChange: () -> Unit) {
     val cover = TripCover.resolve(f.coverPhotoId, f.steps)
-    OutlinedButton(onClick = onChange, modifier = Modifier.fillMaxWidth().height(72.dp), contentPadding = PaddingValues(8.dp)) {
+    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onChange, modifier = Modifier.fillMaxWidth().height(72.dp), contentPadding = PaddingValues(8.dp)) {
         Box(Modifier.size(56.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant), Alignment.Center) {
             if (cover != null) LocalPhoto(cover.fileName, Modifier.fillMaxSize())
-            else Icon(Icons.Outlined.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            else Icon(AtlasIcons.Photo, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -313,7 +310,7 @@ private fun CoverRow(f: TripForm, onChange: () -> Unit) {
 
 @Composable
 fun DateField(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = modifier.height(64.dp)) {
+    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onClick, modifier = modifier.height(64.dp)) {
         Icon(Icons.Outlined.CalendarMonth, null)
         Spacer(Modifier.padding(4.dp))
         Column(Modifier.weight(1f)) {

@@ -1,10 +1,10 @@
 package vn.lutrinh.app.ui.common
 
 import androidx.compose.foundation.layout.Column
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.SatelliteAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -14,7 +14,6 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -52,11 +51,7 @@ fun MapStyleButton(modifier: Modifier = Modifier) {
     val chosen by settings.chosen.collectAsStateWithLifecycle()
     var open by rememberSaveable { mutableStateOf(false) }
     val label = stringResource(R.string.map_style)
-    SmallFloatingActionButton(
-        onClick = { open = true },
-        modifier = modifier,
-        containerColor = MaterialTheme.colorScheme.surface,
-    ) { Icon(Icons.Outlined.Layers, contentDescription = label) }
+    MapButton(AtlasIcons.Layers, label, onClick = { open = true }, modifier)
     if (!open) return
     ModalBottomSheet(onDismissRequest = { open = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.navigationBarsPadding().padding(bottom = 12.dp)) {

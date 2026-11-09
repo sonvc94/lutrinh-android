@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.picker
 
 import androidx.compose.foundation.clickable
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -10,9 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,10 +39,10 @@ fun PlaceSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifie
         value = query,
         onValueChange = { onQuery(it.take(80)) },
         placeholder = { Text(stringResource(R.string.picker_search_hint), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        leadingIcon = { Icon(Icons.Filled.Search, null) },
+        leadingIcon = { Icon(AtlasIcons.Search, null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQuery("") }) { Icon(Icons.Filled.Close, stringResource(R.string.picker_search_clear)) }
+                IconButton(onClick = { onQuery("") }) { Icon(AtlasIcons.Close, stringResource(R.string.picker_search_clear)) }
             }
         },
         singleLine = true,

@@ -308,7 +308,7 @@
 
     <!-- Share a trip (R18) -->
     <string name="share_trip">Chia sẻ chuyến đi</string>
-    <string name="share_kind_image">Ảnh dọc cho mạng xã hội</string>
+    <string name="share_kind_image">Ảnh dọc</string>
     <string name="share_kind_page">Trang xem offline</string>
     <string name="share_kind_image_body">Một ảnh dọc có bản đồ, số liệu và tối đa 4 ảnh, hợp để đăng lên mạng xã hội.</string>
     <string name="share_kind_page_body">Một trang mở được không cần mạng, gửi cho ai cũng xem được: bản đồ, hành trình theo ngày, ghi chú và ảnh.</string>

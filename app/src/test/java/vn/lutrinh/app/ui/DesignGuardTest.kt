@@ -40,6 +40,33 @@ class DesignGuardTest {
     }
 
     @Test
+    fun noShadowedFabs() {
+        // docs/08 §5 "Buttons": flat FlatFab / MapButton only; the Material FABs live in Buttons.kt.
+        val ui = sources().filter { rel(it).startsWith("ui/") && rel(it) != "ui/common/Buttons.kt" }
+        val found = hits(ui, Regex("""\b(Small|Large|Extended)?FloatingActionButton\("""))
+        assertTrue("Material FABs (shadow, pill) outside ui/common/Buttons.kt:\n" + found.joinToString("\n"), found.isEmpty())
+    }
+
+    @Test
+    fun noPillButtons() {
+        // docs/08 §4: 4 dp corners; M3 filled/tonal/outlined buttons default to a full pill.
+        val ui = sources().filter { rel(it).startsWith("ui/") }
+        val found = ui.flatMap { f ->
+            Regex("""(?<![\w.])(Button|OutlinedButton|FilledTonalButton|ElevatedButton)\(""").findAll(f.readText())
+                .filterNot { f.readText().startsWith("shape =", it.range.last + 1) }
+                .map { "${rel(f)}: ${it.value}" }.toList()
+        }
+        assertTrue("buttons without `shape = MaterialTheme.shapes.small` first:\n" + found.joinToString("\n"), found.isEmpty())
+    }
+
+    @Test
+    fun noSystemBlueOnMaps() {
+        // The my-location dot is the ChamBright token, not the Google blue.
+        val found = hits(sources(), Regex("""1A73E8""", RegexOption.IGNORE_CASE))
+        assertTrue("system blue left:\n" + found.joinToString("\n"), found.isEmpty())
+    }
+
+    @Test
     fun noGeneratedSamplePictures() {
         val sample = File(root, "data/SampleData.kt").readText()
         assertTrue("SampleData must not draw pictures (real photos in debug assets)", "fun landscape" !in sample && "LinearGradient" !in sample)

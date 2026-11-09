@@ -55,6 +55,8 @@ app/src/main/java/vn/lutrinh/app/
   data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22;
             `map_style` = `light`|`satellite`, R32)
   ui/theme/ design tokens (docs/08): Theme.kt (Palette, Radii, hairline), Type.kt (scale, numerals())
+            + AtlasIcons.kt (own icons); ui/common/Buttons.kt (FlatFab, MapButton), Readout.kt (km readout
+            + scale bar, maths in domain/usecase/KmScale.kt)
   ui/       screens + view models; domain/usecase/DisplayFormat.kt has the km/duration/day formatters; ui/common/Common.kt has date helpers and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
@@ -136,6 +138,12 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   `app/schemas/.../<v>.json`, extend `MigrationTest` (no destructive fallback, on purpose).
 * Gboard on emulator-5580 shows a "Try out your stylus" popup on scripted taps; it swallows
   `adb shell input text`. Dismiss the onboarding once by hand-tap, or enter text with Compose tests. The popup is a Gboard window that uiautomator does not list: tap its "Cancel" by coordinates (about 55% x, 95% y of the screen), then tap the field and type again.
+* **Screenshots and manual checks run on your own AVD, never on emulator-5580** (it holds the
+  captain's data: do not install, seed or screenshot there). Create one named after your worktree
+  (`avdmanager create avd -n <worktree-dir> -k 'system-images;android-36;google_apis;arm64-v8a' -d pixel_6`),
+  start it on a free port (`emulator -avd <name> -port 559x -no-window -no-audio -no-snapshot`), set
+  `persist.sys.locale vi-VN` if you need Vietnamese system text, and seed sample data via the debug
+  build. Record the 5580 DB counts before/after when a task forbids touching it.
 * The emulator is shared: another crew's `install -r` replaces your APK within seconds (check `pm path` + `unzip -l` for a resource of yours, e.g. `be_vietnam`) — reinstall right before each screenshot batch and script the whole batch in one command.
 * Dates, km and durations: only `domain/usecase/DisplayFormat.kt` (docs/03 "Display conventions"); never
   `String.format(Locale.US, …)` in `ui/`. The theme is light-only, so `MainActivity` forces the light

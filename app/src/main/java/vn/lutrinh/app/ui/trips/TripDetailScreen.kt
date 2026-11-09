@@ -1,6 +1,12 @@
 package vn.lutrinh.app.ui.trips
 
 import vn.lutrinh.app.domain.model.Dwell
+import androidx.compose.material3.HorizontalDivider
+import vn.lutrinh.app.ui.common.ReadoutCount
+import vn.lutrinh.app.ui.common.KmReadout
+import vn.lutrinh.app.ui.common.MapButton
+import vn.lutrinh.app.ui.common.FlatFab
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.StopSuggestion
@@ -17,14 +23,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Image
 import vn.lutrinh.app.domain.usecase.stepNumbers
 import vn.lutrinh.app.ui.common.DraftBadge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,28 +45,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddLocationAlt
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.AddPhotoAlternate
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.OpenInFull
-import androidx.compose.material.icons.outlined.Route
-import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -135,7 +125,6 @@ import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.transfer.rememberTransfer
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material.icons.outlined.Route
 import java.time.temporal.ChronoUnit
 import vn.lutrinh.app.ui.theme.hairline
 import vn.lutrinh.app.ui.theme.numerals
@@ -320,31 +309,31 @@ fun TripDetailScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
                 actions = {
                     if (detail != null) {
-                        IconButton(onClick = onShare) { Icon(Icons.Outlined.Share, stringResource(R.string.share_trip)) }
-                        IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more)) }
+                        IconButton(onClick = onShare) { Icon(AtlasIcons.Share, stringResource(R.string.share_trip)) }
+                        IconButton(onClick = { menu = true }) { Icon(AtlasIcons.More, stringResource(R.string.action_more)) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.trip_edit_title)) },
-                                leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+                                leadingIcon = { Icon(AtlasIcons.Edit, null) },
                                 onClick = { menu = false; onEdit() },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.trip_cover_change)) },
-                                leadingIcon = { Icon(Icons.Outlined.Image, null) },
+                                leadingIcon = { Icon(AtlasIcons.Photo, null) },
                                 onClick = { menu = false; pickCover = true },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.gpx_export)) },
-                                leadingIcon = { Icon(Icons.Outlined.Route, null) },
+                                leadingIcon = { Icon(AtlasIcons.Route, null) },
                                 onClick = { menu = false; detail?.trip?.id?.let(transfer.exportGpx) },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.trip_delete_button)) },
-                                leadingIcon = { Icon(Icons.Outlined.Delete, null) },
+                                leadingIcon = { Icon(AtlasIcons.Delete, null) },
                                 onClick = { menu = false; confirmDelete = true },
                             )
                         }
@@ -357,23 +346,16 @@ fun TripDetailScreen(
             // on scroll and opens a menu with the two ways to add a step.
             val fabLabel = stringResource(R.string.trip_fab_add)
             if (detail != null) Box {
-                ExtendedFloatingActionButton(
-                    onClick = { fabMenu = true },
-                    expanded = fabExpanded,
-                    icon = { Icon(Icons.Filled.Add, null) },
-                    text = { Text(fabLabel) },
-                    // M3 1.3 exposes no text for the extended FAB; label it for TalkBack and UI tests.
-                    modifier = Modifier.semantics { contentDescription = fabLabel },
-                )
+                FlatFab(fabLabel, AtlasIcons.Add, onClick = { fabMenu = true }, expanded = fabExpanded)
                 DropdownMenu(expanded = fabMenu, onDismissRequest = { fabMenu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.trip_add_step)) },
-                        leadingIcon = { Icon(Icons.Filled.AddLocationAlt, null) },
+                        leadingIcon = { Icon(AtlasIcons.AddStep, null) },
                         onClick = { fabMenu = false; onAddStep() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.from_photos_title)) },
-                        leadingIcon = { Icon(Icons.Outlined.AddPhotoAlternate, null) },
+                        leadingIcon = { Icon(AtlasIcons.AddPhotos, null) },
                         onClick = { fabMenu = false; onAddFromPhotos() },
                     )
                 }
@@ -418,7 +400,7 @@ fun TripDetailScreen(
     if (confirmDelete && detail != null) {
         ConfirmDeleteDialog(
             title = stringResource(R.string.trip_delete_confirm_title),
-            // Every step goes, drafts too (the stat tiles count published steps only, R20).
+            // Every step goes, drafts too (the readout counts published steps only, R20).
             body = stringResource(R.string.trip_delete_confirm_body, detail.trip.title, detail.steps.size, detail.steps.sumOf { it.photos.size }),
             onConfirm = { confirmDelete = false; vm.delete() },
             onDismiss = { confirmDelete = false },
@@ -448,11 +430,7 @@ private fun TripDetailContent(
                     stopSuggestions = d.stopMarkers(),
                 )
                 Box(Modifier.fillMaxSize().clickable(onClick = onOpenMap))
-                SmallFloatingActionButton(
-                    onClick = onOpenMap,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ) { Icon(Icons.Outlined.OpenInFull, stringResource(R.string.trip_open_map)) }
+                MapButton(AtlasIcons.Expand, stringResource(R.string.trip_open_map), onOpenMap, Modifier.align(Alignment.TopEnd).padding(12.dp))
             }
         }
         item { TripHeader(d) }
@@ -487,49 +465,36 @@ private fun TripDetailContent(
     }
 }
 
+/**
+ * The trip's header as an atlas plate (docs/08 §5 "Trip header"): title, dates and description,
+ * a hairline, then the km readout (total, scale bar, counts) instead of stat tiles.
+ */
 @Composable
 private fun TripHeader(d: TripDetail) {
-    Column(Modifier.padding(16.dp)) {
-        Text(d.trip.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+    Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)) {
+        Text(d.trip.title, style = MaterialTheme.typography.headlineMedium)
         val openEnded = stringResource(R.string.trip_open_ended, "%s")
         Text(
             dateRange(d.trip.startDate, d.trip.endDate) { openEnded.format(it) },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp),
         )
         if (d.trip.description.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
             Text(d.trip.description, style = MaterialTheme.typography.bodyMedium)
         }
-        Spacer(Modifier.height(12.dp))
-        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val tile = Modifier.fillMaxHeight()
-            Stat("${d.stats.stepCount}", stringResource(R.string.stat_steps), tile.weight(1f))
-            Stat("${d.stats.photoCount}", stringResource(R.string.stat_photos), tile.weight(1f))
-            Stat(
-                DisplayFormat.kmNumber(d.stats.distanceKm), stringResource(R.string.stat_km), tile.weight(1.4f),
-                note = stringResource(if (d.stats.distanceSource == DistanceSource.GPS) R.string.stat_km_gps else R.string.stat_km_straight),
-            )
-            d.stats.days?.let { Stat("$it", stringResource(R.string.stat_days), tile.weight(1f)) }
-        }
-    }
-}
-
-@Composable
-private fun Stat(value: String, label: String, modifier: Modifier, note: String? = null) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        border = hairline,
-        shape = MaterialTheme.shapes.large,
-        modifier = modifier,
-    ) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            val muted = MaterialTheme.colorScheme.onSurfaceVariant
-            Text(value, style = MaterialTheme.typography.headlineSmall.numerals(), color = MaterialTheme.colorScheme.onSurface)
-            // Labels wrap (1.3× font) instead of ending in "…"; a note sits on its own second line.
-            Text(label, style = MaterialTheme.typography.labelSmall, color = muted)
-            if (note != null) Text(note, style = MaterialTheme.typography.labelSmall, color = muted)
-        }
+        HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+        KmReadout(
+            km = d.stats.distanceKm,
+            kmUnit = stringResource(R.string.stat_km),
+            kmNote = stringResource(if (d.stats.distanceSource == DistanceSource.GPS) R.string.stat_km_gps else R.string.stat_km_straight),
+            counts = buildList {
+                add(ReadoutCount(DisplayFormat.count(d.stats.stepCount.toLong()), stringResource(R.string.stat_steps)))
+                add(ReadoutCount(DisplayFormat.count(d.stats.photoCount.toLong()), stringResource(R.string.stat_photos)))
+                d.stats.days?.let { add(ReadoutCount(DisplayFormat.count(it.toLong()), stringResource(R.string.stat_days))) }
+            },
+        )
     }
 }
 

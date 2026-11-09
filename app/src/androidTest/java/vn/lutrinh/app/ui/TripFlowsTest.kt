@@ -89,8 +89,8 @@ class TripFlowsTest {
         waitForText("Hồ Gươm")
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithContentDescription("Chia sẻ chuyến đi").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithContentDescription("Chia sẻ chuyến đi").performClick()
-        waitForText("Ảnh dọc cho mạng xã hội")
-        rule.onAllNodesWithText("Ảnh dọc cho mạng xã hội").onFirst().assertExists()
+        waitForText("Ảnh dọc")
+        rule.onAllNodesWithText("Ảnh dọc").onFirst().assertExists()
         rule.onAllNodesWithText("Trang xem offline").onFirst().assertExists()
         rule.onAllNodesWithText("Trang xem offline").onFirst().performClick()
         waitForText("Ẩn ghi chú")

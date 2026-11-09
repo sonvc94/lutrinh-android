@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.steps
 
 import androidx.compose.foundation.clickable
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -25,12 +25,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -131,12 +127,12 @@ fun StepDetailScreen(
             TopAppBar(
                 title = { Text(d?.let { if (it.number != null) "${it.number}. ${it.step.title}" else it.step.title } ?: "", maxLines = 1) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
                 actions = {
                     if (d != null) {
-                        IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, stringResource(R.string.action_edit)) }
-                        IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Outlined.Delete, stringResource(R.string.action_delete)) }
+                        IconButton(onClick = onEdit) { Icon(AtlasIcons.Edit, stringResource(R.string.action_edit)) }
+                        IconButton(onClick = { confirmDelete = true }) { Icon(AtlasIcons.Delete, stringResource(R.string.action_delete)) }
                     }
                 },
             )
@@ -252,7 +248,7 @@ private fun DraftCard(onPublish: () -> Unit) {
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-            Button(onClick = onPublish, modifier = Modifier.padding(start = 8.dp)) { Text(stringResource(R.string.step_publish)) }
+            Button(shape = MaterialTheme.shapes.small, onClick = onPublish, modifier = Modifier.padding(start = 8.dp)) { Text(stringResource(R.string.step_publish)) }
         }
     }
 }

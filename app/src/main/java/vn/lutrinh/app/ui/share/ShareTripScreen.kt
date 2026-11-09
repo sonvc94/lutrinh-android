@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.share
 
 import android.annotation.SuppressLint
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import android.net.Uri
 import android.os.Build
 import android.webkit.WebView
@@ -24,14 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Article
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.SearchOff
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -113,7 +107,7 @@ fun ShareTripScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.share_trip)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },
@@ -129,8 +123,8 @@ fun ShareTripScreen(
                     SegmentedButton(
                         selected = kind == k,
                         onClick = { vm.kind.value = k },
-                        shape = SegmentedButtonDefaults.itemShape(i, ShareKind.entries.size),
-                        icon = { SegmentedButtonDefaults.Icon(kind == k) { Icon(if (k == ShareKind.IMAGE) Icons.Outlined.Image else Icons.Outlined.Article, null, Modifier.size(18.dp)) } },
+                        shape = SegmentedButtonDefaults.itemShape(i, ShareKind.entries.size, MaterialTheme.shapes.small),
+                        icon = { SegmentedButtonDefaults.Icon(kind == k) { Icon(if (k == ShareKind.IMAGE) AtlasIcons.Photo else AtlasIcons.Page, null, Modifier.size(18.dp)) } },
                     ) { Text(stringResource(if (k == ShareKind.IMAGE) R.string.share_kind_image else R.string.share_kind_page)) }
                 }
             }
@@ -194,7 +188,7 @@ fun ShareTripScreen(
                 Text(stringResource(R.string.share_privacy), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
+                OutlinedButton(shape = MaterialTheme.shapes.small,
                     onClick = {
                         val file = ready?.file ?: return@OutlinedButton
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) vm.save(file, kind) else saveAs.launch(file.name)
@@ -202,16 +196,16 @@ fun ShareTripScreen(
                     enabled = ready != null,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Icon(Icons.Outlined.Download, null, Modifier.size(18.dp))
+                    Icon(AtlasIcons.Download, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.share_save))
                 }
-                Button(
+                Button(shape = MaterialTheme.shapes.small,
                     onClick = { ready?.file?.let { context.startActivity(vm.shareIntent(it, kind)) } },
                     enabled = ready != null,
                     modifier = Modifier.weight(1f).semantics { stateDescription = if (ready != null) "ready" else "busy" },
                 ) {
-                    Icon(Icons.Outlined.Share, null, Modifier.size(18.dp))
+                    Icon(AtlasIcons.Share, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.share_action))
                 }

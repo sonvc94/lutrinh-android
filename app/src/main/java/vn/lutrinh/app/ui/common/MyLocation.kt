@@ -1,18 +1,16 @@
 package vn.lutrinh.app.ui.common
 
 import android.content.Context
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import android.content.Intent
 import android.net.Uri
 import android.os.CancellationSignal
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
@@ -103,14 +101,10 @@ fun rememberMyLocation(snackbar: SnackbarHostState): MyLocationState {
     return state
 }
 
-/** Round map button (same look as "Xem toàn bộ hành trình") + the one-time permission explanation. */
+/** Square map button ([MapButton], same look as "Xem toàn bộ hành trình") + the one-time permission explanation. */
 @Composable
 fun MyLocationButton(state: MyLocationState, modifier: Modifier = Modifier) {
-    SmallFloatingActionButton(
-        onClick = state::onClick,
-        containerColor = MaterialTheme.colorScheme.surface,
-        modifier = modifier,
-    ) { Icon(Icons.Outlined.MyLocation, stringResource(R.string.my_location)) }
+    MapButton(AtlasIcons.MyLocation, stringResource(R.string.my_location), state::onClick, modifier)
     if (state.askPermission) {
         AlertDialog(
             onDismissRequest = { state.askPermission = false },

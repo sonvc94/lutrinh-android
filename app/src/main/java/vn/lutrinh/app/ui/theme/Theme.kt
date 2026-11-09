@@ -43,7 +43,7 @@ object Palette {
     val ChamDeep = Color(0xFF112D55)
     /** A barely tinted paper for chosen/primary containers, oklch(0.930 0.018 258). */
     val ChamWash = Color(0xFFE1E9F4)
-    /** Selected leg/pin on maps only (small area), oklch(0.520 0.160 262). */
+    /** Maps only (small areas): selected leg/pin ring, the my-location dot, oklch(0.520 0.160 262). */
     val ChamBright = Color(0xFF3263C3)
 
     /** Error, oklch(0.50 0.17 27) (the M3 error red; a system meaning, not decoration). */

@@ -1,15 +1,13 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.clickable
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -43,7 +41,7 @@ fun LegChip(leg: Leg, onClick: () -> Unit, modifier: Modifier = Modifier) {
         label = { Text("$label · ${stringResource(R.string.leg_km, leg.kmText())}", style = MaterialTheme.typography.labelMedium) },
         leadingIcon = {
             Icon(
-                style?.icon ?: Icons.Outlined.Route,
+                style?.icon ?: AtlasIcons.Route,
                 null,
                 Modifier.size(AssistChipDefaults.IconSize),
                 tint = style?.color ?: MaterialTheme.colorScheme.onSurfaceVariant,
@@ -76,9 +74,9 @@ fun LegModeSheet(leg: Leg, onPick: (TransportMode?) -> Unit, onDismiss: () -> Un
                 ListItem(
                     headlineContent = { Text(style?.let { stringResource(it.label) } ?: stringResource(R.string.transport_none)) },
                     leadingContent = {
-                        Icon(style?.icon ?: Icons.Outlined.Route, null, tint = style?.color ?: MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(style?.icon ?: AtlasIcons.Route, null, tint = style?.color ?: MaterialTheme.colorScheme.onSurfaceVariant)
                     },
-                    trailingContent = { if (mode == leg.mode) Icon(Icons.Filled.Check, null, tint = MaterialTheme.colorScheme.primary) },
+                    trailingContent = { if (mode == leg.mode) Icon(AtlasIcons.Check, null, tint = MaterialTheme.colorScheme.primary) },
                     modifier = Modifier.clickable { onPick(mode) },
                 )
             }

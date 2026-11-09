@@ -1,5 +1,8 @@
 package vn.lutrinh.app.map.basemap
 
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.rgbHex
+
 /**
  * "Vệ tinh" (docs/05-map.md "Basemap providers"): Esri World Imagery under the OpenFreeMap
  * Positron roads, borders and labels (a hybrid). Positron's land/water/building fills are hidden
@@ -26,8 +29,9 @@ class EsriWorldImagery(apiKey: String) : BasemapProvider {
         labelColor = "#FFFFFF",
         labelHalo = "#26332C",
         repaint = mapOf(
-            "boundary_2" to mapOf("line-color" to "#F1E6C8"),
-            "boundary_3" to mapOf("line-color" to "#D9CFB6"),
+            // Cool limestone (docs/08 Map), light enough to read on imagery; no warm sand.
+            "boundary_2" to mapOf("line-color" to Palette.Limestone.rgbHex()),
+            "boundary_3" to mapOf("line-color" to Palette.LimestoneDim.rgbHex()),
         ),
         imagery = RasterImagery(listOf(tileUrl(apiKey)), tileSize = 256, minZoom = 0, maxZoom = MAX_ZOOM, attribution = IMAGERY_CREDIT),
         imageryAbove = Positron.BACKGROUND_LAYER,

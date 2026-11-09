@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.steps
 
 import android.net.Uri
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material3.Card
@@ -80,7 +80,7 @@ fun StopPhotosSection(
             when {
                 s.access == GalleryAccess.NONE && !s.asked -> {
                     Text(stringResource(R.string.stop_photos_explain), style = MaterialTheme.typography.bodyMedium)
-                    FilledTonalButton(onClick = onRequestAccess) { Text(stringResource(R.string.stop_photos_allow)) }
+                    FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onRequestAccess) { Text(stringResource(R.string.stop_photos_allow)) }
                 }
                 s.access == GalleryAccess.NONE -> {
                     Text(
@@ -127,7 +127,7 @@ fun StopPhotosSection(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         TextButton(onClick = onRequestAccess) {
-                            Icon(Icons.Outlined.AddPhotoAlternate, null)
+                            Icon(AtlasIcons.AddPhotos, null)
                             Spacer(Modifier.padding(3.dp))
                             Text(stringResource(R.string.stop_photos_pick_more))
                         }

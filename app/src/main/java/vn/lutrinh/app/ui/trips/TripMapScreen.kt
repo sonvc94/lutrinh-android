@@ -1,6 +1,8 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.BorderStroke
+import vn.lutrinh.app.ui.common.MapButton
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,12 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.DownloadForOffline
-import androidx.compose.material.icons.outlined.FitScreen
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalConfiguration
 import kotlin.math.abs
@@ -126,10 +122,10 @@ fun TripMapScreen(
             TopAppBar(
                 title = { Text(detail?.trip?.title ?: stringResource(R.string.trip_map_title), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
                 actions = {
-                    IconButton(onClick = onOpenOffline) { Icon(Icons.Outlined.DownloadForOffline, stringResource(R.string.offline_title)) }
+                    IconButton(onClick = onOpenOffline) { Icon(AtlasIcons.Download, stringResource(R.string.offline_title)) }
                 },
             )
         },
@@ -183,10 +179,7 @@ fun TripMapScreen(
                 MapStyleButton()
                 MyLocationButton(me)
                 if (detail.steps.size > 1 || selected != null) {
-                    SmallFloatingActionButton(
-                        onClick = { selected = null; fitAll++ },
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    ) { Icon(Icons.Outlined.FitScreen, stringResource(R.string.trip_map_fit)) }
+                    MapButton(AtlasIcons.Fit, stringResource(R.string.trip_map_fit), onClick = { selected = null; fitAll++ })
                 }
             }
             // One card is centred and snapped to; the padding lets the first and last one reach the centre.
@@ -217,7 +210,7 @@ fun TripMapScreen(
                                 if (cover != null) {
                                     LocalPhoto(cover.fileName, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
                                 } else {
-                                    Box(Modifier.size(56.dp), Alignment.Center) { Icon(Icons.Outlined.Image, null) }
+                                    Box(Modifier.size(56.dp), Alignment.Center) { Icon(AtlasIcons.Photo, null) }
                                 }
                                 Column(Modifier.padding(start = 10.dp)) {
                                     // R20: a draft has no number and says "Nháp".

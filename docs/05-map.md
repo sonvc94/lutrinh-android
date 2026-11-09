@@ -78,7 +78,7 @@ style has no `background`). The planner (`BasemapPlanner.plan`) then:
 
 * hides every non-label `fill`, `fill-extrusion` and `hillshade` layer and `waterway`, which
   would cover the photo;
-* keeps roads, rail and borders, with borders repainted `#F1E6C8` / `#D9CFB6`;
+* keeps roads, rail and borders, with borders repainted Limestone `#E9EEF0` / LimestoneDim `#D2D9DC` (docs/08, cool, no warm sand);
 * draws labels in white `#FFFFFF` on a dark green halo `#26332C`.
 
 Label layers are never hidden. In both styles the R30 filter goes on every label layer and the
@@ -320,14 +320,14 @@ opens the leg's mode sheet.
 
 ## Step pins (`map/Pins.kt`)
 
-Bitmaps drawn in code (no font glyphs or sprite sheet), each with a faint ink drop shadow (`0x50171E23`), the step
+Bitmaps drawn in code (no font glyphs or sprite sheet), each edged with a 1 dp 31 % ink line (`0x50171E23`, no drop shadow), the step
 number (R2 position, 1-based) in bold:
 
 | Kind | Used for | Look |
 | --- | --- | --- |
 | START | first step of a route | 28 dp **white** disc, 3 dp route-chàm ring, chàm number |
 | STEP | other steps; every pin when the route is hidden (Thêm từ ảnh) | 24 dp route-chàm disc, 2 dp white ring, white number |
-| END | last step of a route | 28 dp **ink** `#171E23` disc, 2.5 dp white ring, white number |
+| END | last step of a route | 26 dp **ink** `#171E23` **square** (4 dp corners), 2.5 dp white ring, white number |
 | CONTEXT | other steps in the location picker | 22 dp ink disc, white ring |
 | DRAFT | a draft step (R20) on the trip map and the trip-detail / step-detail mini maps | 22 dp translucent white disc, dashed route-chàm ring, **no number**; never START/END, no leg to or from it (the route and legs join the published steps around it) |
 | selected / highlighted | tapped pin; step in Step detail / Step form | same pin ×1.3, bright-chàm `#3263C3` ring, on a 54 dp translucent bright-chàm halo |
@@ -396,7 +396,7 @@ tracks, which the fit already includes). Screenshot: `img/stop-suggest/05-trip-m
 
 One GeoJSON source `my-location-src` (a single Point with property `r20`) and two circle layers,
 added by `TripMap` and `AllTripsMap` right above the tracks / stop suggestions and below the leg
-badges and step pins: `my-location-src-accuracy` (blue `#1A73E8`, opacity 0.16, 1 dp stroke at
+badges and step pins: `my-location-src-accuracy` (ChamBright `#3263C3`, docs/08, opacity 0.16, 1 dp stroke at
 0.35; radius in dp = `accuracy / 0.07464 / cos(lat)` at zoom 20, interpolated with base 2 between
 zoom 0 → 0 and zoom 20) and `my-location-src-dot` (radius 8 dp, white 3 dp stroke). The source is
 the one fix of the last tap (`DeviceLocation.requestFix`: GPS with fine permission, else network,
@@ -408,7 +408,7 @@ Android 12+ with only "approximate" location still gives a fix, with a larger ac
 
 ## Static map for sharing (R18, `map/StaticTripMap.kt`, `map/MapFit.kt`)
 
-The "Ảnh dọc cho mạng xã hội" and "Trang xem offline" (04-business-rules.md R18) need the trip map as a bitmap,
+The "Ảnh dọc" and "Trang xem offline" (04-business-rules.md R18) need the trip map as a bitmap,
 without a visible map view. Two steps:
 
 1. **Basemap** — `MapEngine.snapshot` of the offline basemap ("Bản đồ", never satellite imagery,

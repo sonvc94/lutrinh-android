@@ -1,12 +1,12 @@
 package vn.lutrinh.app.ui.picker
 
 import vn.lutrinh.app.ui.common.BasemapFallbackNotice
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import vn.lutrinh.app.ui.common.MapStyleButton
 import android.os.CancellationSignal
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -44,9 +44,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
@@ -174,7 +171,7 @@ fun LocationPickerScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.picker_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },
@@ -190,9 +187,9 @@ fun LocationPickerScreen(
                 modifier = Modifier.fillMaxSize(),
                 indicatorTop = 124.dp, // below the search field and the quick-place chips
             )
-            // Fixed centre pin: its tip marks the picked point.
+            // Fixed centre needle: its lower end marks the picked point.
             Icon(
-                Icons.Filled.Place,
+                AtlasIcons.Needle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = (-22).dp),
@@ -232,7 +229,7 @@ fun LocationPickerScreen(
                     AssistChip(
                         onClick = onMyLocation,
                         enabled = !locating,
-                        leadingIcon = { Icon(Icons.Outlined.MyLocation, null, Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(AtlasIcons.MyLocation, null, Modifier.size(18.dp)) },
                         label = { Text(stringResource(if (locating) R.string.picker_locating else R.string.picker_my_location)) },
                         colors = chipColors,
                     )
@@ -260,7 +257,7 @@ fun LocationPickerScreen(
                         formatCoord(center.latitude, center.longitude),
                         style = if (here != null) MaterialTheme.typography.bodySmall else MaterialTheme.typography.titleMedium,
                     )
-                    Button(onClick = { onPicked(center, chosenName(chosen, center)) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                    Button(shape = MaterialTheme.shapes.small, onClick = { onPicked(center, chosenName(chosen, center)) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
                         Text(stringResource(R.string.picker_confirm))
                     }
                 }

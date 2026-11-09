@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.steps
 
 import android.Manifest
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -27,14 +28,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.AddPhotoAlternate
-import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material.icons.outlined.LocationOff
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -276,7 +273,7 @@ fun FromPhotosScreen(
                 title = { Text(stringResource(R.string.from_photos_title)) },
                 navigationIcon = {
                     IconButton(onClick = { if (reviewing) confirmDiscard = true else onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                        Icon(AtlasIcons.Back, stringResource(R.string.action_back))
                     }
                 },
             )
@@ -288,7 +285,7 @@ fun FromPhotosScreen(
                         if (s.phase == FromPhotosState.Phase.SAVING) {
                             LinearProgressIndicator(Modifier.fillMaxWidth().padding(bottom = 12.dp))
                         }
-                        Button(
+                        Button(shape = MaterialTheme.shapes.small,
                             onClick = vm::confirm,
                             enabled = s.canConfirm && s.phase == FromPhotosState.Phase.REVIEW,
                             modifier = Modifier.fillMaxWidth(),
@@ -349,7 +346,7 @@ private fun FromPhotosIntro(onChoose: () -> Unit, onCancel: () -> Unit, onDismis
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(onClick = onChoose, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.from_photos_pick)) }
+            Button(shape = MaterialTheme.shapes.small, onClick = onChoose, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.from_photos_pick)) }
             TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_cancel)) }
         }
     }

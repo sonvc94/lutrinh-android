@@ -193,7 +193,7 @@ fun MessageState(
         }
         if (actionLabel != null && onAction != null) {
             Spacer(Modifier.height(24.dp))
-            Button(onClick = onAction) { Text(actionLabel) }
+            Button(shape = MaterialTheme.shapes.small, onClick = onAction) { Text(actionLabel) }
         }
     }
 }

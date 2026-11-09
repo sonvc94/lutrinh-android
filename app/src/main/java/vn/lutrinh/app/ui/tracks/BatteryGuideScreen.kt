@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.tracks
 
 import android.content.Intent
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -14,8 +15,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -73,7 +72,7 @@ fun BatteryGuideScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text(stringResource(R.string.battery_guide_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },
@@ -92,10 +91,10 @@ fun BatteryGuideScreen(onBack: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(onClick = { openBatterySettings(context) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+            Button(shape = MaterialTheme.shapes.small, onClick = { openBatterySettings(context) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
                 Text(stringResource(R.string.battery_guide_open_settings))
             }
-            OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+            OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onBack, modifier = Modifier.fillMaxWidth().height(48.dp)) {
                 Text(stringResource(R.string.battery_guide_done))
             }
         }

@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.steps
 
 import android.net.Uri
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import android.content.ActivityNotFoundException
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -43,13 +44,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.AddPhotoAlternate
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -607,7 +602,7 @@ fun StepEditScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { if (f.dirty) confirmDiscard = true else onBack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
+                        Icon(AtlasIcons.Back, stringResource(R.string.action_back))
                     }
                 },
                 actions = { TextButton(onClick = { vm.save() }, enabled = !f.importing) { Text(stringResource(R.string.action_save)) } },
@@ -639,7 +634,7 @@ fun StepEditScreen(
                 LocationCard(f, vm.stepId, onPick = { onPickLocation(f.location ?: f.suggestedLocation) })
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateField(stringResource(R.string.step_field_date), f.date.display(), Modifier.weight(1f)) { pickDate = true }
-                    OutlinedButton(onClick = { pickTime = true }, modifier = Modifier.weight(0.7f).height(64.dp)) {
+                    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { pickTime = true }, modifier = Modifier.weight(0.7f).height(64.dp)) {
                         Icon(Icons.Outlined.Schedule, null)
                         Spacer(Modifier.padding(4.dp))
                         Column(Modifier.weight(1f)) {
@@ -689,20 +684,20 @@ fun StepEditScreen(
                 Spacer(Modifier.height(4.dp))
                 // R20: "Lưu nháp" keeps the step out of the trip; "Lưu" publishes it (also a draft).
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { vm.save(draft = true) }, enabled = !f.importing, modifier = Modifier.weight(1f).height(52.dp)) {
+                    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { vm.save(draft = true) }, enabled = !f.importing, modifier = Modifier.weight(1f).height(52.dp)) {
                         Text(stringResource(R.string.step_save_draft))
                     }
-                    Button(onClick = { vm.save() }, enabled = !f.importing, modifier = Modifier.weight(1f).height(52.dp)) {
+                    Button(shape = MaterialTheme.shapes.small, onClick = { vm.save() }, enabled = !f.importing, modifier = Modifier.weight(1f).height(52.dp)) {
                         Text(stringResource(R.string.action_save))
                     }
                 }
                 if (!isNew) {
-                    OutlinedButton(
+                    OutlinedButton(shape = MaterialTheme.shapes.small,
                         onClick = { confirmDelete = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
-                        Icon(Icons.Outlined.Delete, null)
+                        Icon(AtlasIcons.Delete, null)
                         Spacer(Modifier.padding(4.dp))
                         Text(stringResource(R.string.step_delete_button))
                     }
@@ -802,7 +797,7 @@ private fun PhotosSection(
         // R28/R29: picker (photos and videos), system camera photo, system camera video.
         val canAdd = !f.importing && f.photoCount < Limits.PHOTOS_PER_STEP_MAX
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AddMediaButton(Icons.Outlined.AddPhotoAlternate, stringResource(R.string.step_photos_add), canAdd, onAdd)
+            AddMediaButton(AtlasIcons.AddPhotos, stringResource(R.string.step_photos_add), canAdd, onAdd)
             AddMediaButton(Icons.Outlined.PhotoCamera, stringResource(R.string.step_photos_take), canAdd, onTakePhoto)
             AddMediaButton(Icons.Outlined.Videocam, stringResource(R.string.step_photos_record), canAdd, onRecordVideo)
         }
@@ -848,7 +843,7 @@ private fun PhotosSection(
 
 @Composable
 private fun AddMediaButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
-    FilledTonalButton(onClick = onClick, enabled = enabled, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+    FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onClick, enabled = enabled, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
         Icon(icon, null, Modifier.size(18.dp))
         Spacer(Modifier.padding(2.dp))
         Text(label)
@@ -897,7 +892,7 @@ private fun PhotoTile(
         IconButton(
             onClick = onRemove,
             modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape),
-        ) { Icon(Icons.Filled.Close, stringResource(R.string.step_photo_remove), tint = Color.White, modifier = Modifier.size(16.dp)) }
+        ) { Icon(AtlasIcons.Close, stringResource(R.string.step_photo_remove), tint = Color.White, modifier = Modifier.size(16.dp)) }
     }
 }
 

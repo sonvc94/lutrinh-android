@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="brand_green">#1F5C45</color>
-    <color name="brand_cream">#FBF8F2</color>
-    <color name="ic_launcher_background">#1F5C45</color>
+    <!-- docs/08 tokens for the launcher and the window behind Compose: Paper and Cham. -->
+    <color name="window_paper">#F5F7F8</color>
+    <color name="ic_launcher_background">#2A4D80</color>
 </resources>

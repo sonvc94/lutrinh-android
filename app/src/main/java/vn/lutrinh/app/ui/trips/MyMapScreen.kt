@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.BorderStroke
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,9 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -78,6 +76,8 @@ import kotlinx.coroutines.flow.map
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.MessageState
+import vn.lutrinh.app.ui.common.KmReadout
+import vn.lutrinh.app.ui.common.ReadoutCount
 import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.ui.common.BasemapFallbackNotice
 import vn.lutrinh.app.ui.common.MapStyleButton
@@ -153,7 +153,7 @@ fun MyMapScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.my_map_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },
@@ -188,11 +188,16 @@ fun MyMapScreen(
                 modifier = Modifier.align(Alignment.TopCenter).padding(12.dp).fillMaxWidth()
                     .onSizeChanged { statsDp = with(density) { it.height.toDp().value.toInt() } },
             ) {
-                Row(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
-                    Total("${data.stats.tripCount}", stringResource(R.string.my_map_trips), Modifier.weight(1f))
-                    Total("${data.stats.stepCount}", stringResource(R.string.stat_steps), Modifier.weight(1f))
-                    Total(DisplayFormat.kmNumber(data.stats.distanceKm), stringResource(R.string.stat_km), Modifier.weight(1.3f))
-                }
+                KmReadout(
+                    km = data.stats.distanceKm,
+                    kmUnit = stringResource(R.string.stat_km),
+                    counts = listOf(
+                        ReadoutCount(DisplayFormat.count(data.stats.tripCount.toLong()), stringResource(R.string.my_map_trips)),
+                        ReadoutCount(DisplayFormat.count(data.stats.stepCount.toLong()), stringResource(R.string.stat_steps)),
+                    ),
+                    compact = true,
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 4.dp),
+                )
             }
             if (data.trips.isEmpty()) {
                 Surface(
@@ -222,14 +227,6 @@ fun MyMapScreen(
                 items(data.trips, key = { it.id }) { t -> TripMapCard(t, t.id == selected) { onOpenTrip(t.id) } }
             }
         }
-    }
-}
-
-@Composable
-private fun Total(value: String, label: String, modifier: Modifier) {
-    Column(modifier.padding(horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.headlineSmall.numerals(), color = MaterialTheme.colorScheme.onSurface)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

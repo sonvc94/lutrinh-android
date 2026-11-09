@@ -1,6 +1,8 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import vn.lutrinh.app.ui.common.FlatFab
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,25 +15,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.DownloadForOffline
-import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Backup
-import androidx.compose.material.icons.outlined.FileOpen
-import androidx.compose.material.icons.outlined.Restore
-import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -139,29 +127,29 @@ fun TripListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenMyMap) { Icon(Icons.Outlined.Public, stringResource(R.string.my_map_title)) }
+                    IconButton(onClick = onOpenMyMap) { Icon(AtlasIcons.Atlas, stringResource(R.string.my_map_title)) }
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more))
+                        Icon(AtlasIcons.More, stringResource(R.string.action_more))
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.offline_title)) },
-                            leadingIcon = { Icon(Icons.Outlined.DownloadForOffline, null) },
+                            leadingIcon = { Icon(AtlasIcons.Download, null) },
                             onClick = { menuOpen = false; onOpenOffline() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.gpx_import)) },
-                            leadingIcon = { Icon(Icons.Outlined.FileOpen, null) },
+                            leadingIcon = { Icon(AtlasIcons.FileOpen, null) },
                             onClick = { menuOpen = false; transfer.importGpx() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.backup_title)) },
-                            leadingIcon = { Icon(Icons.Outlined.Backup, null) },
+                            leadingIcon = { Icon(AtlasIcons.Upload, null) },
                             onClick = { menuOpen = false; transfer.backup() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.backup_restore)) },
-                            leadingIcon = { Icon(Icons.Outlined.Restore, null) },
+                            leadingIcon = { Icon(AtlasIcons.Restore, null) },
                             onClick = { menuOpen = false; transfer.restore() },
                         )
                         if (BuildConfig.DEBUG) {
@@ -177,13 +165,7 @@ fun TripListScreen(
         },
         floatingActionButton = {
             val fabLabel = stringResource(R.string.trips_new)
-            ExtendedFloatingActionButton(
-                onClick = onCreate,
-                icon = { Icon(Icons.Filled.Add, null) },
-                text = { Text(fabLabel) },
-                // M3 1.3 exposes no text for the extended FAB; label it for TalkBack and UI tests.
-                modifier = Modifier.semantics { contentDescription = fabLabel },
-            )
+            FlatFab(fabLabel, AtlasIcons.Add, onClick = onCreate)
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -269,27 +251,27 @@ private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> 
             }
             Box {
                 IconButton(onClick = { menu = true }) {
-                    Icon(Icons.Filled.MoreVert, stringResource(R.string.trip_options, summary.trip.title))
+                    Icon(AtlasIcons.More, stringResource(R.string.trip_options, summary.trip.title))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.action_edit)) },
-                        leadingIcon = { Icon(Icons.Outlined.Edit, null) },
+                        leadingIcon = { Icon(AtlasIcons.Edit, null) },
                         onClick = { menu = false; onEdit() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.share_trip)) },
-                        leadingIcon = { Icon(Icons.Outlined.Share, null) },
+                        leadingIcon = { Icon(AtlasIcons.Share, null) },
                         onClick = { menu = false; onShare() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.gpx_export)) },
-                        leadingIcon = { Icon(Icons.Outlined.Route, null) },
+                        leadingIcon = { Icon(AtlasIcons.Route, null) },
                         onClick = { menu = false; onExportGpx() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.action_delete)) },
-                        leadingIcon = { Icon(Icons.Outlined.Delete, null) },
+                        leadingIcon = { Icon(AtlasIcons.Delete, null) },
                         onClick = { menu = false; onDelete() },
                     )
                 }

@@ -9,11 +9,16 @@ import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
 import vn.lutrinh.app.map.MyLocationFix
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.rgbHex
 import kotlin.math.cos
 
-/* "Vị trí của tôi" (docs/05-map.md): the fix of the last tap as a blue dot with its accuracy circle. */
+/*
+ * "Vị trí của tôi" (docs/05-map.md): the fix of the last tap as a bright-chàm dot with its accuracy
+ * circle (docs/08 token ChamBright: the map-only chàm, never the system blue).
+ */
 
-private const val BLUE = "#1A73E8"
+private val BLUE: String = Palette.ChamBright.rgbHex()
 private const val METRES_PER_PX_Z20 = 0.07464 // 512 px world tile at the equator
 
 /** Adds the accuracy circle and the dot (own source [src]) above the route lines, below pins and badges. */

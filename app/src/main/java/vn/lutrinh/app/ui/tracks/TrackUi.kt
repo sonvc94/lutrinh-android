@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.tracks
 
 import android.Manifest
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -27,8 +28,6 @@ import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -187,7 +186,7 @@ fun RecordTrackControl(
                 } else {
                     FilledTonalIconButton(onClick = onResume) { Icon(Icons.Filled.PlayArrow, stringResource(R.string.track_resume)) }
                 }
-                FilledTonalButton(onClick = onStop) {
+                FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onStop) {
                     Icon(Icons.Filled.Stop, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.track_stop))
@@ -208,7 +207,7 @@ fun RecordTrackControl(
                         modifier = Modifier.padding(bottom = 8.dp),
                     )
                 }
-                FilledTonalButton(onClick = onNewTripAndRecord) {
+                FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onNewTripAndRecord) {
                     Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.track_new_trip_and_record))
@@ -226,7 +225,7 @@ fun RecordTrackControl(
                         modifier = Modifier.weight(1f).padding(end = 12.dp),
                     )
                 }
-                FilledTonalButton(onClick = onStart) {
+                FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onStart) {
                     Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.track_record))
@@ -238,7 +237,7 @@ fun RecordTrackControl(
     when (dialog) {
         TrackDialog.RATIONALE -> AlertDialog(
             onDismissRequest = { dialog = null },
-            icon = { Icon(Icons.Outlined.Route, null, tint = TrackInk) },
+            icon = { Icon(AtlasIcons.Route, null, tint = TrackInk) },
             title = { Text(stringResource(R.string.track_permission_title)) },
             text = { Text(stringResource(R.string.track_permission_body)) },
             confirmButton = {
@@ -297,7 +296,7 @@ fun TrackList(tracks: List<Track>, onDelete: (String) -> Unit, modifier: Modifie
         )
         tracks.forEach { t ->
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Route, null, tint = TrackInk)
+                Icon(AtlasIcons.Route, null, tint = TrackInk)
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(t.startedAt.localDateTime().displayDateTime(), style = MaterialTheme.typography.titleSmall)
                     Text(
@@ -316,7 +315,7 @@ fun TrackList(tracks: List<Track>, onDelete: (String) -> Unit, modifier: Modifie
                     }
                 }
                 if (!t.isOpen) {
-                    IconButton(onClick = { confirm = t }) { Icon(Icons.Outlined.Delete, stringResource(R.string.track_delete)) }
+                    IconButton(onClick = { confirm = t }) { Icon(AtlasIcons.Delete, stringResource(R.string.track_delete)) }
                 }
             }
         }

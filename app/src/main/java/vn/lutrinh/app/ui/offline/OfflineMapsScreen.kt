@@ -1,6 +1,7 @@
 package vn.lutrinh.app.ui.offline
 
 import androidx.compose.foundation.layout.Arrangement
+import vn.lutrinh.app.ui.theme.AtlasIcons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -121,7 +120,7 @@ fun OfflineMapsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.offline_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },
@@ -265,7 +264,7 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
                 OfflinePhase.COMPLETE -> stringResource(R.string.offline_complete, formatBytes(s.completedBytes))
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (done) Icon(Icons.Filled.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                if (done) Icon(AtlasIcons.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(
                     status,
                     style = MaterialTheme.typography.bodyMedium,
@@ -277,20 +276,20 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (s.phase) {
-                    OfflinePhase.NOT_DOWNLOADED -> FilledTonalButton(onClick = { actions.download(s.area) }) { Text(stringResource(R.string.offline_download)) }
+                    OfflinePhase.NOT_DOWNLOADED -> FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = { actions.download(s.area) }) { Text(stringResource(R.string.offline_download)) }
                     OfflinePhase.DOWNLOADING, OfflinePhase.WAITING_NETWORK -> {
-                        OutlinedButton(onClick = { actions.pause(key) }) { Text(stringResource(R.string.offline_pause)) }
+                        OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { actions.pause(key) }) { Text(stringResource(R.string.offline_pause)) }
                         TextButton(onClick = { actions.cancel(key) }) { Text(stringResource(R.string.offline_cancel)) }
                     }
                     OfflinePhase.PAUSED -> {
-                        FilledTonalButton(onClick = { actions.resume(key) }) { Text(stringResource(R.string.offline_resume)) }
+                        FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = { actions.resume(key) }) { Text(stringResource(R.string.offline_resume)) }
                         TextButton(onClick = { actions.cancel(key) }) { Text(stringResource(R.string.offline_cancel)) }
                     }
                     OfflinePhase.FAILED -> {
-                        FilledTonalButton(onClick = { actions.download(s.area) }) { Text(stringResource(R.string.action_retry)) }
+                        FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = { actions.download(s.area) }) { Text(stringResource(R.string.action_retry)) }
                         TextButton(onClick = { actions.cancel(key) }) { Text(stringResource(R.string.offline_cancel)) }
                     }
-                    OfflinePhase.COMPLETE -> OutlinedButton(onClick = { actions.delete(s) }) { Text(stringResource(R.string.action_delete)) }
+                    OfflinePhase.COMPLETE -> OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { actions.delete(s) }) { Text(stringResource(R.string.action_delete)) }
                 }
             }
         }
