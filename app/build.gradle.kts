@@ -63,6 +63,8 @@ dependencies {
 
     // Images: Coil 3 core only (no coil-network module) -> it can load local files, never URLs.
     implementation(libs.coil.compose)
+    // Video thumbnails (R29): a frame decoder over the platform MediaMetadataRetriever (no player).
+    implementation(libs.coil.video)
     // EXIF orientation + removing GPS tags on photo import (data/PhotoStorage.kt).
     implementation(libs.androidx.exifinterface)
 

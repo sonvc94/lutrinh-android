@@ -13,7 +13,7 @@ interface TripDao {
     /**
      * R20: counts are of published steps (drafts counted apart). R21: the cover is the chosen
      * photo while it still belongs to one of the trip's steps, else the first photo of the first
-     * step in timeline order (drafts included, as before drafts existed).
+     * step in timeline order (drafts included, as before drafts existed). R29: a video is never the cover.
      */
     @Query(
         """
@@ -23,9 +23,10 @@ interface TripDao {
           (SELECT COUNT(*) FROM steps s WHERE s.trip_id = t.id AND s.is_draft = 1) AS draft_count,
           (SELECT COUNT(*) FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND s.is_draft = 1) AS draft_photo_count,
           COALESCE(
-            (SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND p.id = t.cover_photo_id),
-            (SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id
-               ORDER BY s.arrived_at, s.created_at, s.id, p.position LIMIT 1)
+            (SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id
+               WHERE s.trip_id = t.id AND p.id = t.cover_photo_id AND p.media_type = 'photo'),
+            (SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND p.media_type = 'photo'
+               ORDER BY s.arrived_at, s.created_at, s.id, p.position, p.created_at, p.id LIMIT 1)
           ) AS cover_file
         FROM trips t
         ORDER BY t.start_date DESC, t.created_at DESC, t.id

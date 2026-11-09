@@ -46,6 +46,15 @@ import kotlinx.coroutines.flow.stateIn
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.ui.common.LocalPhoto
+import vn.lutrinh.app.ui.common.photoFile
+import android.net.Uri
+import android.view.Gravity
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.MediaController
+import android.widget.VideoView
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.viewinterop.AndroidView
 import vn.lutrinh.app.ui.common.factory
 
 class PhotoViewerViewModel(c: AppContainer, handle: SavedStateHandle) : ViewModel() {
@@ -54,7 +63,7 @@ class PhotoViewerViewModel(c: AppContainer, handle: SavedStateHandle) : ViewMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }
 
-/** Full-screen, swipeable, pinch-to-zoom viewer for the photos of one step. */
+/** Full-screen, swipeable, pinch-to-zoom viewer for the photos (and R29 videos) of one step, in their stored order (R27). */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PhotoViewerScreen(
@@ -76,7 +85,13 @@ fun PhotoViewerScreen(
         if (photos.isNotEmpty()) {
             val pager = rememberPagerState(initialPage = vm.startIndex.coerceIn(0, photos.lastIndex)) { photos.size }
             HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
-                ZoomableBox { LocalPhoto(photos[page].fileName, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+                val item = photos[page]
+                if (item.isVideo) {
+                    // R29: plays full screen while its page is the current one.
+                    VideoPage(item.fileName, active = pager.currentPage == page && !pager.isScrollInProgress)
+                } else {
+                    ZoomableBox { LocalPhoto(item.fileName, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
+                }
             }
             Text(
                 stringResource(R.string.photo_viewer_counter, pager.currentPage + 1, photos.size),
@@ -87,6 +102,44 @@ fun PhotoViewerScreen(
         IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(4.dp)) {
             Icon(Icons.Filled.Close, stringResource(R.string.action_close), tint = Color.White)
         }
+    }
+}
+
+/**
+ * R29: a stored video in the platform player (VideoView + MediaController: no player library).
+ * Starts when the page becomes current, pauses when it is left; tap shows the play/pause/seek bar.
+ */
+@Composable
+private fun VideoPage(fileName: String, active: Boolean) {
+    val file = photoFile(fileName)
+    var view by remember { mutableStateOf<VideoView?>(null) }
+    var prepared by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxSize(), Alignment.Center) {
+        // VideoView keeps the video's aspect ratio inside what it is given; the full-screen
+        // FrameLayout centres it (without it the video sits small in a corner).
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                val video = VideoView(ctx).apply {
+                    val controller = MediaController(ctx)
+                    controller.setAnchorView(this)
+                    setMediaController(controller)
+                    setOnPreparedListener { mp -> mp.isLooping = false; prepared = true }
+                    setVideoURI(Uri.fromFile(file))
+                    contentDescription = ctx.getString(R.string.video_play)
+                }
+                view = video
+                FrameLayout(ctx).apply {
+                    addView(video, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER))
+                }
+            },
+            onRelease = { (it.getChildAt(0) as? VideoView)?.stopPlayback() },
+        )
+        if (!prepared) LocalPhoto(fileName, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+    }
+    LaunchedEffect(active, view) {
+        val v = view ?: return@LaunchedEffect
+        if (active) v.start() else if (v.isPlaying) v.pause()
     }
 }
 

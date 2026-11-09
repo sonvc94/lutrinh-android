@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Share exports (R18): only cacheDir/share/ is ever exposed through the FileProvider. -->
+<!-- Share exports (R18): cacheDir/share/. Camera targets (R28/R29): cacheDir/capture/, granted
+     only to the system camera for one capture. Nothing else is exposed through the FileProvider. -->
 <paths>
     <cache-path name="share" path="share/" />
+    <cache-path name="capture" path="capture/" />
 </paths>

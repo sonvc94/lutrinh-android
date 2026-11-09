@@ -1,11 +1,15 @@
 package vn.lutrinh.app
 
 import android.app.Application
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.video.VideoFrameDecoder
 import kotlinx.coroutines.launch
 import vn.lutrinh.app.map.MapSetup
 import vn.lutrinh.app.tracking.TrackNotifications
 
-class LuTrinhApp : Application() {
+class LuTrinhApp : Application(), SingletonImageLoader.Factory {
     lateinit var container: AppContainer
         private set
 
@@ -19,4 +23,8 @@ class LuTrinhApp : Application() {
         // A fresh process has no recording: an open track was left by a process that died (R16).
         container.appScope.launch { container.recorder.recoverInterrupted() }
     }
+
+    /** Coil for local files only; video files draw a still frame (R29 thumbnails). */
+    override fun newImageLoader(context: PlatformContext): ImageLoader =
+        ImageLoader.Builder(context).components { add(VideoFrameDecoder.Factory()) }.build()
 }

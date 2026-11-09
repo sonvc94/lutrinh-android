@@ -19,6 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import vn.lutrinh.app.data.local.AppDatabase
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.MediaType
 import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.Track
@@ -236,6 +237,45 @@ class MigrationTest {
         assertTrue(steps.getStep("s2")!!.isDraft)
         assertTrue(trips.setCover("t1", "p1", 60L))
         assertEquals("p1", trips.getTrip("t1")!!.coverPhotoId)
+    }
+
+    @Test fun version6UpgradesKeepingPhotoOrderAndAddsMediaType() = runTest {
+        createVersion(6)
+        // The order as v6 showed it: position, then created_at, then id. Gaps and ties (old
+        // imports) are renumbered 0..n-1 in that same order (R27).
+        SQLiteDatabase.openDatabase(ctx.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("UPDATE photos SET position = 5, created_at = 9 WHERE id = 'p1'")
+            listOf(
+                listOf("p2", "b.jpg", 2, 3L), listOf("p3", "c.jpg", 5, 4L), listOf("p0", "d.jpg", 5, 4L),
+                listOf("p4", "e.jpg", 0, 7L),
+            ).forEach { (id, file, pos, at) ->
+                db.insert("photos", null, ContentValues().apply {
+                    put("id", id as String); put("step_id", "s2"); put("file_name", file as String)
+                    put("position", pos as Int); put("created_at", at as Long)
+                })
+            }
+            db.insert("photos", null, ContentValues().apply {
+                put("id", "q1"); put("step_id", "s1"); put("file_name", "f.jpg"); put("position", 3); put("created_at", 1L)
+            })
+            db.execSQL("UPDATE trips SET cover_photo_id = 'p3' WHERE id = 't1'")
+        }
+        val db = open()
+        val steps = RoomStepRepository(db)
+
+        val s2 = steps.getStep("s2")!!.photos
+        assertEquals(listOf("e.jpg", "b.jpg", "d.jpg", "c.jpg", "a.jpg"), s2.map { it.fileName })
+        assertEquals(listOf(0, 1, 2, 3, 4), s2.map { it.position })
+        assertEquals(listOf(0), steps.getStep("s1")!!.photos.map { it.position })
+        // Every row stays, all of them photos; the chosen cover (R21) is untouched.
+        assertEquals(6, db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM photos").use { it.moveToFirst(); it.getInt(0) })
+        assertTrue(s2.all { !it.isVideo && it.durationMs == null })
+        assertEquals("p3", RoomTripRepository(db).getTrip("t1")!!.coverPhotoId)
+
+        // The new columns are writable and read back.
+        val video = s2.first().copy(mediaType = MediaType.VIDEO, durationMs = 12_345)
+        steps.saveStep(steps.getStep("s2")!!.copy(photos = listOf(video) + s2.drop(1)))
+        val stored = steps.getStep("s2")!!.photos.first()
+        assertEquals(MediaType.VIDEO to 12_345L, stored.mediaType to stored.durationMs)
     }
 
     private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)

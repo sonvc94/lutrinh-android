@@ -20,9 +20,12 @@ fun stepNumbers(steps: List<Step>): Map<String, Int> =
 
 /** R21: which photo is a trip's cover. */
 object TripCover {
-    /** Every photo the cover can be chosen from: the photos of the trip's steps, timeline order then position. */
+    /**
+     * Every photo the cover can be chosen from: the photos of the trip's steps, timeline order then
+     * position (R27). Videos are left out (R29: a video cannot be the trip cover).
+     */
     fun candidates(steps: List<Step>): List<Photo> =
-        steps.inTimelineOrder().flatMap { s -> s.photos.sortedBy { it.position } }
+        steps.inTimelineOrder().flatMap { s -> s.photos.sortedBy { it.position } }.filterNot { it.isVideo }
 
     /**
      * The chosen photo ([coverPhotoId]) while it still belongs to one of [steps]; otherwise

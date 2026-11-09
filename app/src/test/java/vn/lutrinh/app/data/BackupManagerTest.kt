@@ -20,6 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import vn.lutrinh.app.data.local.AppDatabase
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.MediaType
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.StopDecision
@@ -213,10 +214,10 @@ class BackupManagerTest {
         assertEquals(listOf("a.jpg", "b.jpg", "c.jpg"), files())
     }
 
-    @Test fun olderSchemaBackupIsMigrated() = runTest {
-        // A version-5 database (before drafts and covers), as the v5 app wrote it.
-        val schema = JSONObject(File(SCHEMAS, "5.json").readText()).getJSONObject("database")
-        val old = File(ctx.cacheDir, "v5.db").apply { delete() }
+    /** A database file exactly as the app at schema [version] created it (app/schemas), filled by [fill]. */
+    private fun oldDatabase(version: Int, fill: (SQLiteDatabase) -> Unit): File {
+        val schema = JSONObject(File(SCHEMAS, "$version.json").readText()).getJSONObject("database")
+        val old = File(ctx.cacheDir, "v$version.db").apply { delete() }
         SQLiteDatabase.openOrCreateDatabase(old, null).use { d ->
             val entities = schema.getJSONArray("entities")
             for (i in 0 until entities.length()) {
@@ -228,7 +229,67 @@ class BackupManagerTest {
             }
             val setup = schema.getJSONArray("setupQueries")
             for (i in 0 until setup.length()) d.execSQL(setup.getString(i))
-            d.version = 5
+            d.version = version
+            fill(d)
+        }
+        return old
+    }
+
+    /** R26 + R29: a video row and its file go through backup and restore like a photo. */
+    @Test fun backupRoundTripKeepsAVideo() = runTest {
+        seedA()
+        val bytes = ByteArray(4096) { (it % 251).toByte() }
+        File(photoDir, "v.mp4").writeBytes(bytes)
+        val steps = RoomStepRepository(db)
+        val s1 = steps.getStep("s1")!!
+        steps.saveStep(s1.copy(photos = s1.photos + Photo("pv", "s1", "v.mp4", 2, 1, mediaType = MediaType.VIDEO, durationMs = 12_500)))
+        val (m, zip) = backupBytes()
+        assertEquals(4, m.photoFiles)
+        assertEquals(4, m.counts.photos)
+        assertTrue(entries(zip).getValue("photos/v.mp4").contentEquals(bytes))
+
+        replaceWithB()
+        backup.restore(backup.prepare(ByteArrayInputStream(zip)))
+        assertEquals(listOf("a.jpg", "b.jpg", "c.jpg", "v.mp4"), files())
+        assertTrue(File(photoDir, "v.mp4").readBytes().contentEquals(bytes))
+        val restored = RoomStepRepository(db).getStep("s1")!!.photos
+        assertEquals(listOf("a.jpg", "b.jpg", "v.mp4"), restored.map { it.fileName })
+        assertEquals(MediaType.VIDEO to 12_500L, restored.last().mediaType to restored.last().durationMs)
+        // R29: never the automatic cover, and the chosen cover is still the photo it was.
+        assertEquals("p3", RoomTripRepository(db).getTrip("tA")!!.coverPhotoId)
+    }
+
+    /** A backup written at schema 6 (before R27 numbering and R29 videos) restores into schema 7 with its photo order. */
+    @Test fun version6BackupRestoresIntoVersion7() = runTest {
+        val old = oldDatabase(6) { d ->
+            d.insert("trips", null, ContentValues().apply {
+                put("id", "t6"); put("title", "Sáu"); put("description", ""); put("start_date", "2025-06-01"); put("created_at", 1L); put("updated_at", 1L)
+            })
+            d.insert("steps", null, ContentValues().apply {
+                put("id", "s6"); put("trip_id", "t6"); put("title", "Bước"); put("note", ""); put("latitude", 21.0); put("longitude", 105.8)
+                put("arrived_at", "2025-06-01T10:00"); put("created_at", 1L); put("updated_at", 1L); put("is_draft", 0)
+            })
+            listOf(Triple("p62", "y.jpg", 4), Triple("p61", "x.jpg", 1)).forEach { (id, f, pos) ->
+                d.insert("photos", null, ContentValues().apply {
+                    put("id", id); put("step_id", "s6"); put("file_name", f); put("position", pos); put("created_at", 1L)
+                })
+            }
+        }
+        val m = BackupManifest(appId = "vn.lutrinh.app", appVersion = "0.0.6", schemaVersion = 6, createdAt = "2026-11-01T00:00:00Z",
+            counts = BackupCounts(trips = 1, steps = 1, photos = 2), photoFiles = 2)
+        seedA()
+        val prepared = backup.prepare(ByteArrayInputStream(zipOf(m, old, mapOf("x.jpg" to "x", "y.jpg" to "y"))))
+        assertEquals(BackupCounts(trips = 1, steps = 1, photos = 2), backup.restore(prepared))
+        val photos = RoomStepRepository(db).getStep("s6")!!.photos
+        assertEquals(listOf("x.jpg", "y.jpg"), photos.map { it.fileName })
+        assertEquals(listOf(0, 1), photos.map { it.position })
+        assertTrue(photos.none { it.isVideo })
+        assertEquals(listOf("x.jpg", "y.jpg"), files())
+    }
+
+    @Test fun olderSchemaBackupIsMigrated() = runTest {
+        // A version-5 database (before drafts and covers), as the v5 app wrote it.
+        val old = oldDatabase(5) { d ->
             d.insert("trips", null, ContentValues().apply {
                 put("id", "t5"); put("title", "Cũ"); put("description", ""); put("start_date", "2025-01-01"); put("created_at", 1L); put("updated_at", 1L)
             })

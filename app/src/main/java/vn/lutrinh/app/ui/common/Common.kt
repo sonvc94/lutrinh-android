@@ -5,6 +5,13 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.LocaleList
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import vn.lutrinh.app.domain.model.Photo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -117,6 +124,42 @@ fun LocalPhoto(fileName: String, modifier: Modifier = Modifier, contentScale: Co
             }
         },
     )
+}
+
+/** A step media item (R29): a photo, or a video's still frame with a play badge and its length. */
+@Composable
+fun LocalMedia(photo: Photo, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop, badge: Boolean = true) =
+    LocalMedia(photo.fileName, if (photo.isVideo) photo.durationMs ?: 0L else null, modifier, contentScale, badge)
+
+/** [videoDurationMs] non-null = the file is a video of that length (R29). */
+@Composable
+fun LocalMedia(
+    fileName: String,
+    videoDurationMs: Long?,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop,
+    badge: Boolean = true,
+) {
+    Box(modifier) {
+        LocalPhoto(fileName, Modifier.fillMaxSize(), contentScale)
+        if (videoDurationMs != null && badge) VideoBadge(videoDurationMs, Modifier.align(Alignment.BottomEnd).padding(4.dp))
+    }
+}
+
+/** "▶ 0:42" on a dark pill: marks a video thumbnail (R29). */
+@Composable
+fun VideoBadge(durationMs: Long, modifier: Modifier = Modifier) {
+    val label = stringResource(R.string.video_badge, DisplayFormat.clock(durationMs))
+    Row(
+        modifier
+            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+            .padding(start = 2.dp, end = 5.dp, top = 1.dp, bottom = 1.dp)
+            .semantics(mergeDescendants = true) { contentDescription = label },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(14.dp))
+        Text(DisplayFormat.clock(durationMs), color = Color.White, style = MaterialTheme.typography.labelSmall)
+    }
 }
 
 @Composable

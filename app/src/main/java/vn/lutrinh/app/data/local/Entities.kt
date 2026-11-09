@@ -75,6 +75,10 @@ data class PhotoEntity(
     @ColumnInfo(name = "source_id") val sourceId: String? = null,
     /** Byte size of the original file, or null (added in DB version 5, R19). */
     @ColumnInfo(name = "source_size") val sourceSize: Long? = null,
+    /** MediaType.code: "photo" or "video" (added in DB version 7, R29; existing rows are photos). */
+    @ColumnInfo(name = "media_type", defaultValue = "photo") val mediaType: String = "photo",
+    /** Video length in ms, or null (added in DB version 7, R29). */
+    @ColumnInfo(name = "duration_ms") val durationMs: Long? = null,
 )
 
 data class StepWithPhotos(

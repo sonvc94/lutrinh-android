@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,6 +13,8 @@ import vn.lutrinh.app.data.photo.Orientation
 import vn.lutrinh.app.data.photo.PhotoImportPlan
 import vn.lutrinh.app.data.photo.PixelSize
 import vn.lutrinh.app.domain.repository.PhotoFileStore
+import vn.lutrinh.app.domain.usecase.VideoProblem
+import vn.lutrinh.app.domain.usecase.VideoRules
 import java.io.File
 import java.util.UUID
 
@@ -19,9 +22,10 @@ import java.util.UUID
  * Photos are COPIED from the system Photo Picker into app-private storage
  * (`<filesDir>/photos/<uuid>.<ext>`), upright, downscaled and without location EXIF. The database stores only the file name, so the
  * photo survives app restarts and does not depend on the picker's temporary URI grant.
- * No storage permission is needed (docs/06-photos.md).
+ * No storage permission is needed (docs/06-photos.md). Short videos (R29) live in the same folder
+ * (`<uuid>.mp4`), copied byte for byte.
  */
-class PhotoStorage(context: Context) : PhotoFileStore {
+class PhotoStorage(private val context: Context) : PhotoFileStore {
     private val resolver = context.contentResolver
     private val dir = File(context.filesDir, DIR).apply { mkdirs() }
     private val cacheDir = context.cacheDir
@@ -48,6 +52,67 @@ class PhotoStorage(context: Context) : PhotoFileStore {
         } finally {
             temp.delete()
         }
+    }
+
+    /** R29: the picked item is a video (Photo Picker "photos and videos"). */
+    fun isVideo(uri: Uri): Boolean = runCatching { resolver.getType(uri) }.getOrNull()?.startsWith("video/") == true
+
+    /**
+     * R29: imports one picked or recorded video AS IS (no trimming, no re-encoding) when it is at
+     * most [VideoRules.MAX_SECONDS] long and [VideoRules.MAX_BYTES] big; otherwise nothing is
+     * copied and the reason is returned. Length and size are checked before the copy, the size
+     * again while copying (a provider may not report it). A `file:` URI (our own capture file in
+     * the cache) is copied too, not renamed: a file moved out of the cache keeps the cache's
+     * group and would still be counted as cache by the system; the capture file is deleted after.
+     */
+    suspend fun importVideo(uri: Uri): VideoImport = withContext(Dispatchers.IO) {
+        val ownFile = if (uri.scheme == "file") uri.path?.let(::File) else null
+        val size = ownFile?.length() ?: sizeOf(uri)
+        val meta = runCatching { VideoMeta.read(context, uri) }.getOrNull()
+        VideoRules.check(meta?.durationMs, size)?.let { return@withContext VideoImport.Refused(it, meta?.durationMs, size) }
+        val durationMs = meta!!.durationMs!!
+        val name = "${UUID.randomUUID()}.${videoExtFor(ownFile?.extension ?: resolver.getType(uri))}"
+        val out = File(dir, name)
+        try {
+            val copied = resolver.openInputStream(uri)?.use { input ->
+                out.outputStream().use { output -> copyCapped(input, output) }
+            }
+            when {
+                copied == null -> { out.delete(); VideoImport.Refused(VideoProblem.UNREADABLE, durationMs, size) }
+                copied < 0 -> { out.delete(); VideoImport.Refused(VideoProblem.TOO_LARGE, durationMs, null) }
+                else -> VideoImport.Added(name, durationMs, meta.takenAt)
+            }
+        } catch (e: Throwable) {
+            out.delete()
+            VideoImport.Refused(VideoProblem.UNREADABLE, durationMs, size)
+        }
+    }
+
+    /** Copies at most [VideoRules.MAX_BYTES]; returns the byte count, or -1 when the source is bigger. */
+    private fun copyCapped(input: java.io.InputStream, output: java.io.OutputStream): Long {
+        val buf = ByteArray(DEFAULT_BUFFER_SIZE * 8)
+        var total = 0L
+        while (true) {
+            val n = input.read(buf)
+            if (n < 0) return total
+            total += n
+            if (VideoRules.exceedsSize(total)) return -1
+            output.write(buf, 0, n)
+        }
+    }
+
+    private fun sizeOf(uri: Uri): Long? = runCatching {
+        resolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else null
+        }
+    }.getOrNull()
+
+    private fun videoExtFor(mimeOrExt: String?) = when (mimeOrExt?.lowercase()) {
+        "video/3gpp", "3gp" -> "3gp"
+        "video/webm", "webm" -> "webm"
+        "video/quicktime", "mov" -> "mov"
+        "video/x-matroska", "mkv" -> "mkv"
+        else -> "mp4"
     }
 
     private fun extFor(mime: String?) = when (mime) {
@@ -171,4 +236,12 @@ class PhotoStorage(context: Context) : PhotoFileStore {
             ExifInterface.TAG_GPS_DIFFERENTIAL, ExifInterface.TAG_GPS_H_POSITIONING_ERROR,
         )
     }
+}
+
+/** Result of [PhotoStorage.importVideo] (R29). */
+sealed interface VideoImport {
+    data class Added(val fileName: String, val durationMs: Long, val takenAt: java.time.LocalDateTime?) : VideoImport
+
+    /** Nothing was copied. [durationMs]/[sizeBytes] as far as they were read (for the message). */
+    data class Refused(val problem: VideoProblem, val durationMs: Long?, val sizeBytes: Long?) : VideoImport
 }

@@ -1,6 +1,24 @@
 package vn.lutrinh.app.ui.steps
 
 import android.net.Uri
+import android.content.ActivityNotFoundException
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import vn.lutrinh.app.data.MediaCapture
+import vn.lutrinh.app.data.VideoImport
+import vn.lutrinh.app.domain.usecase.DisplayFormat
+import vn.lutrinh.app.domain.usecase.VideoProblem
+import vn.lutrinh.app.domain.usecase.VideoRules
+import vn.lutrinh.app.ui.common.LocalMedia
+import vn.lutrinh.app.ui.common.formatBytes
+import java.time.temporal.ChronoUnit
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -136,7 +154,14 @@ data class StepForm(
     val location: GeoPoint? = null,
     val date: LocalDate = LocalDate.now(),
     val time: LocalTime = NewStepDefaults.DEFAULT_TIME,
+    /** Photo and video files in the order the user arranged (R27); the first is the step cover. */
     val photos: List<String> = emptyList(),
+    /** R29: which of [photos] are videos, with their length in ms. */
+    val videoDurations: Map<String, Long> = emptyMap(),
+    /** R29: videos not added (too long / too large / unreadable) in the last pick or recording. */
+    val videoRefusals: List<VideoRefusal> = emptyList(),
+    /** R28/R29: no camera app answered "Chụp ảnh" / "Quay video". */
+    val noCamera: Boolean = false,
     val importing: Boolean = false,
     val importFailed: Int = 0,
     val errors: Set<StepError> = emptySet(),
@@ -182,10 +207,13 @@ data class StopPhotosState(
     val selection: GallerySelection = GallerySelection(),
 )
 
+/** A video that was not added (R29), with what was read of it for the message. */
+data class VideoRefusal(val problem: VideoProblem, val durationMs: Long?, val sizeBytes: Long?)
+
 /** The trip dates now and the smallest dates that would hold the step (R17). */
 data class ExtendOffer(val current: TripDates, val widened: TripDates)
 
-class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) : ViewModel() {
+class StepEditViewModel(private val c: AppContainer, private val handle: SavedStateHandle) : ViewModel() {
     val tripId: String = checkNotNull(handle["tripId"])
     val stepId: String? = handle.get<String>("stepId")
 
@@ -211,6 +239,8 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
     private var finished = false
 
     init {
+        // R28/R29: a capture target survives process death in the handle; without one, any file left in the capture folder is stale.
+        if (handle.get<String>(KEY_CAPTURE) == null) viewModelScope.launch { c.capture.clearLeftovers() }
         viewModelScope.launch {
             val trip = c.trips.getTrip(tripId)
             val steps = c.steps.getSteps(tripId)
@@ -260,6 +290,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
         date = s.arrivedAt.toLocalDate(),
         time = s.arrivedAt.toLocalTime(),
         photos = s.photos.map { it.fileName },
+        videoDurations = s.photos.filter { it.isVideo }.associate { it.fileName to (it.durationMs ?: 0L) },
         isDraft = s.isDraft,
     )
 
@@ -277,26 +308,106 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
         }
     }
 
+    /** Photo Picker result: photos and (R29) videos, in the order picked. */
     fun addPhotos(uris: List<Uri>) {
         if (uris.isEmpty()) return
-        _form.update { it.copy(importing = true, importFailed = 0) }
+        _form.update { it.copy(importing = true, importFailed = 0, videoRefusals = emptyList(), noCamera = false) }
         viewModelScope.launch {
             var failed = 0
             val added = mutableListOf<String>()
-            // EXIF date of the picked files, read before import: the stored copy has no EXIF (R17).
-            val meta = runCatching { c.photoMeta.read(uris) }.getOrDefault(emptyList())
-            for ((i, uri) in uris.withIndex()) {
+            val videos = mutableMapOf<String, Long>()
+            val refused = mutableListOf<VideoRefusal>()
+            val isVideo = uris.associateWith { c.photos.isVideo(it) }
+            // EXIF date of the picked photos, read before import: the stored copy has no EXIF (R17).
+            val images = uris.filterNot { isVideo.getValue(it) }
+            val meta = runCatching { c.photoMeta.read(images) }.getOrDefault(emptyList())
+            for (uri in uris) {
+                if (isVideo.getValue(uri)) {
+                    when (val r = c.photos.importVideo(uri)) {
+                        is VideoImport.Added -> {
+                            added += r.fileName
+                            videos[r.fileName] = r.durationMs
+                            importedThisSession += r.fileName
+                            r.takenAt?.let { takenAtByFile[r.fileName] = it }
+                        }
+                        is VideoImport.Refused -> refused += VideoRefusal(r.problem, r.durationMs, r.sizeBytes)
+                    }
+                    continue
+                }
                 val name = c.photos.import(uri)
                 if (name == null) failed++ else {
                     added += name
                     importedThisSession += name
-                    meta.getOrNull(i)?.takenAt?.let { takenAtByFile[name] = it }
+                    meta.getOrNull(images.indexOf(uri))?.takenAt?.let { takenAtByFile[name] = it }
                     sourceByFile[name] = c.gallery.sourceOf(uri) // R19: not offered again from the gallery
                 }
             }
-            _form.update { it.copy(importing = false, importFailed = failed) }
-            edit { copy(photos = photos + added) }
+            _form.update { it.copy(importing = false, importFailed = failed, videoRefusals = refused) }
+            if (added.isNotEmpty()) edit { copy(photos = photos + added, videoDurations = videoDurations + videos) }
         }
+    }
+
+    /**
+     * R28 "Chụp ảnh" / R29 "Quay video": a new target file for the system camera; its name is kept
+     * in the saved state so the result is found again after process death. Returns its URI.
+     */
+    fun startCapture(kind: MediaCapture.Kind): Uri {
+        val target = c.capture.newTarget(kind)
+        handle[KEY_CAPTURE] = target.name
+        _form.update { it.copy(importFailed = 0, videoRefusals = emptyList(), noCamera = false) }
+        return c.capture.uriFor(target)
+    }
+
+    /** No camera app could be started: the target is dropped. */
+    fun captureUnavailable() {
+        onCaptureResult(ok = false, returned = null)
+        _form.update { it.copy(noCamera = true) }
+    }
+
+    /**
+     * The camera returned. OK: the file is imported like a picked one (photo: R11; video: R29
+     * limits), its time is now (R28), it has no gallery origin. Cancelled: nothing is added and
+     * the target file is deleted (R28: a cancelled capture leaves no file).
+     */
+    fun onCaptureResult(ok: Boolean, returned: Uri?) {
+        val name = handle.get<String>(KEY_CAPTURE) ?: return
+        handle.remove<String>(KEY_CAPTURE)
+        val target = c.capture.target(name) ?: return
+        val video = name.endsWith(".${MediaCapture.Kind.VIDEO.ext}")
+        val ownUri = c.capture.uriFor(target)
+        if (ok) _form.update { it.copy(importing = true) }
+        viewModelScope.launch {
+            val now = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES)
+            var failed = 0
+            var refusal: VideoRefusal? = null
+            var added: String? = null
+            var duration: Long? = null
+            c.capture.finish(target, ok, fallback = returned?.takeIf { it != ownUri }) { uri ->
+                if (video) {
+                    when (val r = c.photos.importVideo(uri)) {
+                        is VideoImport.Added -> { added = r.fileName; duration = r.durationMs }
+                        is VideoImport.Refused -> refusal = VideoRefusal(r.problem, r.durationMs, r.sizeBytes)
+                    }
+                } else {
+                    added = c.photos.import(uri)
+                    if (added == null) failed++
+                }
+            }
+            added?.let { file ->
+                importedThisSession += file
+                takenAtByFile[file] = now
+                sourceByFile[file] = PhotoSource()
+            }
+            _form.update { it.copy(importing = false, importFailed = failed, videoRefusals = listOfNotNull(refusal)) }
+            added?.let { file ->
+                edit { copy(photos = photos + file, videoDurations = duration?.let { videoDurations + (file to it) } ?: videoDurations) }
+            }
+        }
+    }
+
+    /** R27: the editor's new order after a drag (or a move action); stored by "Lưu". */
+    fun reorderPhotos(order: List<String>) {
+        if (order != _form.value.photos && order.toSet() == _form.value.photos.toSet()) edit { copy(photos = order) }
     }
 
     fun removePhoto(name: String) = edit { copy(photos = photos - name) }
@@ -371,6 +482,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
         val input = StepInput(
             f.title, f.note, f.location, LocalDateTime.of(f.date, f.time), files, takenAtByFile.toMap(), sourceByFile.toMap(),
             draft = draft,
+            videoDurations = f.videoDurations,
         )
         when (val r = c.saveStep(tripId, stepId, input, extendTrip && fromStop != null)) {
             is SaveResult.Saved -> {
@@ -409,6 +521,8 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
         }
     }
 }
+
+private const val KEY_CAPTURE = "pendingCapture"
 
 /** Values passed by "Thêm điểm dừng" through the navigation arguments (Routes.stepFromStop). */
 data class StopPrefill(
@@ -463,6 +577,16 @@ fun StepEditScreen(
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(Limits.PHOTOS_PER_STEP_MAX),
     ) { uris -> vm.addPhotos(uris) }
+    // R28/R29: the system camera app writes into our capture file (no CAMERA permission).
+    val camera = rememberLauncherForActivityResult(CaptureWithSystemCamera()) { r -> vm.onCaptureResult(r.ok, r.returned) }
+    fun capture(kind: MediaCapture.Kind) {
+        val uri = vm.startCapture(kind)
+        try {
+            camera.launch(CaptureWithSystemCamera.Request(uri, video = kind == MediaCapture.Kind.VIDEO))
+        } catch (e: ActivityNotFoundException) {
+            vm.captureUnavailable()
+        }
+    }
 
     // R19: gallery access for "Ảnh chụp trong lúc dừng"; re-read on every resume (settings may change).
     val galleryPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -548,7 +672,10 @@ fun StepEditScreen(
                 // F3: one grid of what "Lưu" saves; the gallery card below only gives access / re-adds.
                 PhotosSection(
                     f = f,
-                    onAdd = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    onAdd = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)) },
+                    onTakePhoto = { capture(MediaCapture.Kind.PHOTO) },
+                    onRecordVideo = { capture(MediaCapture.Kind.VIDEO) },
+                    onReorder = vm::reorderPhotos,
                     onRemove = vm::removePhoto,
                     onCover = vm::makeCover,
                     onUntick = vm::toggleGalleryPhoto,
@@ -656,10 +783,14 @@ private fun LocationCard(f: StepForm, excludeId: String?, onPick: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotosSection(
     f: StepForm,
     onAdd: () -> Unit,
+    onTakePhoto: () -> Unit,
+    onRecordVideo: () -> Unit,
+    onReorder: (List<String>) -> Unit,
     onRemove: (String) -> Unit,
     onCover: (String) -> Unit,
     onUntick: (String) -> Unit,
@@ -668,26 +799,36 @@ private fun PhotosSection(
     // The first tile of the grid is the cover: a picked file, else the first gallery photo.
     val coverIsGallery = f.photos.isEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${stringResource(R.string.step_photos)} (${f.photoCount})", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-            FilledTonalButton(onClick = onAdd, enabled = !f.importing && f.photoCount < Limits.PHOTOS_PER_STEP_MAX) {
-                Icon(Icons.Outlined.AddPhotoAlternate, null)
-                Spacer(Modifier.padding(3.dp))
-                Text(stringResource(R.string.step_photos_add))
-            }
+        Text("${stringResource(R.string.step_photos)} (${f.photoCount})", style = MaterialTheme.typography.titleSmall)
+        // R28/R29: picker (photos and videos), system camera photo, system camera video.
+        val canAdd = !f.importing && f.photoCount < Limits.PHOTOS_PER_STEP_MAX
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AddMediaButton(Icons.Outlined.AddPhotoAlternate, stringResource(R.string.step_photos_add), canAdd, onAdd)
+            AddMediaButton(Icons.Outlined.PhotoCamera, stringResource(R.string.step_photos_take), canAdd, onTakePhoto)
+            AddMediaButton(Icons.Outlined.Videocam, stringResource(R.string.step_photos_record), canAdd, onRecordVideo)
         }
         if (f.importing) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (f.importFailed > 0) Text(stringResource(R.string.step_photos_import_failed, f.importFailed), color = MaterialTheme.colorScheme.error)
+        if (f.noCamera) Text(stringResource(R.string.step_photos_no_camera), color = MaterialTheme.colorScheme.error)
+        f.videoRefusals.forEach { r -> Text(videoRefusalText(r), color = MaterialTheme.colorScheme.error) }
         if (StepError.TOO_MANY_PHOTOS in f.errors) {
             Text(stringResource(R.string.err_step_too_many_photos, Limits.PHOTOS_PER_STEP_MAX), color = MaterialTheme.colorScheme.error)
         }
         if (f.photoCount > 0) {
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(f.photos, key = { it }) { name ->
-                    PhotoTile(isCover = name == f.photos.first(), onClick = { onCover(name) }, onRemove = { onRemove(name) }) {
-                        LocalPhoto(name, Modifier.fillMaxSize())
+            ReorderableMediaRow(
+                files = f.photos,
+                onReorder = onReorder,
+                tile = { name, moveActions ->
+                    PhotoTile(
+                        isCover = name == f.photos.first(),
+                        onClick = { onCover(name) },
+                        onRemove = { onRemove(name) },
+                        moveActions = moveActions,
+                    ) {
+                        LocalMedia(name, f.videoDurations[name], Modifier.fillMaxSize())
                     }
-                }
+                },
+            ) {
                 items(gallery, key = { "g" + it.id }) { g ->
                     PhotoTile(isCover = coverIsGallery && g == gallery.first(), fromGallery = true, onClick = null, onRemove = { onUntick(g.id) }) {
                         AsyncImage(
@@ -706,6 +847,22 @@ private fun PhotosSection(
     }
 }
 
+@Composable
+private fun AddMediaButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
+    FilledTonalButton(onClick = onClick, enabled = enabled, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+        Icon(icon, null, Modifier.size(18.dp))
+        Spacer(Modifier.padding(2.dp))
+        Text(label)
+    }
+}
+
+@Composable
+private fun videoRefusalText(r: VideoRefusal): String = when (r.problem) {
+    VideoProblem.TOO_LONG -> stringResource(R.string.video_refused_long, DisplayFormat.clock(r.durationMs ?: 0L), VideoRules.MAX_SECONDS)
+    VideoProblem.TOO_LARGE -> stringResource(R.string.video_refused_large, r.sizeBytes?.let(::formatBytes) ?: "", formatBytes(VideoRules.MAX_BYTES))
+    VideoProblem.UNREADABLE -> stringResource(R.string.video_refused_unreadable)
+}
+
 /** One tile of the photo grid: the picture, "Ảnh bìa" on the first, "Từ thư viện" on a gallery photo, ✕ to remove. */
 @Composable
 private fun PhotoTile(
@@ -713,9 +870,14 @@ private fun PhotoTile(
     onClick: (() -> Unit)?,
     onRemove: () -> Unit,
     fromGallery: Boolean = false,
+    moveActions: List<CustomAccessibilityAction> = emptyList(),
     picture: @Composable () -> Unit,
 ) {
-    Box(Modifier.size(104.dp).clip(RoundedCornerShape(12.dp)).let { if (onClick != null) it.clickable(onClick = onClick) else it }) {
+    Box(
+        Modifier.size(104.dp).clip(RoundedCornerShape(12.dp))
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .let { if (moveActions.isNotEmpty()) it.semantics { customActions = moveActions } else it },
+    ) {
         picture()
         if (isCover) {
             Text(

@@ -74,7 +74,7 @@ import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.DraftBadge
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
-import vn.lutrinh.app.ui.common.LocalPhoto
+import vn.lutrinh.app.ui.common.LocalMedia
 import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.displayDateTime
 import vn.lutrinh.app.ui.common.factory
@@ -151,8 +151,8 @@ fun StepDetailScreen(
                 val step = s.value.step
                 Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())) {
                     if (step.photos.isNotEmpty()) {
-                        LocalPhoto(
-                            step.photos.first().fileName,
+                        LocalMedia(
+                            step.photos.first(),
                             Modifier.fillMaxWidth().aspectRatio(4f / 3f).clickable { onOpenPhoto(0) },
                         )
                     }
@@ -193,7 +193,7 @@ fun StepDetailScreen(
                             modifier = Modifier.padding(horizontal = 16.dp),
                         ) {
                             step.photos.forEachIndexed { i, p ->
-                                LocalPhoto(p.fileName, Modifier.size(cell).clip(RoundedCornerShape(10.dp)).clickable { onOpenPhoto(i) })
+                                LocalMedia(p, Modifier.size(cell).clip(RoundedCornerShape(10.dp)).clickable { onOpenPhoto(i) })
                             }
                         }
                     }

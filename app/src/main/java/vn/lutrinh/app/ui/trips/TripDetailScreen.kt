@@ -127,6 +127,7 @@ import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.LocalPhoto
+import vn.lutrinh.app.ui.common.LocalMedia
 import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.ui.common.displayDay
@@ -574,7 +575,7 @@ private fun StepRow(number: Int?, step: Step, isLast: Boolean, onClick: () -> Un
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.height(64.dp)) {
                     step.photos.take(4).forEach { p ->
-                        LocalPhoto(p.fileName, Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)))
+                        LocalMedia(p, Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)))
                     }
                     if (step.photos.size > 4) {
                         Box(

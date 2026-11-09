@@ -16,6 +16,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  4 - photos.taken_at (nullable TEXT) + stop_decisions: stop suggestions from tracks (R17)
  *  5 - photos.source_id (nullable TEXT) + photos.source_size (nullable INTEGER): gallery photos of a stop (R19)
  *  6 - steps.is_draft (INTEGER NOT NULL DEFAULT 0): draft steps (R20) + trips.cover_photo_id (nullable TEXT): chosen cover (R21)
+ *  7 - photos.position renumbered 0..n-1 per step in display order (R27 drag order) +
+ *      photos.media_type (TEXT NOT NULL DEFAULT 'photo') + photos.duration_ms (nullable INTEGER): short videos (R29)
  */
 @Database(
     entities = [
@@ -34,7 +36,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "lutrinh.db"
-        const val VERSION = 6
+        const val VERSION = 7
 
         /** Adds the nullable leg transport column; existing rows read as "not set". */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -108,8 +110,31 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * R27: the order the user arranges is `photos.position`; existing rows are renumbered
+         * 0..n-1 per step in the order the app showed them (position, then created time, then id),
+         * so ties of older data become a fixed order. R29: every existing row is a photo, no length.
+         * The correlated subquery (no window functions) runs on the SQLite of API 26.
+         */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // R27: number every step's photos 0..n-1 in the order v6 showed them (position,
+                // created_at, id). Ranks are computed into a temp table first: an UPDATE whose
+                // subquery reads the same table sees rows it has already renumbered.
+                db.execSQL(
+                    "CREATE TEMP TABLE photo_rank AS SELECT p.id AS id, (SELECT COUNT(*) FROM photos q WHERE q.step_id = p.step_id AND (" +
+                        "q.position < p.position OR (q.position = p.position AND (" +
+                        "q.created_at < p.created_at OR (q.created_at = p.created_at AND q.id < p.id))))) AS rank FROM photos p",
+                )
+                db.execSQL("UPDATE photos SET position = (SELECT rank FROM photo_rank WHERE photo_rank.id = photos.id)")
+                db.execSQL("DROP TABLE photo_rank")
+                db.execSQL("ALTER TABLE photos ADD COLUMN media_type TEXT NOT NULL DEFAULT 'photo'")
+                db.execSQL("ALTER TABLE photos ADD COLUMN duration_ms INTEGER")
+            }
+        }
+
         /** Every migration, oldest first. Never use destructive fallback: user data is local only. */
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)

@@ -16,6 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import vn.lutrinh.app.data.local.AppDatabase
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.MediaType
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.Trip
@@ -154,6 +155,24 @@ class RoomRepositoryTest {
         assertTrue(trips.setCover("t", null, 10))
         assertNull(trips.getTrip("t")!!.coverPhotoId)
         assertEquals("a.jpg", cover())
+    }
+
+    /** R27 stored order is the read order; R29 a video is never the trip cover (automatic or chosen). */
+    @Test fun photosReadInStoredOrderAndAVideoIsNeverTheCover() = runTest {
+        trips.upsertTrip(trip("t", "2025-10-20"))
+        val base = step("s1", "t", "2025-10-20T09:00", emptyList())
+        val video = Photo("v", "s1", "v.mp4", 0, 1, mediaType = MediaType.VIDEO, durationMs = 8_000)
+        steps.saveStep(base.copy(photos = listOf(Photo("b", "s1", "b.jpg", 2, 1), video, Photo("a", "s1", "a.jpg", 1, 1))))
+        assertEquals(listOf("v.mp4", "a.jpg", "b.jpg"), steps.getStep("s1")!!.photos.map { it.fileName })
+        suspend fun summary() = trips.observeTripSummaries().first().single()
+        assertEquals("a.jpg", summary().coverPhotoFile)
+        assertEquals(3, summary().photoCount)
+        // A video id stored as the cover (not offered by the picker) falls back to automatic.
+        trips.setCover("t", "v", 5)
+        assertEquals("a.jpg", summary().coverPhotoFile)
+        // Only videos: no cover.
+        steps.saveStep(base.copy(photos = listOf(video)))
+        assertNull(summary().coverPhotoFile)
     }
 
     @Test fun deletingStepDeletesItsPhotos() = runTest {

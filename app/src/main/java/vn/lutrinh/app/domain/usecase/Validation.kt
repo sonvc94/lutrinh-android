@@ -35,7 +35,7 @@ data class StepInput(
     val note: String,
     val location: GeoPoint?,
     val arrivedAt: LocalDateTime,
-    /** Photo file names in display order; the first one is the step cover. */
+    /** Photo/video file names in display order (R27: as the user arranged them); the first one is the step cover. */
     val photoFiles: List<String>,
     /** EXIF capture time of newly imported files (R17); files not in the map keep what they had. */
     val photoTakenAt: Map<String, LocalDateTime> = emptyMap(),
@@ -43,6 +43,8 @@ data class StepInput(
     val photoSources: Map<String, PhotoSource> = emptyMap(),
     /** R20: true = "Lưu nháp" (validated like any step), false = "Lưu" (published). */
     val draft: Boolean = false,
+    /** R29: newly imported files that are videos -> their length in ms; files not in the map keep what they had (a new one is a photo). */
+    val videoDurations: Map<String, Long> = emptyMap(),
 )
 
 enum class StepError {

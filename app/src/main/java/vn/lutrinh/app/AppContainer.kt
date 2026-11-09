@@ -4,6 +4,7 @@ import android.content.Context
 import vn.lutrinh.app.data.BackupManager
 import vn.lutrinh.app.data.GalleryReader
 import vn.lutrinh.app.data.LocalPrefs
+import vn.lutrinh.app.data.MediaCapture
 import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
 import vn.lutrinh.app.data.PlaceIndex
@@ -49,6 +50,8 @@ class AppContainer(context: Context) {
     val steps = RoomStepRepository(db)
     val photos = PhotoStorage(context)
     val photoMeta = PhotoMetaReader(context)
+    /** System-camera capture files (R28 photo, R29 video). */
+    val capture = MediaCapture(context)
     /** Gallery photos of a stop (R19); read-only. */
     val gallery = GalleryReader(context)
     val tracks = RoomTrackRepository(db)

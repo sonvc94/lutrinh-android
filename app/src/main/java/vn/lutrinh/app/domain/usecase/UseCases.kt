@@ -1,5 +1,6 @@
 package vn.lutrinh.app.domain.usecase
 
+import vn.lutrinh.app.domain.model.MediaType
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.TransportMode
@@ -93,6 +94,8 @@ class SaveStep(
                     takenAt = input.photoTakenAt[file],
                     sourceId = input.photoSources[file]?.id,
                     sourceSize = input.photoSources[file]?.sizeBytes,
+                    mediaType = if (file in input.videoDurations) MediaType.VIDEO else MediaType.PHOTO,
+                    durationMs = input.videoDurations[file],
                 )
         }
         val step = Step(

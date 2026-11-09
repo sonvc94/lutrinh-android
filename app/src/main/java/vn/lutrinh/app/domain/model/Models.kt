@@ -56,7 +56,7 @@ data class Step(
     val arrivedAt: LocalDateTime,
     val createdAt: Long,
     val updatedAt: Long,
-    /** Ordered by [Photo.position]; first photo = step cover. */
+    /** Ordered by [Photo.position] (R27: the order the user arranged); first item = step cover. */
     val photos: List<Photo> = emptyList(),
     /**
      * How the traveller got here from the previous step in timeline order (the leg that ENDS at
@@ -111,7 +111,24 @@ data class Photo(
     val sourceId: String? = null,
     /** Byte size of the original file, or null when unknown (R19, DB version 5). */
     val sourceSize: Long? = null,
-)
+    /** Photo or short video (R29, DB version 7); existing rows are photos. */
+    val mediaType: MediaType = MediaType.PHOTO,
+    /** Length of a video in milliseconds (R29), null for a photo or when unknown. */
+    val durationMs: Long? = null,
+) {
+    val isVideo: Boolean get() = mediaType == MediaType.VIDEO
+}
+
+/** Kind of a step media item (R29). [code] is the stored value (docs/02); unknown codes read as photo. */
+enum class MediaType(val code: String) {
+    PHOTO("photo"),
+    VIDEO("video"),
+    ;
+
+    companion object {
+        fun fromCode(code: String?): MediaType = entries.firstOrNull { it.code == code } ?: PHOTO
+    }
+}
 
 /** Origin of a newly imported photo file (R19): gallery id and original byte size, each may be unknown. */
 data class PhotoSource(val id: String? = null, val sizeBytes: Long? = null)

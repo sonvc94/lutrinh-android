@@ -102,11 +102,21 @@
     <string name="step_location_pick">Chọn trên bản đồ</string>
     <string name="step_location_change">Đổi vị trí</string>
     <string name="step_location_none">Chưa chọn vị trí</string>
-    <string name="step_photos">Ảnh</string>
-    <string name="step_photos_add">Thêm ảnh</string>
-    <string name="step_photos_hint">Chạm vào ảnh để đặt làm ảnh bìa.</string>
+    <string name="step_photos">Ảnh &amp; video</string>
+    <string name="step_photos_add">Thêm ảnh/video</string>
+    <string name="step_photos_take">Chụp ảnh</string>
+    <string name="step_photos_record">Quay video</string>
+    <string name="step_photos_hint">Chạm vào ảnh để đặt làm ảnh bìa. Nhấn giữ rồi kéo để đổi thứ tự.</string>
+    <string name="step_photos_no_camera">Không mở được ứng dụng máy ảnh.</string>
+    <string name="step_photo_move_earlier">Đưa lên trước</string>
+    <string name="step_photo_move_later">Đưa ra sau</string>
+    <string name="video_badge">Video %1$s</string>
+    <string name="video_refused_long">Video dài %1$s: chỉ thêm được video tối đa %2$d giây (ứng dụng không cắt video).</string>
+    <string name="video_refused_large">Video %1$s: chỉ thêm được video tối đa %2$s.</string>
+    <string name="video_refused_unreadable">Không đọc được video này.</string>
+    <string name="video_play">Phát video</string>
     <string name="step_photo_cover">Ảnh bìa</string>
-    <string name="step_photo_remove">Bỏ ảnh</string>
+    <string name="step_photo_remove">Bỏ ảnh/video</string>
     <string name="step_photos_import_failed">Không đọc được %1$d ảnh</string>
     <string name="step_delete_button">Xóa điểm dừng</string>
     <string name="step_delete_confirm_title">Xóa điểm dừng này?</string>
@@ -175,7 +185,7 @@
     <string name="my_location_off">Vị trí của máy đang tắt.</string>
 
     <!-- Step detail / photos -->
-    <string name="step_detail_photos">Ảnh (%1$d)</string>
+    <string name="step_detail_photos">Ảnh &amp; video (%1$d)</string>
     <string name="step_detail_prev">Trước: %1$s</string>
     <string name="step_detail_next">Sau: %1$s</string>
     <string name="step_detail_no_note">Chưa có ghi chú.</string>
@@ -282,7 +292,7 @@
     <string name="stop_photos_window">Ảnh trong máy chụp trong khoảng %1$s (từ 10 phút trước đến 10 phút sau lúc dừng)</string>
     <string name="stop_photos_explain">Lữ Trình có thể tìm trong thư viện ảnh của máy những ảnh bạn chụp lúc dừng ở đây. Ảnh chỉ được sao chép vào chuyến đi khi bạn bấm Lưu; không có gì được gửi đi.</string>
     <string name="stop_photos_allow">Cho phép xem ảnh</string>
-    <string name="stop_photos_denied">Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh” ở mục Ảnh phía trên.</string>
+    <string name="stop_photos_denied">Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh/video” ở mục Ảnh &amp; video phía trên.</string>
     <string name="stop_photos_none">Không có ảnh nào trong máy chụp trong khoảng này.</string>
     <string name="stop_photos_added">Đã thêm %1$d/%2$d ảnh vào mục Ảnh ở trên; ảnh được sao chép khi bạn bấm Lưu.</string>
     <string name="stop_photos_unticked">Chưa thêm — chạm để thêm lại:</string>

@@ -17,6 +17,7 @@ import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import vn.lutrinh.app.data.PhotoStorage
+import vn.lutrinh.app.data.VideoMeta
 import vn.lutrinh.app.data.photo.Orientation
 import vn.lutrinh.app.data.photo.PhotoImportPlan
 import vn.lutrinh.app.data.photo.PixelSize
@@ -49,7 +50,7 @@ class TripExporter(context: Context, private val photos: PhotoStorage) {
 
     /** Renders the summary image with [chosen] photos (TripShare.imagePhotos). */
     suspend fun summaryImage(base: SummaryImage.Input, chosen: List<Photo>): Bitmap = withContext(Dispatchers.Default) {
-        val bitmaps = chosen.mapNotNull { decodeScaled(photos.fileFor(it.fileName), IMAGE_PHOTO_PX) }
+        val bitmaps = chosen.mapNotNull { bitmapOf(it, IMAGE_PHOTO_PX) }
         try {
             SummaryImage.render(base.copy(photos = bitmaps))
         } finally {
@@ -78,7 +79,7 @@ class TripExporter(context: Context, private val photos: PhotoStorage) {
 
     /** A stored photo downscaled for export (docs/06-photos.md "Export"): upright JPEG, no metadata. */
     fun encodePhoto(photo: Photo, level: TripPage.Level): ByteArray? {
-        val bmp = decodeScaled(photos.fileFor(photo.fileName), level.maxPx) ?: return null
+        val bmp = bitmapOf(photo, level.maxPx) ?: return null
         return try {
             ByteArrayOutputStream().also { bmp.compress(Bitmap.CompressFormat.JPEG, level.quality, it) }.toByteArray()
         } finally {
@@ -142,6 +143,12 @@ class TripExporter(context: Context, private val photos: PhotoStorage) {
     }
 
     /** Decodes [file] with its long edge at most [maxPx], upright; null when missing/unreadable. */
+    /** A photo downscaled, or a video's still frame (R29: shares never carry the video itself). */
+    private fun bitmapOf(photo: Photo, maxPx: Int): Bitmap? {
+        val file = photos.fileFor(photo.fileName)
+        return if (photo.isVideo) file.takeIf { it.exists() }?.let { VideoMeta.still(it, maxPx) } else decodeScaled(file, maxPx)
+    }
+
     private fun decodeScaled(file: File, maxPx: Int): Bitmap? {
         if (!file.exists()) return null
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

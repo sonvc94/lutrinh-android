@@ -1,6 +1,7 @@
 package vn.lutrinh.app.data.local
 
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.MediaType
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.StopDecision
@@ -18,9 +19,10 @@ fun Trip.toEntity() = TripEntity(id, title, description, startDate, endDate, cre
 
 fun TripSummaryRow.toDomain() = TripSummary(trip.toDomain(), stepCount, photoCount, coverFile, draftCount, draftPhotoCount)
 
-fun PhotoEntity.toDomain() = Photo(id, stepId, fileName, position, createdAt, takenAt, sourceId, sourceSize)
+fun PhotoEntity.toDomain() =
+    Photo(id, stepId, fileName, position, createdAt, takenAt, sourceId, sourceSize, MediaType.fromCode(mediaType), durationMs)
 
-fun Photo.toEntity() = PhotoEntity(id, stepId, fileName, position, createdAt, takenAt, sourceId, sourceSize)
+fun Photo.toEntity() = PhotoEntity(id, stepId, fileName, position, createdAt, takenAt, sourceId, sourceSize, mediaType.code, durationMs)
 
 fun StepWithPhotos.toDomain() = Step(
     id = step.id,
@@ -31,7 +33,8 @@ fun StepWithPhotos.toDomain() = Step(
     arrivedAt = step.arrivedAt,
     createdAt = step.createdAt,
     updatedAt = step.updatedAt,
-    photos = photos.sortedWith(compareBy<PhotoEntity> { it.position }.thenBy { it.createdAt }).map { it.toDomain() },
+    // R27: the stored order (dense 0..n-1 since DB v7); created time and id only break ties of older data.
+    photos = photos.sortedWith(compareBy<PhotoEntity> { it.position }.thenBy { it.createdAt }.thenBy { it.id }).map { it.toDomain() },
     arrivalTransport = TransportMode.fromCode(step.transportMode),
     isDraft = step.isDraft,
 )
