@@ -178,6 +178,7 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
             override fun onDelete() {
                 entries.remove(key)
                 publish()
+                freeSpace()
             }
             override fun onError(error: String) {
                 Log.w(TAG, "delete $key: $error")
@@ -186,6 +187,23 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
             }
         })
         publish()
+    }
+
+    /**
+     * MapLibre does not erase a deleted region's resources: they become ambient cache (kept up to
+     * 50 MB). Clearing the ambient cache and packing the database is what actually frees the
+     * space (R15); downloaded areas are untouched, only tiles cached by online viewing go.
+     */
+    private fun freeSpace() {
+        manager.clearAmbientCache(object : OfflineManager.FileSourceCallback {
+            override fun onSuccess() {
+                manager.packDatabase(object : OfflineManager.FileSourceCallback {
+                    override fun onSuccess() = publish()
+                    override fun onError(message: String) { Log.w(TAG, "pack: $message"); publish() }
+                })
+            }
+            override fun onError(message: String) { Log.w(TAG, "clear cache: $message") }
+        })
     }
 
     /** Free bytes on the volume of MapLibre's database. */

@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -414,6 +415,8 @@ fun PickerMap(
     onCenterChanged: (GeoPoint) -> Unit,
     modifier: Modifier = Modifier,
     moveTo: GeoPoint? = null,
+    /** Space the caller keeps at the top (quick-place chips) so the offline indicator stays visible. */
+    indicatorTop: Dp = 0.dp,
 ) {
     val context = LocalContext.current
     val mapView = rememberMapView()
@@ -473,7 +476,7 @@ fun PickerMap(
                 }
             },
         )
-        OfflineIndicator(center.value, Modifier.align(Alignment.TopStart))
+        OfflineIndicator(center.value, Modifier.align(Alignment.TopStart).padding(top = indicatorTop))
         OsmAttribution(Modifier.align(Alignment.BottomEnd))
     }
 }

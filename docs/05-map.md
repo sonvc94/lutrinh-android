@@ -246,12 +246,16 @@ Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map
 
 | Area | Tiles z0–14 (one source) | Estimate shown | Stored (screen) |
 | --- | --- | --- | --- |
-| Hà Giang | ~1 780 | ~26 MB | 26,3 MB |
-| Ninh Bình | ~610 | ~25 MB | 24,5 MB |
+| Hà Giang | ~1 780 | ~29,6 MB | 26,3 MB |
+| Ninh Bình | ~610 | ~23,9 MB | 24,5 MB |
 | both | | | `mbgl-offline.db` 33,5 MB (fonts shared) |
 
   The fonts (~17 MB for all glyph ranges of the 3 Noto stacks) dominate small areas; tile bytes
   are only ~8 MB per area.
+* **Deleting.** `OfflineRegion.delete` only unlinks the region: its resources become ambient
+  cache (MapLibre keeps up to 50 MB) and the file does not shrink. `OfflineMaps.delete` therefore
+  calls `OfflineManager.clearAmbientCache` + `packDatabase` afterwards (measured: 33,7 → 28,2 →
+  0,07 MB deleting Ninh Bình then Hà Giang; the fonts stay while any area uses them).
 * **Provider note.** OpenFreeMap is a donated public instance: downloads are kept modest on
   purpose (two ready-made regions, trip areas capped at 150 MB, no country/province packs, one
   revalidation per process). A production release with many users should self-host the

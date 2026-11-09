@@ -233,12 +233,12 @@ The picker returns its result to the step form through the previous screen's sav
 
 | Phase | Status line | Buttons |
 | --- | --- | --- |
-| not downloaded | "Ước tính ~26,3 MB" | "Tải về" |
+| not downloaded | "Ước tính ~29,6 MB" | "Tải về" |
 | downloading | "Đang tải 42% · 11,0 MB" + progress bar | "Tạm dừng", "Hủy tải" |
 | waiting for network | "Mất mạng · 42% · sẽ tự tải tiếp khi có mạng" | "Tạm dừng", "Hủy tải" |
 | paused | "Đã tạm dừng · 42% · 11,0 MB" | "Tiếp tục", "Hủy tải" |
 | failed | error text: "Không có mạng. Hãy kết nối Wi‑Fi hoặc 4G rồi thử lại." / "Không đủ bộ nhớ trống (cần ~X). …" / "Máy chủ bản đồ đang lỗi, đang thử lại…" / "Không tải được vùng này. Hãy thử lại." | "Tải về" (retry) or "Tiếp tục", "Hủy tải" when something is stored |
-| downloaded | "Đã tải · 26,3 MB" (stored size) | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng 26,3 MB. …" / Xóa · Hủy |
+| downloaded | "Đã tải · 26,3 MB" (stored size) | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng tới 26,3 MB (phần dùng chung với vùng khác được giữ lại). …" / Xóa · Hủy |
 
 * **Behaviour:** downloads run in the app process, not in the screen: leaving the screen does
   not stop them; after the app is killed they resume at the next start (unless paused).
@@ -249,7 +249,7 @@ The picker returns its result to the step form through the previous screen's sav
 * **Screens:** `img/offline/01-offline-list.png` (not downloaded, estimates),
   `img/offline/02-offline-downloaded.png` (both downloaded with sizes),
   `img/offline/03-airplane-hagiang-region.png`, `img/offline/04-airplane-hagiang-city.png`,
-  `img/offline/05-airplane-hoian-not-downloaded.png`.
+  `img/offline/05-airplane-hoian-not-downloaded.png`, `img/offline/06-delete-confirm.png`.
 * **Inspired by:** nothing in the polarsteps reference (offline maps are a Lữ Trình addition for
   mountain areas without signal). Ready-made regions instead of drawing a box on a map: simpler,
   and keeps downloads bounded for the donated tile server.
@@ -294,6 +294,7 @@ The picker returns its result to the step form through the previous screen's sav
 | offline/03-airplane-hagiang-region.png | airplane mode, app restarted: Hà Giang trip map at region zoom from the pack, chip "Ngoại tuyến · Hà Giang" |
 | offline/04-airplane-hagiang-city.png | same at town zoom (street + village labels, route, pins) |
 | offline/05-airplane-hoian-not-downloaded.png | airplane mode, location picker at Hội An (not downloaded): "Không có mạng / Vùng này chưa tải bản đồ offline." |
+| offline/06-delete-confirm.png | "Xóa bản đồ offline “Ninh Bình”?" with the space it frees |
 
 ## Accessibility and UI tests
 

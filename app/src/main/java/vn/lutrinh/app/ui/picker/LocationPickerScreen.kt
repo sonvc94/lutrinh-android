@@ -108,6 +108,7 @@ fun LocationPickerScreen(
                 onCenterChanged = { center = it },
                 moveTo = moveTo,
                 modifier = Modifier.fillMaxSize(),
+                indicatorTop = 56.dp, // below the quick-place chips
             )
             // Fixed centre pin: its tip marks the picked point.
             Icon(

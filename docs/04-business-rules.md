@@ -207,7 +207,7 @@ All numbers live in `map/OfflineConfig.kt` (pure Kotlin; the iOS port copies the
   + Σ over z0–14 of (tiles in the box at z × the measured average tile size at z). Areas whose
   estimate is over **150 MB** cannot be downloaded (keeps the donated server's load modest and
   forbids whole provinces/the country); for a trip that wide the screen explains why. Measured on
-  2026-11-09: Hà Giang ~26 MB, Ninh Bình ~25 MB stored (both together 33,5 MB on disk, the fonts
+  2026-11-09: Hà Giang ~26 MB (estimate ~29,6 MB), Ninh Bình ~25 MB (estimate ~23,9 MB) stored (both together 33,5 MB on disk, the fonts
   being shared). After the download the stored size is shown.
 * **Start conditions.** A download starts only when the device is online and the free space on
   the store's volume is at least estimate + **50 MB**; otherwise the card shows "Không có mạng…" or
@@ -219,7 +219,11 @@ All numbers live in `map/OfflineConfig.kt` (pure Kotlin; the iOS port copies the
   paused one stays paused. Server errors are retried by MapLibre; storage or other errors stop the
   download with an error and a retry button.
 * **Cancel / delete.** "Hủy tải" and "Xóa" (after a confirmation) both remove the area from the
-  store; tiles no other area uses are freed. Deleting a trip does **not** delete its area: it stays
+  store, then clear MapLibre's ambient cache and pack the database: resources no other area uses
+  are freed on disk (MapLibre alone would keep them as up to 50 MB of cache); resources shared
+  with another downloaded area (fonts, low-zoom tiles) stay. The tiles cached by online viewing
+  go too. Measured 2026-11-09: both areas 33,7 MB → delete Ninh Bình 28,2 MB → delete Hà Giang
+  0,07 MB. Deleting a trip does **not** delete its area: it stays
   under "Vùng của các chuyến đi" until deleted there.
 * **Freshness.** Once per app process, when online, every downloaded area is re-checked against
   the server (MapLibre fetches only what changed). OpenFreeMap versions its tileset (TileJSON

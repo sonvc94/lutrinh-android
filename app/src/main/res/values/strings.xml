@@ -168,7 +168,7 @@
     <string name="offline_resume">Tiếp tục</string>
     <string name="offline_cancel">Hủy tải</string>
     <string name="offline_delete_title">Xóa bản đồ offline “%1$s”?</string>
-    <string name="offline_delete_body">Giải phóng %1$s. Khi mất sóng, vùng này sẽ không còn bản đồ. Có thể tải lại bất cứ lúc nào.</string>
+    <string name="offline_delete_body">Giải phóng tới %1$s (phần dùng chung với vùng khác được giữ lại). Khi mất sóng, vùng này sẽ không còn bản đồ. Có thể tải lại bất cứ lúc nào.</string>
     <string name="offline_store">Bộ nhớ bản đồ đang dùng: %1$s (gồm cả bộ đệm khi xem online) · Còn trống: %2$s</string>
     <string name="offline_offline_now">Đang không có mạng — chỉ xem được các vùng đã tải.</string>
     <string name="offline_indicator">Ngoại tuyến · %1$s</string>
