@@ -41,6 +41,8 @@ data class StepInput(
     val photoTakenAt: Map<String, LocalDateTime> = emptyMap(),
     /** Origin of newly imported files (R19 de-duplication); files not in the map keep what they had. */
     val photoSources: Map<String, PhotoSource> = emptyMap(),
+    /** R20: true = "Lưu nháp" (validated like any step), false = "Lưu" (published). */
+    val draft: Boolean = false,
 )
 
 enum class StepError {

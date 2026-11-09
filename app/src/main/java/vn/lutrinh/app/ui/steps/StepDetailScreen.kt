@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,8 +68,10 @@ import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
+import vn.lutrinh.app.domain.usecase.stepNumbers
 import vn.lutrinh.app.map.TripMap
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
+import vn.lutrinh.app.ui.common.DraftBadge
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.LocalPhoto
@@ -78,7 +81,8 @@ import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.trips.toMarkers
 
-data class StepDetail(val step: Step, val number: Int, val tripSteps: List<Step>)
+/** [number] = timeline number (null for a draft, R20); [index] = position in [tripSteps] (drafts included). */
+data class StepDetail(val step: Step, val number: Int?, val index: Int, val tripSteps: List<Step>)
 
 class StepDetailViewModel(private val c: AppContainer, handle: SavedStateHandle) : ViewModel() {
     val tripId: String = checkNotNull(handle["tripId"])
@@ -90,11 +94,14 @@ class StepDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
             if (step == null) Loadable.Missing
             else {
                 val ordered = steps.inTimelineOrder()
-                Loadable.Ready(StepDetail(step, ordered.indexOfFirst { it.id == step.id } + 1, ordered))
+                Loadable.Ready(StepDetail(step, stepNumbers(ordered)[step.id], ordered.indexOfFirst { it.id == step.id }, ordered))
             }
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
+
+    /** R20 "Đăng". */
+    fun publish() = viewModelScope.launch { c.publishStep(stepId) }
 
     fun delete() = viewModelScope.launch {
         c.deleteStep(stepId)
@@ -121,7 +128,7 @@ fun StepDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(d?.let { "${it.number}. ${it.step.title}" } ?: "", maxLines = 1) },
+                title = { Text(d?.let { if (it.number != null) "${it.number}. ${it.step.title}" else it.step.title } ?: "", maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
                 },
@@ -150,6 +157,7 @@ fun StepDetailScreen(
                     }
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(step.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                        if (step.isDraft) DraftCard(onPublish = vm::publish)
                         InfoRow(Icons.Outlined.Schedule, step.arrivedAt.displayDateTime())
                         val (place, coords) = placeLines(step.location, s.value.tripSteps, step.id)
                         InfoRow(Icons.Outlined.Place, place)
@@ -207,7 +215,7 @@ fun StepDetailScreen(
 /** Previous / next step in timeline order (F25); a side without a neighbour is left empty. */
 @Composable
 private fun StepNeighbours(d: StepDetail, onOpenStep: (String) -> Unit) {
-    val i = d.number - 1
+    val i = d.index
     val prev = d.tripSteps.getOrNull(i - 1)
     val next = d.tripSteps.getOrNull(i + 1)
     if (prev == null && next == null) return
@@ -225,6 +233,25 @@ private fun StepNeighbours(d: StepDetail, onOpenStep: (String) -> Unit) {
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
                 }
             }
+        }
+    }
+}
+
+/** R20: what a draft is, and "Đăng" to publish it. */
+@Composable
+private fun DraftCard(onPublish: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f), shape = RoundedCornerShape(12.dp)) {
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                DraftBadge()
+                Text(
+                    stringResource(R.string.step_draft_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            Button(onClick = onPublish, modifier = Modifier.padding(start = 8.dp)) { Text(stringResource(R.string.step_publish)) }
         }
     }
 }

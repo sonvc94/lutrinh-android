@@ -21,12 +21,16 @@ object TripShare {
     /** Photos on the summary image. */
     const val IMAGE_PHOTOS = 4
 
+    /** R18 + R20: the steps a share shows: published steps in timeline order (drafts are never shared). */
+    fun sharedSteps(steps: List<Step>): List<Step> = steps.published().inTimelineOrder()
+
     /**
-     * R18 stats: km and step/photo counts as on the trip screen (R10: straight lines between
+     * R18 stats (drafts left out, R20): km and step/photo counts as on the trip screen (R10: straight lines between
      * steps, rounded); days = the trip's dates inclusive, or for an open-ended trip from the start
      * date to the last step's date (at least 1 day).
      */
-    fun stats(trip: Trip, steps: List<Step>): ShareStats {
+    fun stats(trip: Trip, all: List<Step>): ShareStats {
+        val steps = all.published()
         val base = vn.lutrinh.app.domain.usecase.statsOf(trip, steps)
         val last = trip.endDate ?: steps.maxOfOrNull { it.arrivedAt.toLocalDate() }?.coerceAtLeast(trip.startDate) ?: trip.startDate
         return ShareStats(
@@ -41,11 +45,12 @@ object TripShare {
      * R18 photo choice for the summary image: at most [max] photos, spread over the trip. With at
      * least [max] steps that have photos, the cover (first photo) of [max] such steps evenly
      * spaced along the timeline (first and last always in); with fewer, every such step's cover,
-     * then their next photos in turn (step by step, timeline order) until [max].
+     * then their next photos in turn (step by step, timeline order) until [max]. Drafts' photos
+     * are never chosen (R20).
      */
     fun imagePhotos(steps: List<Step>, max: Int = IMAGE_PHOTOS): List<Photo> {
         if (max <= 0) return emptyList()
-        val withPhotos = steps.inTimelineOrder().filter { it.photos.isNotEmpty() }.map { s -> s.photos.sortedBy { it.position } }
+        val withPhotos = sharedSteps(steps).filter { it.photos.isNotEmpty() }.map { s -> s.photos.sortedBy { it.position } }
         if (withPhotos.isEmpty()) return emptyList()
         if (withPhotos.size >= max) {
             if (max == 1) return listOf(withPhotos.first().first())

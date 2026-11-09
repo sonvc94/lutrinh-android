@@ -284,4 +284,20 @@
     <string name="share_no_basemap">Không tải được nền bản đồ (không có mạng và chưa tải vùng offline): tuyến đường được vẽ trên nền trơn.</string>
     <string name="share_page_info">%1$s · %2$d ảnh</string>
     <string name="share_page_omitted">Đã lược bớt %1$d ảnh để trang không quá 15 MB.</string>
+
+    <!-- Draft steps (R20) -->
+    <string name="step_save_draft">Lưu nháp</string>
+    <string name="step_draft_badge">Nháp</string>
+    <string name="step_publish">Đăng</string>
+    <string name="step_draft_hint">Bản nháp chưa có trên lộ trình, thống kê, bản đồ của tôi và tệp chia sẻ. Bấm “Đăng” khi đã xong.</string>
+    <string name="trip_drafts">%1$d nháp</string>
+
+    <!-- Trip cover (R21) -->
+    <string name="trip_cover">Ảnh bìa</string>
+    <string name="trip_cover_change">Đổi ảnh bìa</string>
+    <string name="trip_cover_auto">Tự động</string>
+    <string name="trip_cover_auto_hint">Ảnh đầu tiên của điểm dừng đầu tiên</string>
+    <string name="trip_cover_photo_of">Ảnh của %1$s</string>
+    <string name="trip_cover_chosen">Đã chọn</string>
+    <string name="trip_cover_none">Chuyến đi chưa có ảnh. Thêm ảnh vào điểm dừng để chọn ảnh bìa.</string>
 </resources>

@@ -29,7 +29,6 @@ import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.usecase.TrackMath
 import vn.lutrinh.app.domain.usecase.TripPage
 import vn.lutrinh.app.domain.usecase.TripShare
-import vn.lutrinh.app.domain.usecase.inTimelineOrder
 import vn.lutrinh.app.domain.usecase.legsOf
 import vn.lutrinh.app.map.MapConfig
 import vn.lutrinh.app.map.StaticTripMap
@@ -80,7 +79,8 @@ class ShareTripViewModel(private val c: AppContainer, handle: SavedStateHandle) 
     private data class Rendered(val source: Source, val map: StaticTripMap.Output)
 
     private val source: Flow<Source?> = combine(c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observePoints(tripId)) { trip, steps, points ->
-        trip?.let { Source(it, steps.inTimelineOrder(), TrackMath.displayLines(points)) }
+        // R20: drafts are never shared (map, image and page).
+        trip?.let { Source(it, TripShare.sharedSteps(steps), TrackMath.displayLines(points)) }
     }.distinctUntilChanged()
 
     val missing: StateFlow<Boolean> = source.map { it == null }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)

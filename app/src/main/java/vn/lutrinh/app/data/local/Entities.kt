@@ -19,6 +19,8 @@ data class TripEntity(
     @ColumnInfo(name = "end_date") val endDate: LocalDate?,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    /** Photo id chosen as cover, or null = automatic (added in DB version 6, R21). No foreign key: a stale id reads as automatic. */
+    @ColumnInfo(name = "cover_photo_id") val coverPhotoId: String? = null,
 )
 
 @Entity(
@@ -45,6 +47,8 @@ data class StepEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     /** TransportMode.code of the leg ending here, or null (added in DB version 2). */
     @ColumnInfo(name = "transport_mode") val transportMode: String? = null,
+    /** 1 = draft, 0 = published (added in DB version 6, R20; existing steps are published). */
+    @ColumnInfo(name = "is_draft", defaultValue = "0") val isDraft: Boolean = false,
 )
 
 @Entity(
@@ -84,6 +88,8 @@ data class TripSummaryRow(
     @ColumnInfo(name = "step_count") val stepCount: Int,
     @ColumnInfo(name = "photo_count") val photoCount: Int,
     @ColumnInfo(name = "cover_file") val coverFile: String?,
+    @ColumnInfo(name = "draft_count") val draftCount: Int,
+    @ColumnInfo(name = "draft_photo_count") val draftPhotoCount: Int,
 )
 
 data class DateRangeRow(

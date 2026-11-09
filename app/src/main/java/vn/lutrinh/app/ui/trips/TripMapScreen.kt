@@ -63,6 +63,7 @@ import vn.lutrinh.app.map.TripMap
 import vn.lutrinh.app.ui.tracks.RecordTrackControl
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
+import vn.lutrinh.app.ui.common.DraftBadge
 import vn.lutrinh.app.ui.common.LocalPhoto
 import vn.lutrinh.app.ui.common.displayDateTime
 import vn.lutrinh.app.ui.common.MyLocationButton
@@ -213,13 +214,17 @@ fun TripMapScreen(
                                     Box(Modifier.size(56.dp), Alignment.Center) { Icon(Icons.Outlined.Image, null) }
                                 }
                                 Column(Modifier.padding(start = 10.dp)) {
-                                    Text("${i + 1}. ${step.title}", style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    // R20: a draft has no number and says "Nháp".
+                                    val n = detail.numbers[step.id]
+                                    Text(if (n != null) "$n. ${step.title}" else step.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(step.arrivedAt.displayDateTime(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                             // Same row height on every card (F23): the leg that ends here (R12), or "Điểm xuất phát" on the first.
                             Row(Modifier.fillMaxWidth().height(32.dp).padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                                if (i > 0) LegChip(detail.legs[i - 1], onClick = { editLegTo = step.id }, Modifier.height(32.dp))
+                                val leg = detail.legInto(step.id)
+                                if (leg != null) LegChip(leg, onClick = { editLegTo = step.id }, Modifier.height(32.dp))
+                                else if (step.isDraft) DraftBadge()
                                 else Text(stringResource(R.string.trip_map_start), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.weight(1f))
                                 // F5: the selected card says how to open it.

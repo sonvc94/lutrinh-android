@@ -53,7 +53,20 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
+import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.usecase.Limits
+import vn.lutrinh.app.domain.usecase.TripCover
+import vn.lutrinh.app.ui.common.LocalPhoto
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import vn.lutrinh.app.domain.usecase.SaveResult
 import vn.lutrinh.app.domain.usecase.TripError
 import vn.lutrinh.app.domain.usecase.TripInput
@@ -82,6 +95,11 @@ data class TripForm(
     val dirty: Boolean = false,
     val savedId: String? = null,
     val deleted: Boolean = false,
+    /** Steps of an existing trip, for the cover picker (R21). */
+    val steps: List<Step> = emptyList(),
+    /** R21: chosen cover photo id (null = "Tự động"), applied by "Lưu". */
+    val coverPhotoId: String? = null,
+    val storedCoverPhotoId: String? = null,
 )
 
 class TripEditViewModel(private val c: AppContainer, handle: SavedStateHandle) : ViewModel() {
@@ -106,6 +124,10 @@ class TripEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                         stepDates = c.steps.stepDateRange(tripId),
                         stepCount = steps.size,
                         photoCount = steps.sumOf { s -> s.photos.size },
+                        steps = steps,
+                        // A stale choice (photo deleted) reads as automatic.
+                        coverPhotoId = trip.coverPhotoId?.takeIf { id -> TripCover.isChosen(id, steps) },
+                        storedCoverPhotoId = trip.coverPhotoId,
                     )
                 }
             }
@@ -117,7 +139,10 @@ class TripEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
     fun save() = viewModelScope.launch {
         val f = _form.value
         when (val r = c.saveTrip(tripId, TripInput(f.title, f.description, f.startDate, f.endDate))) {
-            is SaveResult.Saved -> _form.update { it.copy(savedId = r.id, dirty = false) }
+            is SaveResult.Saved -> {
+                if (tripId != null && f.coverPhotoId != f.storedCoverPhotoId) c.setTripCover(r.id, f.coverPhotoId)
+                _form.update { it.copy(savedId = r.id, dirty = false) }
+            }
             is SaveResult.Invalid -> _form.update { it.copy(errors = r.errors) }
         }
     }
@@ -141,6 +166,7 @@ fun TripEditScreen(
     var pickStart by remember { mutableStateOf(false) }
     var pickEnd by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var pickCover by remember { mutableStateOf(false) }
     var confirmDiscard by remember { mutableStateOf(false) }
 
     LaunchedEffect(f.savedId) { f.savedId?.let { onSaved(it, isNew) } }
@@ -229,6 +255,7 @@ fun TripEditScreen(
                         Text(stringResource(R.string.trip_field_end_clear))
                     }
                 }
+                if (!isNew) CoverRow(f, onChange = { pickCover = true })
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = vm::save, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Text(stringResource(if (isNew) R.string.trip_create_button else R.string.action_save))
@@ -258,7 +285,31 @@ fun TripEditScreen(
             onDismiss = { confirmDelete = false },
         )
     }
+    if (pickCover) {
+        CoverPickerSheet(f.steps, f.coverPhotoId, onPick = { id -> vm.edit { copy(coverPhotoId = id) }; pickCover = false }, onDismiss = { pickCover = false })
+    }
     if (confirmDiscard) DiscardDialog(onDiscard = { confirmDiscard = false; onBack() }, onDismiss = { confirmDiscard = false })
+}
+
+/** R21: the trip's cover as it will be after "Lưu" (chosen or automatic), and "Đổi ảnh bìa". */
+@Composable
+private fun CoverRow(f: TripForm, onChange: () -> Unit) {
+    val cover = TripCover.resolve(f.coverPhotoId, f.steps)
+    OutlinedButton(onClick = onChange, modifier = Modifier.fillMaxWidth().height(72.dp), contentPadding = PaddingValues(8.dp)) {
+        Box(Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant), Alignment.Center) {
+            if (cover != null) LocalPhoto(cover.fileName, Modifier.fillMaxSize())
+            else Icon(Icons.Outlined.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.trip_cover), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                stringResource(if (f.coverPhotoId != null) R.string.trip_cover_chosen else R.string.trip_cover_auto),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Text(stringResource(R.string.trip_cover_change), style = MaterialTheme.typography.labelLarge)
+    }
 }
 
 @Composable

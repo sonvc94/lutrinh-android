@@ -67,6 +67,7 @@ import vn.lutrinh.app.domain.usecase.Geo
 import vn.lutrinh.app.domain.usecase.OverallStats
 import vn.lutrinh.app.domain.usecase.legsOf
 import vn.lutrinh.app.domain.usecase.overallStatsOf
+import vn.lutrinh.app.domain.usecase.published
 import vn.lutrinh.app.domain.usecase.routeOf
 import vn.lutrinh.app.domain.usecase.tripColorSlots
 import vn.lutrinh.app.map.AllTripsMap
@@ -109,7 +110,7 @@ class MyMapViewModel(c: AppContainer) : ViewModel() {
 
     val state: StateFlow<Loadable<MyMap>> =
         combine(c.trips.observeTripSummaries(), c.steps.observeAllSteps(), trackLines) { summaries, steps, tracks ->
-            val byTrip = steps.groupBy { it.tripId }
+            val byTrip = steps.published().groupBy { it.tripId } // R20: drafts are not on My map
             val slots = tripColorSlots(summaries.map { it.trip }, TripPalette.size)
             val trips = summaries.map { s ->
                 val own = byTrip[s.trip.id].orEmpty()

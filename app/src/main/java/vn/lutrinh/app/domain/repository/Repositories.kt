@@ -22,6 +22,9 @@ interface TripRepository {
     suspend fun getTrip(id: String): Trip?
     suspend fun upsertTrip(trip: Trip)
 
+    /** R21: sets the trip's cover photo (null = automatic). False when the trip does not exist. */
+    suspend fun setCover(tripId: String, photoId: String?, now: Long): Boolean
+
     /** Deletes the trip and, by cascade, its steps and photo rows. Returns the photo files that belonged to it. */
     suspend fun deleteTrip(id: String): List<String>
 }
@@ -53,6 +56,9 @@ interface StepRepository {
 
     /** Sets the transport of the leg ending at [stepId] (null = clear). False when the step does not exist. */
     suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean
+
+    /** R20: marks the step as a draft or published. False when the step does not exist. */
+    suspend fun setDraft(stepId: String, draft: Boolean, now: Long): Boolean
 }
 
 /** Recorded GPS tracks and their points (R16). */

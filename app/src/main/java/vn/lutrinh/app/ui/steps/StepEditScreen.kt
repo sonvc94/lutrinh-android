@@ -109,6 +109,7 @@ import vn.lutrinh.app.map.TripMap
 import vn.lutrinh.app.ui.common.VietnameseLocale
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.DiscardDialog
+import vn.lutrinh.app.ui.common.DraftBadge
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.LocalPhoto
 import vn.lutrinh.app.ui.common.MessageState
@@ -148,6 +149,10 @@ data class StepForm(
     val stopPhotos: StopPhotosState? = null,
     /** Steps of the trip (for "gần <điểm dừng>" under the location, F15); includes the edited one. */
     val tripSteps: List<Step> = emptyList(),
+    /** R20: the edited step is a draft (shown as a badge); a new step is not. */
+    val isDraft: Boolean = false,
+    /** R20: the last save asked for a draft ("Lưu nháp"); kept for the R17 extend-trip retry. */
+    val saveAsDraft: Boolean = false,
 ) {
     /** Gallery photos that "Lưu" will copy into the step (R19), in grid order. */
     val galleryPhotos: List<GalleryPhoto> get() = stopPhotos?.selection?.selected.orEmpty()
@@ -244,6 +249,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
         date = s.arrivedAt.toLocalDate(),
         time = s.arrivedAt.toLocalTime(),
         photos = s.photos.map { it.fileName },
+        isDraft = s.isDraft,
     )
 
     fun edit(change: StepForm.() -> StepForm) = _form.update { it.change().copy(dirty = true, errors = emptySet()) }
@@ -332,14 +338,18 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
         return if (failed > 0) null else ticked.mapNotNull { galleryFiles[it.id] }
     }
 
-    /** [extendTrip]: the user accepted widening the trip for this step (only offered from a stop suggestion). */
-    fun save(extendTrip: Boolean = false) = viewModelScope.launch {
-        _form.update { it.copy(extendOffer = null) }
+    /**
+     * [draft]: "Lưu nháp" (true) or "Lưu" (false: published, R20). [extendTrip]: the user accepted
+     * widening the trip for this step (only offered from a stop suggestion).
+     */
+    fun save(draft: Boolean = false, extendTrip: Boolean = false) = viewModelScope.launch {
+        _form.update { it.copy(extendOffer = null, saveAsDraft = draft) }
         val f = _form.value
         val fromGallery = importTickedGalleryPhotos(f) ?: return@launch
         val files = f.photos + fromGallery.filterNot { it in f.photos }
         val input = StepInput(
             f.title, f.note, f.location, LocalDateTime.of(f.date, f.time), files, takenAtByFile.toMap(), sourceByFile.toMap(),
+            draft = draft,
         )
         when (val r = c.saveStep(tripId, stepId, input, extendTrip && fromStop != null)) {
             is SaveResult.Saved -> {
@@ -444,13 +454,18 @@ fun StepEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(if (isNew) R.string.step_create_title else R.string.step_edit_title)) },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(if (isNew) R.string.step_create_title else R.string.step_edit_title))
+                        if (f.isDraft) DraftBadge(Modifier.padding(start = 8.dp))
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { if (f.dirty) confirmDiscard = true else onBack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back))
                     }
                 },
-                actions = { TextButton(onClick = vm::save, enabled = !f.importing) { Text(stringResource(R.string.action_save)) } },
+                actions = { TextButton(onClick = { vm.save() }, enabled = !f.importing) { Text(stringResource(R.string.action_save)) } },
             )
         },
     ) { padding ->
@@ -524,8 +539,14 @@ fun StepEditScreen(
                     )
                 }
                 Spacer(Modifier.height(4.dp))
-                Button(onClick = vm::save, enabled = !f.importing, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                    Text(stringResource(R.string.action_save))
+                // R20: "Lưu nháp" keeps the step out of the trip; "Lưu" publishes it (also a draft).
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = { vm.save(draft = true) }, enabled = !f.importing, modifier = Modifier.weight(1f).height(52.dp)) {
+                        Text(stringResource(R.string.step_save_draft))
+                    }
+                    Button(onClick = { vm.save() }, enabled = !f.importing, modifier = Modifier.weight(1f).height(52.dp)) {
+                        Text(stringResource(R.string.action_save))
+                    }
                 }
                 if (!isNew) {
                     OutlinedButton(
@@ -567,7 +588,7 @@ fun StepEditScreen(
             onDismissRequest = vm::dismissExtendOffer,
             title = { Text(stringResource(R.string.extend_trip_title)) },
             text = { Text(stringResource(bodyRes, was, now)) },
-            confirmButton = { TextButton(onClick = { vm.save(extendTrip = true) }) { Text(stringResource(R.string.extend_trip_confirm)) } },
+            confirmButton = { TextButton(onClick = { vm.save(draft = f.saveAsDraft, extendTrip = true) }) { Text(stringResource(R.string.extend_trip_confirm)) } },
             dismissButton = { TextButton(onClick = vm::dismissExtendOffer) { Text(stringResource(R.string.action_cancel)) } },
         )
     }

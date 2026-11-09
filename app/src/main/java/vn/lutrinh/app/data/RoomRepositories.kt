@@ -27,6 +27,8 @@ class RoomTripRepository(private val db: AppDatabase) : TripRepository {
 
     override suspend fun upsertTrip(trip: Trip) = dao.upsert(trip.toEntity())
 
+    override suspend fun setCover(tripId: String, photoId: String?, now: Long): Boolean = dao.setCover(tripId, photoId, now) > 0
+
     override suspend fun deleteTrip(id: String): List<String> = db.withTransaction {
         val files = dao.photoFiles(id)
         dao.delete(id) // steps + photos go by ON DELETE CASCADE
@@ -80,4 +82,6 @@ class RoomStepRepository(private val db: AppDatabase) : StepRepository {
 
     override suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean =
         dao.setTransportMode(stepId, mode?.code, now) > 0
+
+    override suspend fun setDraft(stepId: String, draft: Boolean, now: Long): Boolean = dao.setDraft(stepId, draft, now) > 0
 }

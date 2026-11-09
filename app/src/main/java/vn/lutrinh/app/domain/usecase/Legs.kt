@@ -25,8 +25,11 @@ data class Leg(val from: Step, val to: Step) {
     val distanceKm: Double get() = Geo.distanceKm(from.location, to.location)
 }
 
-/** R12: legs of a trip, one per pair of consecutive steps in timeline order (R2). */
-fun legsOf(steps: List<Step>): List<Leg> = steps.inTimelineOrder().zipWithNext { a, b -> Leg(a, b) }
+/**
+ * R12: legs of a trip, one per pair of consecutive steps in timeline order (R2). R20: drafts are
+ * skipped, so a leg joins the published steps on either side of a draft.
+ */
+fun legsOf(steps: List<Step>): List<Leg> = steps.published().inTimelineOrder().zipWithNext { a, b -> Leg(a, b) }
 
 /**
  * Line geometry drawn for a leg (docs/05-map.md "Legs"). No routing: road/rail/water modes are
@@ -132,12 +135,12 @@ object LegGeometry {
     internal fun unMercY(y: Double): Double = Math.toDegrees(2 * atan(exp(Math.toRadians(y))) - PI / 2)
 }
 
-/** Totals for "Bản đồ của tôi" (R14). Distances are straight lines per trip, never between trips. */
+/** Totals for "Bản đồ của tôi" (R14). Distances are straight lines per trip, never between trips. Drafts are left out (R20). */
 data class OverallStats(val tripCount: Int, val stepCount: Int, val distanceKm: Double)
 
 fun overallStatsOf(trips: List<Trip>, steps: List<Step>): OverallStats {
     val ids = trips.map { it.id }.toSet()
-    val mine = steps.filter { it.tripId in ids }
+    val mine = steps.published().filter { it.tripId in ids }
     val km = mine.groupBy { it.tripId }.values.sumOf { Geo.routeLengthKm(routeOf(it)) }
     return OverallStats(trips.size, mine.size, km)
 }

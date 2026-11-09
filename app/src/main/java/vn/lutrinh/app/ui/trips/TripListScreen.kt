@@ -193,7 +193,8 @@ fun TripListScreen(
     toDelete?.let { t ->
         ConfirmDeleteDialog(
             title = stringResource(R.string.trip_delete_confirm_title),
-            body = stringResource(R.string.trip_delete_confirm_body, t.trip.title, t.stepCount, t.photoCount),
+            // Drafts go too (R20): the card counts published steps only.
+            body = stringResource(R.string.trip_delete_confirm_body, t.trip.title, t.stepCount + t.draftCount, t.photoCount + t.draftPhotoCount),
             onConfirm = { vm.delete(t.trip.id); toDelete = null },
             onDismiss = { toDelete = null },
         )
@@ -241,8 +242,10 @@ private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Uni
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                val counts = stringResource(R.string.trip_counts, summary.stepCount, summary.photoCount)
+                val drafts = if (summary.draftCount > 0) " · " + stringResource(R.string.trip_drafts, summary.draftCount) else ""
                 Text(
-                    stringResource(R.string.trip_counts, summary.stepCount, summary.photoCount),
+                    counts + drafts,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )

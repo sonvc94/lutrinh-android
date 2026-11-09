@@ -18,9 +18,12 @@ Types below are neutral: `String`, `Int`, `Double`, `Date` (calendar date, no ti
 | endDate | Date | yes | null = open-ended trip; if set, `endDate >= startDate` |
 | createdAt | Instant | no | set on create, kept on edit |
 | updatedAt | Instant | no | set on every save |
+| coverPhotoId | String | yes | R21 (v6): id of the photo chosen as cover ("Ảnh bìa"); null = "Tự động". Not a foreign key: a stale id (photo or its step deleted) reads as automatic |
 
-Derived (not stored): `TripSummary` = trip + step count + photo count + cover photo. The cover is
-the first photo (by position) of the first step in timeline order (R2), or none.
+Derived (not stored): `TripSummary` = trip + published step count + published photo count +
+draft count + draft photo count (R20) + cover photo. The cover (R21) is the photo `coverPhotoId`
+names when it still belongs to one of the trip's steps; otherwise the first photo (by position)
+of the first step in timeline order (R2), drafts included, or none.
 
 ## Step (a stop / place on the trip)
 
@@ -36,6 +39,7 @@ the first photo (by position) of the first step in timeline order (R2), or none.
 | updatedAt | Instant | no | |
 | photos | list of Photo | — | 0..30, ordered by `position` |
 | arrivalTransport | TransportMode | yes | how the traveller reached this step from the previous one (R12); null = not set; ignored on the first step |
+| isDraft | Boolean | no | R20 (v6): true = saved with "Lưu nháp": shown in the trip (timeline, map) but left out of legs, stats, share and "Bản đồ của tôi"; false = published (default; every step before v6) |
 
 ### TransportMode
 
@@ -131,12 +135,12 @@ overlaps (`startAt..endAt`), so a small change of the detection keeps old decisi
 | stepId | String | yes | the step created (`added` only); not a foreign key: deleting that step brings the suggestion back (R17) |
 | decidedAt | Instant (epoch ms) | no | |
 
-## Storage (Android: SQLite via Room, database `lutrinh.db`, version 5)
+## Storage (Android: SQLite via Room, database `lutrinh.db`, version 6)
 
 | Table | Columns | Keys / indexes |
 | --- | --- | --- |
-| `trips` | id TEXT PK, title, description, start_date TEXT `yyyy-MM-dd`, end_date TEXT nullable, created_at INTEGER, updated_at INTEGER | — |
-| `steps` | id TEXT PK, trip_id TEXT, title, note, latitude REAL, longitude REAL, arrived_at TEXT `yyyy-MM-dd'T'HH:mm`, created_at, updated_at, transport_mode TEXT nullable (v2) | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id), (trip_id, arrived_at) |
+| `trips` | id TEXT PK, title, description, start_date TEXT `yyyy-MM-dd`, end_date TEXT nullable, created_at INTEGER, updated_at INTEGER, cover_photo_id TEXT nullable (v6) | — |
+| `steps` | id TEXT PK, trip_id TEXT, title, note, latitude REAL, longitude REAL, arrived_at TEXT `yyyy-MM-dd'T'HH:mm`, created_at, updated_at, transport_mode TEXT nullable (v2), is_draft INTEGER NOT NULL DEFAULT 0 (v6) | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id), (trip_id, arrived_at) |
 | `photos` | id TEXT PK, step_id TEXT, file_name TEXT, position INTEGER, created_at INTEGER, taken_at TEXT `yyyy-MM-dd'T'HH:mm` nullable (v4), source_id TEXT nullable (v5), source_size INTEGER nullable (v5) | FK step_id → steps.id ON DELETE CASCADE; index (step_id); UNIQUE (file_name) |
 | `tracks` (v3) | id TEXT PK, trip_id TEXT, status TEXT, started_at INTEGER, ended_at INTEGER nullable, active_ms INTEGER, resumed_at INTEGER nullable, segment INTEGER, distance_m REAL, point_count INTEGER, interrupted INTEGER (0/1), created_at, updated_at | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id) |
 | `track_points` (v3) | id INTEGER PK AUTOINCREMENT, track_id TEXT, segment INTEGER, recorded_at INTEGER, latitude REAL, longitude REAL, accuracy_m REAL nullable, altitude_m REAL nullable, speed_mps REAL nullable | FK track_id → tracks.id ON DELETE CASCADE; index (track_id, segment, recorded_at) |
@@ -144,7 +148,7 @@ overlaps (`startAt..endAt`), so a small change of the detection keeps old decisi
 
 Dates are stored as ISO-8601 text so that text order equals time order (used by `ORDER BY` and by
 the step date range query) and the values are readable in any SQLite browser. The exported schemas
-are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 5.json).
+are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 6.json).
 Track times are epoch-millisecond integers (instants, not local times): a recording can cross time
 zones, and only durations and order matter. Each stored point is written in one transaction with
 its track's `distance_m` / `point_count` / `updated_at`, so a process death never leaves them out
@@ -158,6 +162,7 @@ of step.
 | 2 → 3 | recorded tracks (R16) | `CREATE TABLE tracks …`, `CREATE TABLE track_points …` + their indexes (exact SQL = `3.json`); existing tables untouched |
 | 3 → 4 | stop suggestions (R17) | `ALTER TABLE photos ADD COLUMN taken_at TEXT` (existing photos: null = time unknown), `CREATE TABLE stop_decisions …` + `index_stop_decisions_track_id` (exact SQL = `4.json`) |
 | 4 → 5 | gallery photos of a stop (R19) | `ALTER TABLE photos ADD COLUMN source_id TEXT`, `ALTER TABLE photos ADD COLUMN source_size INTEGER` (existing photos: null = origin unknown) |
+| 5 → 6 | draft steps (R20), trip cover (R21) | `ALTER TABLE steps ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0` (existing steps: published), `ALTER TABLE trips ADD COLUMN cover_photo_id TEXT` (existing trips: automatic cover) |
 
 * There is **no destructive fallback**: a missing migration crashes on open instead of wiping
   the user's trips. Each version bump adds `MIGRATION_x_y` to `AppDatabase.MIGRATIONS`, bumps
@@ -172,13 +177,18 @@ of step.
   every row (old photo: `takenAt` null), stores a decision and checks that deleting the track
   removes it. `version4UpgradesWithPhotoSourcesAndKeepsEverything` builds a v4 file from `4.json`
 (trip, step, photo with `taken_at`, track, point, decision), upgrades it, checks every row (old
-photo: `sourceId` / `sourceSize` null, `takenAt` kept) and saves a photo with a source. Also checked by hand: the main@b07fcf6 build with sample data, then the v2
+photo: `sourceId` / `sourceSize` null, `takenAt` kept) and saves a photo with a source.
+`version5UpgradesWithDraftsAndCoverAndKeepsEverything` builds a v5 file from `5.json`, upgrades it,
+checks that every step is published, the cover is automatic (`a.jpg`, counts 2 steps / 1 photo,
+0 drafts), then sets a draft and a chosen cover. Also checked by hand: the main@b07fcf6 build with sample data, then the v2
   build installed over it (`img/27-upgrade-before-v1.png`, `img/28-upgrade-after-v2.png`); and
   main@d96f285 (v3) with sample data + a recorded track, then the v4 build installed over it:
   2 trips, 14 steps, 16 photos, 1 track, 6 points before and after (`pragma user_version` 3 → 4);
 and main@a664e3e (v4) with sample data, then the v5 build installed over it with `install -r`:
 2 trips, 14 steps, 16 photos, 1 track before and after, all 16 `taken_at` kept, `source_id`
-null (`pragma user_version` 4 → 5).
+null (`pragma user_version` 4 → 5); and main@520f4c9 (v5) with the captain's data on emulator-5580,
+then the v6 build installed over it with `install -r`: counts trips|steps|photos|tracks|points|decisions
+`2|14|16|1|359|1` before and after, every step `is_draft = 0`, every `cover_photo_id` null.
 
 Photo files live outside the database in `<app private files>/photos/<uuid>.<ext>` (`jpg` for
 re-encoded photos, `png` when transparent, otherwise the picked format — R11); the database

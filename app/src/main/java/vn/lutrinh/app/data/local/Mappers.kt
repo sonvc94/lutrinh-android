@@ -12,11 +12,11 @@ import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
 
-fun TripEntity.toDomain() = Trip(id, title, description, startDate, endDate, createdAt, updatedAt)
+fun TripEntity.toDomain() = Trip(id, title, description, startDate, endDate, createdAt, updatedAt, coverPhotoId)
 
-fun Trip.toEntity() = TripEntity(id, title, description, startDate, endDate, createdAt, updatedAt)
+fun Trip.toEntity() = TripEntity(id, title, description, startDate, endDate, createdAt, updatedAt, coverPhotoId)
 
-fun TripSummaryRow.toDomain() = TripSummary(trip.toDomain(), stepCount, photoCount, coverFile)
+fun TripSummaryRow.toDomain() = TripSummary(trip.toDomain(), stepCount, photoCount, coverFile, draftCount, draftPhotoCount)
 
 fun PhotoEntity.toDomain() = Photo(id, stepId, fileName, position, createdAt, takenAt, sourceId, sourceSize)
 
@@ -33,6 +33,7 @@ fun StepWithPhotos.toDomain() = Step(
     updatedAt = step.updatedAt,
     photos = photos.sortedWith(compareBy<PhotoEntity> { it.position }.thenBy { it.createdAt }).map { it.toDomain() },
     arrivalTransport = TransportMode.fromCode(step.transportMode),
+    isDraft = step.isDraft,
 )
 
 fun Step.toEntity() = StepEntity(
@@ -46,6 +47,7 @@ fun Step.toEntity() = StepEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     transportMode = arrivalTransport?.code,
+    isDraft = isDraft,
 )
 
 fun TrackEntity.toDomain() = Track(

@@ -37,6 +37,8 @@ class SaveTrip(
             endDate = input.endDate,
             createdAt = existing?.createdAt ?: now,
             updatedAt = now,
+            // Not part of the trip fields: the cover is set with SetTripCover (R21).
+            coverPhotoId = existing?.coverPhotoId,
         )
         trips.upsertTrip(trip)
         return SaveResult.Saved(trip.id)
@@ -105,6 +107,8 @@ class SaveStep(
             photos = photos,
             // Not part of the step form: the leg transport is set from the timeline/map (R12).
             arrivalTransport = existing?.arrivalTransport,
+            // R20: "Lưu nháp" stores a draft, "Lưu" a published step (a draft is published by it).
+            isDraft = input.draft,
         )
         val removed = if (widened == null) steps.saveStep(step) else steps.saveStepAndTrip(step, trip.copy(updatedAt = now))
         files.delete(removed)
@@ -123,6 +127,16 @@ class DeleteStep(private val steps: StepRepository, private val files: PhotoFile
 class SetLegTransport(private val steps: StepRepository, private val clock: Clock) {
     suspend operator fun invoke(toStepId: String, mode: TransportMode?): Boolean =
         steps.setArrivalTransport(toStepId, mode, clock.nowMillis())
+}
+
+/** R20 "Đăng": publishes a draft step. False when the step does not exist. */
+class PublishStep(private val steps: StepRepository, private val clock: Clock) {
+    suspend operator fun invoke(stepId: String): Boolean = steps.setDraft(stepId, false, clock.nowMillis())
+}
+
+/** R21: sets the trip cover to [photoId] (a photo of one of its steps), or null = "Tự động". */
+class SetTripCover(private val trips: TripRepository, private val clock: Clock) {
+    suspend operator fun invoke(tripId: String, photoId: String?): Boolean = trips.setCover(tripId, photoId, clock.nowMillis())
 }
 
 /** Deletes a recorded track and its points (R16). An open track must be stopped first. */

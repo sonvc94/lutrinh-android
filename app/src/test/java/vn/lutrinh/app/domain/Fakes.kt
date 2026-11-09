@@ -17,6 +17,7 @@ import vn.lutrinh.app.domain.repository.TrackRepository
 import vn.lutrinh.app.domain.repository.TripRepository
 import vn.lutrinh.app.domain.usecase.TripOrder
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
+import vn.lutrinh.app.domain.usecase.TripCover
 import java.time.LocalDate
 
 /** In-memory storage with the same contract as the Room implementation (used for use-case tests). */
@@ -27,13 +28,23 @@ class FakeStore : TripRepository, StepRepository {
     override fun observeTripSummaries(): Flow<List<TripSummary>> = trips.map { all ->
         all.values.sortedWith(TripOrder).map { t ->
             val s = steps.value.values.filter { it.tripId == t.id }.inTimelineOrder()
-            TripSummary(t, s.size, s.sumOf { it.photos.size }, s.flatMap { it.photos }.firstOrNull()?.fileName)
+            val (drafts, pub) = s.partition { it.isDraft }
+            TripSummary(
+                t, pub.size, pub.sumOf { it.photos.size }, TripCover.resolve(t.coverPhotoId, s)?.fileName,
+                drafts.size, drafts.sumOf { it.photos.size },
+            )
         }
     }
 
     override fun observeTrip(id: String) = trips.map { it[id] }
     override suspend fun getTrip(id: String) = trips.value[id]
     override suspend fun upsertTrip(trip: Trip) { trips.value = trips.value + (trip.id to trip) }
+
+    override suspend fun setCover(tripId: String, photoId: String?, now: Long): Boolean {
+        val t = trips.value[tripId] ?: return false
+        trips.value = trips.value + (tripId to t.copy(coverPhotoId = photoId, updatedAt = now))
+        return true
+    }
 
     override suspend fun deleteTrip(id: String): List<String> {
         val owned = steps.value.values.filter { it.tripId == id }
@@ -78,6 +89,12 @@ class FakeStore : TripRepository, StepRepository {
     override suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean {
         val s = steps.value[stepId] ?: return false
         steps.value = steps.value + (stepId to s.copy(arrivalTransport = mode, updatedAt = now))
+        return true
+    }
+
+    override suspend fun setDraft(stepId: String, draft: Boolean, now: Long): Boolean {
+        val s = steps.value[stepId] ?: return false
+        steps.value = steps.value + (stepId to s.copy(isDraft = draft, updatedAt = now))
         return true
     }
 }

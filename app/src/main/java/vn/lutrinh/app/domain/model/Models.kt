@@ -24,15 +24,26 @@ data class Trip(
     val endDate: LocalDate?,
     val createdAt: Long,
     val updatedAt: Long,
+    /**
+     * Photo chosen as the trip's cover (R21, DB version 6): a [Photo.id] of one of the trip's
+     * steps, or null = automatic (first photo of the first step). A stale id (photo deleted)
+     * reads as automatic.
+     */
+    val coverPhotoId: String? = null,
 )
 
 /** Row for the trip list: trip + derived counters + cover photo. */
 data class TripSummary(
     val trip: Trip,
+    /** Published steps only (R20: drafts are not in the trip's numbers). */
     val stepCount: Int,
+    /** Photos of published steps only (R20). */
     val photoCount: Int,
-    /** File name of the cover photo (first photo of the first step), or null. */
+    /** File name of the cover photo (R21: the chosen one, else the first photo of the first step), or null. */
     val coverPhotoFile: String?,
+    /** Draft steps (R20) and their photos; deleting the trip removes them too. */
+    val draftCount: Int = 0,
+    val draftPhotoCount: Int = 0,
 )
 
 data class Step(
@@ -52,6 +63,11 @@ data class Step(
      * this step), or null = not set. Ignored for the first step of a trip (R12).
      */
     val arrivalTransport: TransportMode? = null,
+    /**
+     * R20 (DB version 6): a draft ("Nháp") is kept in the trip's timeline but is not part of the
+     * trip yet: no number, no legs, not in stats, share or "Bản đồ của tôi". False = published.
+     */
+    val isDraft: Boolean = false,
 )
 
 /**

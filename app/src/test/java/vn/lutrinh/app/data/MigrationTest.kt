@@ -216,6 +216,28 @@ class MigrationTest {
         assertEquals("1234" to 2_048_000L, stored.sourceId to stored.sourceSize)
     }
 
+    @Test fun version5UpgradesWithDraftsAndCoverAndKeepsEverything() = runTest {
+        createVersion(5)
+        val db = open()
+        val trips = RoomTripRepository(db)
+        val steps = RoomStepRepository(db)
+
+        // Every existing step is published (R20) and the trip cover is automatic (R21).
+        assertEquals(listOf("s1", "s2"), steps.getSteps("t1").map { it.id })
+        assertTrue(steps.getSteps("t1").none { it.isDraft })
+        assertNull(trips.getTrip("t1")!!.coverPhotoId)
+        val summary = trips.observeTripSummaries().first().single()
+        assertEquals(2 to 1, summary.stepCount to summary.photoCount)
+        assertEquals(0 to 0, summary.draftCount to summary.draftPhotoCount)
+        assertEquals("a.jpg", summary.coverPhotoFile)
+
+        // The new columns are writable and read back.
+        assertTrue(steps.setDraft("s2", true, 50L))
+        assertTrue(steps.getStep("s2")!!.isDraft)
+        assertTrue(trips.setCover("t1", "p1", 60L))
+        assertEquals("p1", trips.getTrip("t1")!!.coverPhotoId)
+    }
+
     private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
         .addMigrations(*AppDatabase.MIGRATIONS)
         .allowMainThreadQueries()

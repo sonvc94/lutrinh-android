@@ -104,6 +104,58 @@ class RoomRepositoryTest {
         assertEquals(LocalDateTime.parse("2026-10-20T09:00"), s.arrivedAt)
     }
 
+    @Test fun draftsAreCountedApartAndCanBePublished() = runTest {
+        trips.upsertTrip(trip("t", "2025-10-20"))
+        steps.saveStep(step("s1", "t", "2025-10-20T09:00", listOf("a.jpg")))
+        steps.saveStep(step("s2", "t", "2025-10-21T09:00", listOf("b.jpg", "c.jpg")).copy(isDraft = true))
+
+        var s = trips.observeTripSummaries().first().single()
+        assertEquals(1 to 1, s.stepCount to s.photoCount)
+        assertEquals(1 to 2, s.draftCount to s.draftPhotoCount)
+        assertTrue(steps.getStep("s2")!!.isDraft)
+
+        assertTrue(steps.setDraft("s2", false, 9))
+        assertEquals(9L, steps.getStep("s2")!!.updatedAt)
+        s = trips.observeTripSummaries().first().single()
+        assertEquals(2 to 3, s.stepCount to s.photoCount)
+        assertEquals(0 to 0, s.draftCount to s.draftPhotoCount)
+        assertEquals(false, steps.setDraft("missing", false, 9))
+    }
+
+    @Test fun chosenCoverWinsAndFallsBackToAutomaticWhenItsPhotoIsGone() = runTest {
+        trips.upsertTrip(trip("t", "2025-10-20"))
+        trips.upsertTrip(trip("o", "2025-06-07"))
+        steps.saveStep(step("s1", "t", "2025-10-20T09:00", listOf("a.jpg")))
+        steps.saveStep(step("s2", "t", "2025-10-21T09:00", listOf("b.jpg", "c.jpg")))
+        steps.saveStep(step("o1", "o", "2025-06-07T09:00", listOf("o.jpg")))
+        suspend fun cover() = trips.observeTripSummaries().first().first { it.trip.id == "t" }.coverPhotoFile
+
+        assertEquals("a.jpg", cover())
+        assertTrue(trips.setCover("t", "s2-c.jpg", 5))
+        assertEquals("s2-c.jpg", trips.getTrip("t")!!.coverPhotoId)
+        assertEquals("c.jpg", cover())
+        // Editing the trip keeps the choice when the caller passes it on; re-saving the step keeps photo ids.
+        trips.upsertTrip(trips.getTrip("t")!!.copy(title = "Hà Giang"))
+        steps.saveStep(step("s2", "t", "2025-10-21T10:00", listOf("b.jpg", "c.jpg")))
+        assertEquals("c.jpg", cover())
+        // A photo of another trip is never this trip's cover.
+        assertTrue(trips.setCover("t", "o1-o.jpg", 6))
+        assertEquals("a.jpg", cover())
+        // Photo removed from its step, or its step deleted: automatic again.
+        trips.setCover("t", "s2-c.jpg", 7)
+        steps.saveStep(step("s2", "t", "2025-10-21T10:00", listOf("b.jpg")))
+        assertEquals("a.jpg", cover())
+        trips.setCover("t", "s2-b.jpg", 8)
+        assertEquals("b.jpg", cover())
+        steps.deleteStep("s2")
+        assertEquals("a.jpg", cover())
+        // "Tự động".
+        trips.setCover("t", "s1-a.jpg", 9)
+        assertTrue(trips.setCover("t", null, 10))
+        assertNull(trips.getTrip("t")!!.coverPhotoId)
+        assertEquals("a.jpg", cover())
+    }
+
     @Test fun deletingStepDeletesItsPhotos() = runTest {
         trips.upsertTrip(trip("t", "2026-10-20"))
         steps.saveStep(step("s", "t", "2026-10-20T08:00", listOf("a.jpg")))

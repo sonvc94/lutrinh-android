@@ -24,8 +24,8 @@ val StepOrder: Comparator<Step> =
 
 fun List<Step>.inTimelineOrder(): List<Step> = sortedWith(StepOrder)
 
-/** R3: the route line joins step locations in timeline order. */
-fun routeOf(steps: List<Step>): List<GeoPoint> = steps.inTimelineOrder().map { it.location }
+/** R3: the route line joins the locations of published steps in timeline order (R20: drafts are not on it). */
+fun routeOf(steps: List<Step>): List<GeoPoint> = steps.published().inTimelineOrder().map { it.location }
 
 object Geo {
     private const val EARTH_RADIUS_KM = 6371.0088
@@ -56,11 +56,12 @@ data class TripStats(
 )
 
 /**
- * Trip numbers. The distance is the straight line between steps (R3), unless the ended GPS tracks
+ * Trip numbers, of published steps only (R20: drafts are left out). The distance is the straight line between steps (R3), unless the ended GPS tracks
  * together are at least as long as that line: then they cover the trip and their length (the
  * real road) is shown instead (docs/03 "Trip detail"). Open tracks are not counted.
  */
-fun statsOf(trip: Trip, steps: List<Step>, tracks: List<Track> = emptyList()): TripStats {
+fun statsOf(trip: Trip, all: List<Step>, tracks: List<Track> = emptyList()): TripStats {
+    val steps = all.published()
     val straightKm = Geo.routeLengthKm(routeOf(steps))
     val gpsKm = tracks.filter { !it.isOpen }.sumOf { it.distanceM } / 1000
     val useGps = gpsKm > 0 && gpsKm >= straightKm

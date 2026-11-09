@@ -14,6 +14,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.alpha
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Image
+import vn.lutrinh.app.domain.usecase.stepNumbers
+import vn.lutrinh.app.ui.common.DraftBadge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -145,16 +151,25 @@ data class TripDetail(
     /** R16: false for a trip that ended before today (no "Ghi hành trình", only "Tạo chuyến mới và ghi"). */
     val canRecord: Boolean = true,
 ) {
-    /** legs[i] = steps[i] -> steps[i+1] (R12). */
+    /** legs[i] = i-th published step -> the next published one (R12; drafts have no legs, R20). */
     val legs: List<Leg> = legsOf(steps)
     val legModes: List<TransportMode?> get() = legs.map { it.mode }
+
+    /** R20: number of each published step (drafts have none). */
+    val numbers: Map<String, Int> = stepNumbers(steps)
+
+    /** The leg that ends at [stepId], or null (first published step, or a draft). */
+    fun legInto(stepId: String): Leg? = legs.firstOrNull { it.to.id == stepId }
 }
 
 /** Stop suggestions as map markers (R17, docs/05-map.md "Stop suggestions"). */
 fun TripDetail.stopMarkers(): List<StopMarker> = stopSuggestions.map { StopMarker(it.key, it.dwell.center) }
 
-fun List<Step>.toMarkers(highlightId: String? = null): List<MapMarker> =
-    mapIndexed { i, s -> MapMarker(s.id, "${i + 1}", s.location, s.id == highlightId) }
+/** Pins in the given (timeline) order; published steps carry their number, drafts are hollow and unnumbered (R20). */
+fun List<Step>.toMarkers(highlightId: String? = null): List<MapMarker> {
+    val numbers = stepNumbers(this)
+    return map { s -> MapMarker(s.id, numbers[s.id]?.toString().orEmpty(), s.location, s.id == highlightId, draft = s.isDraft) }
+}
 
 class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle) : ViewModel() {
     val tripId: String = checkNotNull(handle["tripId"])
@@ -231,6 +246,9 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
         c.stopDecisions.saveDecision(StopDecision(d.trackId, d.startAt, d.endAt, StopDecisionKind.DISMISSED, null, c.clock.nowMillis()))
     }
 
+    /** R21 "Đổi ảnh bìa": null = "Tự động". */
+    fun setCover(photoId: String?) = viewModelScope.launch { c.setTripCover(tripId, photoId) }
+
     fun delete() = viewModelScope.launch {
         c.deleteTrip(tripId)
         deleted.value = true
@@ -269,6 +287,7 @@ fun TripDetailScreen(
     var fabMenu by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var editLegTo by remember { mutableStateOf<String?>(null) }
+    var pickCover by remember { mutableStateOf(false) }
     LaunchedEffect(deleted) { if (deleted) onBack() }
     val detail = (state as? Loadable.Ready)?.value
     val listState = rememberLazyListState()
@@ -304,6 +323,11 @@ fun TripDetailScreen(
                                 text = { Text(stringResource(R.string.trip_edit_title)) },
                                 leadingIcon = { Icon(Icons.Outlined.Edit, null) },
                                 onClick = { menu = false; onEdit() },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.trip_cover_change)) },
+                                leadingIcon = { Icon(Icons.Outlined.Image, null) },
+                                onClick = { menu = false; pickCover = true },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.trip_delete_button)) },
@@ -373,10 +397,15 @@ fun TripDetailScreen(
         LegModeSheet(leg, onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
     }
 
+    if (pickCover && detail != null) {
+        CoverPickerSheet(detail.steps, detail.trip.coverPhotoId, onPick = { vm.setCover(it); pickCover = false }, onDismiss = { pickCover = false })
+    }
+
     if (confirmDelete && detail != null) {
         ConfirmDeleteDialog(
             title = stringResource(R.string.trip_delete_confirm_title),
-            body = stringResource(R.string.trip_delete_confirm_body, detail.trip.title, detail.stats.stepCount, detail.stats.photoCount),
+            // Every step goes, drafts too (the stat tiles count published steps only, R20).
+            body = stringResource(R.string.trip_delete_confirm_body, detail.trip.title, detail.steps.size, detail.steps.sumOf { it.photos.size }),
             onConfirm = { confirmDelete = false; vm.delete() },
             onDismiss = { confirmDelete = false },
         )
@@ -429,7 +458,7 @@ private fun TripDetailContent(
             itemsIndexed(d.steps, key = { _, s -> s.id }) { i, step ->
                 val prevDay = d.steps.getOrNull(i - 1)?.arrivedAt?.toLocalDate()
                 val day = step.arrivedAt.toLocalDate()
-                if (i > 0) LegRow(d.legs[i - 1]) { onEditLeg(step.id) }
+                d.legInto(step.id)?.let { leg -> LegRow(leg) { onEditLeg(step.id) } }
                 if (day != prevDay) {
                     val n = ChronoUnit.DAYS.between(d.trip.startDate, day) + 1
                     Text(
@@ -439,7 +468,7 @@ private fun TripDetailContent(
                         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
                     )
                 }
-                StepRow(i + 1, step, isLast = i == d.steps.lastIndex) { onOpenStep(step.id) }
+                StepRow(d.numbers[step.id], step, isLast = i == d.steps.lastIndex) { onOpenStep(step.id) }
             }
         }
     }
@@ -497,12 +526,22 @@ private fun LegRow(leg: Leg, onClick: () -> Unit) {
     }
 }
 
-/** Timeline row: numbered dot + vertical line, title, time, note excerpt, thumbnails. */
+/**
+ * Timeline row: numbered dot + vertical line, title, time, note excerpt, thumbnails. A draft
+ * (R20, [number] null) has a hollow dot, a "Nháp" badge and muted content.
+ */
 @Composable
-private fun StepRow(number: Int, step: Step, isLast: Boolean, onClick: () -> Unit) {
+private fun StepRow(number: Int?, step: Step, isLast: Boolean, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp)) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(32.dp)) {
-            Box(
+            if (number == null) {
+                Box(
+                    Modifier.padding(top = 10.dp).size(28.dp)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape),
+                    Alignment.Center,
+                ) { Icon(Icons.Outlined.EditNote, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary) }
+            } else Box(
                 Modifier.padding(top = 10.dp).size(28.dp).background(MaterialTheme.colorScheme.primary, CircleShape),
                 Alignment.Center,
             ) { Text("$number", color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.labelLarge) }
@@ -510,8 +549,11 @@ private fun StepRow(number: Int, step: Step, isLast: Boolean, onClick: () -> Uni
                 Box(Modifier.width(2.dp).height(if (step.photos.isEmpty()) 44.dp else 108.dp).background(MaterialTheme.colorScheme.outlineVariant))
             }
         }
-        Column(Modifier.padding(start = 12.dp, top = 10.dp, bottom = 12.dp).weight(1f)) {
-            Text(step.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(Modifier.padding(start = 12.dp, top = 10.dp, bottom = 12.dp).weight(1f).alpha(if (step.isDraft) 0.6f else 1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(step.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (step.isDraft) DraftBadge(Modifier.padding(start = 8.dp))
+            }
             Text(step.arrivedAt.displayTime(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (step.note.isNotBlank()) {
                 Text(step.note, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)

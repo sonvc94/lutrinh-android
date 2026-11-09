@@ -15,6 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  3 - tracks + track_points: recorded GPS tracks (R16)
  *  4 - photos.taken_at (nullable TEXT) + stop_decisions: stop suggestions from tracks (R17)
  *  5 - photos.source_id (nullable TEXT) + photos.source_size (nullable INTEGER): gallery photos of a stop (R19)
+ *  6 - steps.is_draft (INTEGER NOT NULL DEFAULT 0): draft steps (R20) + trips.cover_photo_id (nullable TEXT): chosen cover (R21)
  */
 @Database(
     entities = [
@@ -33,7 +34,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "lutrinh.db"
-        const val VERSION = 5
+        const val VERSION = 6
 
         /** Adds the nullable leg transport column; existing rows read as "not set". */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -96,8 +97,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Draft steps (R20: every existing step reads as published, 0) and the chosen trip cover
+         * (R21: existing trips read as automatic, null); nothing existing is rewritten.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE steps ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE trips ADD COLUMN cover_photo_id TEXT")
+            }
+        }
+
         /** Every migration, oldest first. Never use destructive fallback: user data is local only. */
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)

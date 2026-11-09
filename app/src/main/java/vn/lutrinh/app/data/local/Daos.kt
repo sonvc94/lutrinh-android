@@ -10,13 +10,23 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TripDao {
+    /**
+     * R20: counts are of published steps (drafts counted apart). R21: the cover is the chosen
+     * photo while it still belongs to one of the trip's steps, else the first photo of the first
+     * step in timeline order (drafts included, as before drafts existed).
+     */
     @Query(
         """
         SELECT t.*,
-          (SELECT COUNT(*) FROM steps s WHERE s.trip_id = t.id) AS step_count,
-          (SELECT COUNT(*) FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id) AS photo_count,
-          (SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id
-             ORDER BY s.arrived_at, s.created_at, s.id, p.position LIMIT 1) AS cover_file
+          (SELECT COUNT(*) FROM steps s WHERE s.trip_id = t.id AND s.is_draft = 0) AS step_count,
+          (SELECT COUNT(*) FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND s.is_draft = 0) AS photo_count,
+          (SELECT COUNT(*) FROM steps s WHERE s.trip_id = t.id AND s.is_draft = 1) AS draft_count,
+          (SELECT COUNT(*) FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND s.is_draft = 1) AS draft_photo_count,
+          COALESCE(
+            (SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND p.id = t.cover_photo_id),
+            (SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id
+               ORDER BY s.arrived_at, s.created_at, s.id, p.position LIMIT 1)
+          ) AS cover_file
         FROM trips t
         ORDER BY t.start_date DESC, t.created_at DESC, t.id
         """,
@@ -34,6 +44,9 @@ interface TripDao {
 
     @Query("DELETE FROM trips WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("UPDATE trips SET cover_photo_id = :photoId, updated_at = :now WHERE id = :id")
+    suspend fun setCover(id: String, photoId: String?, now: Long): Int
 
     @Query("SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = :tripId")
     suspend fun photoFiles(tripId: String): List<String>
@@ -75,6 +88,9 @@ interface StepDao {
 
     @Query("UPDATE steps SET transport_mode = :mode, updated_at = :now WHERE id = :id")
     suspend fun setTransportMode(id: String, mode: String?, now: Long): Int
+
+    @Query("UPDATE steps SET is_draft = :draft, updated_at = :now WHERE id = :id")
+    suspend fun setDraft(id: String, draft: Boolean, now: Long): Int
 
     @Query("SELECT file_name FROM photos WHERE step_id = :stepId")
     suspend fun photoFiles(stepId: String): List<String>

@@ -49,8 +49,8 @@ import vn.lutrinh.app.domain.usecase.Polyline
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
 
 
-/** One numbered pin on the map. */
-data class MapMarker(val id: String, val label: String, val point: GeoPoint, val highlighted: Boolean = false)
+/** One numbered pin on the map. A [draft] (R20) is a hollow pin outside the route: no legs to or from it. */
+data class MapMarker(val id: String, val label: String, val point: GeoPoint, val highlighted: Boolean = false, val draft: Boolean = false)
 
 private const val SRC_STEPS = "steps-src"
 private const val SRC_ROUTE = "route-src"
@@ -133,7 +133,8 @@ fun OsmAttribution(modifier: Modifier = Modifier) {
 
 /**
  * Trip map: numbered step pins + one line per leg joining them in the given order, styled by
- * the leg's transport mode ([legModes][i] = mode of markers[i] -> markers[i+1], R12).
+ * the leg's transport mode ([legModes][i] = mode of the i-th leg between consecutive non-draft
+ * markers, R12; draft markers are drawn hollow and skipped by the route, R20).
  * The camera fits the whole route whenever the set of pins changes (docs/05-map.md); on an
  * interactive map, selecting a pin ([MapMarker.highlighted]) or a leg ([selectedLegTo]) flies
  * the camera to it.
@@ -283,12 +284,15 @@ private class TripMapState {
         val map = map ?: return
         val style = style ?: return
         if (!style.isFullyLoaded) return
-        val routed = showRoute && markers.size >= 2
+        // R20: drafts are pins, not route points.
+        val route = markers.filterNot { it.draft }
+        val routed = showRoute && route.size >= 2
         val features = markers.mapIndexed { index, m ->
             val kind = when {
+                m.draft -> PinKind.DRAFT
                 !routed -> PinKind.STEP
-                index == 0 -> PinKind.START
-                index == markers.lastIndex -> PinKind.END
+                m.id == route.first().id -> PinKind.START
+                m.id == route.last().id -> PinKind.END
                 else -> PinKind.STEP
             }
             val icon = pinImageId(m.label, kind, m.highlighted)
@@ -306,7 +310,7 @@ private class TripMapState {
             }
         }
         style.getSourceAs<GeoJsonSource>(SRC_STEPS)?.setGeoJson(FeatureCollection.fromFeatures(features))
-        val legs = if (showRoute) markers.zipWithNext() else emptyList()
+        val legs = if (showRoute) route.zipWithNext() else emptyList()
         val lines = mutableListOf<Feature>()
         val badges = mutableListOf<Feature>()
         val paths = mutableListOf<List<GeoPoint>>()
@@ -346,7 +350,7 @@ private class TripMapState {
         // Re-fit when the route changes or when the bottom overlay is first measured / resized.
         // Finished tracks count in the fit; the live one does not (a new fix every few seconds
         // must not move the camera under the user's finger).
-        val routePoints = if (paths.isEmpty()) markers.map { it.point } else paths.flatten()
+        val routePoints = if (paths.isEmpty()) markers.map { it.point } else paths.flatten() + markers.filter { it.draft }.map { it.point }
         val points = routePoints + tracks.filterNot { it.live }.flatMap { it.points }
         val key = points to extraBottomDp
         val selectedStep = markers.firstOrNull { it.highlighted }?.id
