@@ -89,6 +89,19 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 | Picker: `OutlinedTextField` over the map, results `LazyColumn` replacing the chips, debounced 120 ms | `.searchable` is tied to a navigation bar; use a plain `TextField` in an overlay with a `List` of results, `.task(id: query)` with a 120 ms sleep for the debounce |
 | ODbL credit: result-list footer, `assets/licenses/OpenStreetMap-ODbL.txt` | Same footer text; include the licence file in the app's acknowledgements (Settings bundle or an about screen) |
 
+## GPX export/import and local backup (R25, R26)
+
+| Android | iOS |
+| --- | --- |
+| `GpxWriter.write` builds the XML as text (`GpxFormat.escape`, `ISO_INSTANT` UTC times, `%.7f` coordinates with `Locale.ROOT`) | Same pure function in Swift (string building, `ISO8601DateFormatter` with `.withInternetDateTime` + `.withFractionalSeconds` only when the ms are not 0, `String(format:)` with `en_US_POSIX`); port `GpxTest` |
+| `GpxParser`: SAX (`javax.xml.parsers`), namespace-aware, local names, `resolveEntity` → empty, errors `NotXml(line)` / `NotGpx` / `BadPoint(line)` / `Empty` / `Unreadable` | `XMLParser` (Foundation) with `shouldProcessNamespaces = true`, `shouldResolveExternalEntities = false`; same element stack; `parser.lineNumber` for the error line |
+| `GpxImport.plan` (title fallback, dates, steps, tracks) + `ImportGpx` writing everything in one Room transaction (`RoomTripImportRepository`) | Same pure planner; one `ModelContext` save (or one GRDB `db.write`) for trip + steps + tracks + points |
+| Export: dialog → `ActivityResultContracts.CreateDocument("application/gpx+xml")` (SAF "save as") or a file in `cacheDir/share/` + `ACTION_SEND` | `.fileExporter(document:contentType:)` with a `UTType(filenameExtension: "gpx")` document, or `ShareLink` with a temp file URL |
+| Import: `OpenDocument(arrayOf("*/*"))` (many apps send GPX as `application/octet-stream`), display name via `OpenableColumns` | `.fileImporter(allowedContentTypes: [UTType(filenameExtension: "gpx") ?? .xml, .xml, .data])`; `startAccessingSecurityScopedResource()` while reading |
+| Backup file: `java.util.zip` `ZipOutputStream`; `lutrinh.db` = new Room DB file (`JournalMode.TRUNCATE`) filled table by table inside one transaction of the live DB; `photos/<name>` = stored bytes | Foundation has no zip API (`AppleArchive` writes `.aar`, not zip): use a small zip library (e.g. ZIPFoundation, MIT) or `NSFileCoordinator` `.forUploading` on a folder; the DB copy = `VACUUM INTO` (SQLite ≥ 3.27, always on iOS) or the same table-by-table copy |
+| Restore: stage in `cacheDir/backup/in`, `BackupRules.check`, `PRAGMA user_version`, open with Room + `MIGRATIONS`, compare counts; then add files → one transaction (delete child-first, copy parent-first, check counts) → delete orphan files; rollback deletes added files | Same steps. **Cross-platform backups need the same SQLite schema**: with SwiftData the store is not this schema, so either use GRDB/SQLite with the Room schema (tables/columns of 02-data-model.md, recommended) or convert row by row from the backup's `lutrinh.db` with the same migrations. Port `BackupManagerTest` |
+| Refused while recording (`TrackRecorder.active`); `recoverInterrupted()` after a restore | Same; the restore must also stop observing during the swap (one `ModelContext`/`DatabaseQueue` write) |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;
@@ -110,6 +123,9 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 4e. Gallery photos of a stop (R19): `StopPhotos` + `GallerySelection` with `StopPhotosTest`,
    `Photo.sourceId/sourceSize` (V4→V5), the PhotoKit fetch + limited library, the
    "Ảnh chụp trong lúc dừng" section of the prefilled step editor, "N ảnh trong máy" on the card.
+4f. GPX and backup (R25, R26): `GpxWriter`/`GpxParser`/`GpxImport` with `GpxTest` and its fixture
+   `sample.gpx`, then the backup zip and restore with `BackupManagerTest`; an Android backup restored
+   on iOS (and back) is the acceptance check of the shared schema.
 5. Screens in the order of 03-screens.md; check each against its screenshot in `img/`.
 6. Strings: all user-visible text from `strings.xml`, Vietnamese.
 

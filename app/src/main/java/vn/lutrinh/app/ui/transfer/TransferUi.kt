@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
-import android.text.format.Formatter
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,6 +53,7 @@ import vn.lutrinh.app.domain.usecase.GpxException
 import vn.lutrinh.app.domain.usecase.GpxFormat
 import vn.lutrinh.app.domain.usecase.GpxParser
 import vn.lutrinh.app.ui.common.factory
+import vn.lutrinh.app.ui.common.formatBytes
 import java.io.File
 import java.io.FilterOutputStream
 import java.io.OutputStream
@@ -155,7 +155,7 @@ class TransferViewModel(private val c: AppContainer) : ViewModel() {
             throw e
         }
         Log.i(TAG, "backup written to $target: $bytes B")
-        _events.send(Event.Message { ctx -> ctx.getString(R.string.backup_done, countsText(ctx, manifest.counts), Formatter.formatShortFileSize(ctx, bytes)) })
+        _events.send(Event.Message { ctx -> ctx.getString(R.string.backup_done, countsText(ctx, manifest.counts), formatBytes(bytes)) })
     }
 
     fun prepareRestore(context: Context, source: Uri) = work(Work.RESTORE) {

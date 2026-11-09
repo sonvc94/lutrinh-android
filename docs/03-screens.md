@@ -58,6 +58,10 @@ Trip list ──FAB "Chuyến đi mới"─────────────�
    │       └─ tap trip card ─▶ Trip detail       │            └ "Thêm từ ảnh" ─▶ From photos
    ├─ ⋮ "Bản đồ offline" ─▶ Offline maps         │  tap leg chip ─▶ Leg mode sheet
    ├─ card ⋮ → Chia sẻ chuyến đi ─▶ Share trip   │  share icon "Chia sẻ chuyến đi" ─▶ Share trip
+   ├─ card ⋮ → Xuất GPX ─▶ dialog ─▶ save/share  │  ⋮ Xuất GPX ─▶ dialog ─▶ save as / share sheet
+   ├─ ⋮ "Nhập tệp GPX" ─▶ file picker ─▶ new Trip detail
+   ├─ ⋮ "Sao lưu dữ liệu" ─▶ save as ─▶ snackbar
+   ├─ ⋮ "Khôi phục từ bản sao lưu" ─▶ file picker ─▶ confirm ─▶ list reloads
    └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │
                                                  │  tap step ─▶ Step detail
                                                  │  suggestion "Tạo điểm dừng ở đây" ─▶ Step form (prefilled)
@@ -86,9 +90,9 @@ The picker returns its result to the step form through the previous screen's sav
 * **Content:** large title; one card per trip with cover photo (R21: the chosen "Ảnh bìa", else
   automatic; or a gradient placeholder), title, date range (`6 thg 11 – 9 thg 11, 2026`, or `từ …`
   when open-ended), "N điểm dừng · M ảnh" (published steps, R20) and "· K nháp" when the trip has drafts.
-* **Actions:** tap → Trip detail; the card ⋮ (label "Tùy chọn: <tên chuyến đi>") or long-press → Sửa / Chia sẻ chuyến đi (§3d) / Xóa; FAB "Chuyến đi mới"; globe icon
+* **Actions:** tap → Trip detail; the card ⋮ (label "Tùy chọn: <tên chuyến đi>") or long-press → Sửa / Chia sẻ chuyến đi (§3d) / Xuất GPX (§12) / Xóa; FAB "Chuyến đi mới"; globe icon
   in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Tùy chọn khác") →
-  "Bản đồ offline" (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
+  "Bản đồ offline", "Nhập tệp GPX", "Sao lưu dữ liệu", "Khôi phục từ bản sao lưu" (§12, all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
 * **Empty:** suitcase icon, "Chưa có chuyến đi nào" + invitation text; in debug builds a
   "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip; the
   Hà Giang trip also gets an ended sample track on day 1 (08:10–15:50) with three stays — at Dốc
@@ -148,7 +152,7 @@ The picker returns its result to the step form through the previous screen's sav
   above the next published step is the leg from the published step before the draft. Stat tiles
   ignore drafts.
 * **Actions:** share icon → Share trip (§3d); header map / expand → Trip map; ⋮ → Sửa chuyến đi /
-  Đổi ảnh bìa (the cover sheet of §2, stored at once, R21) / Xóa chuyến đi; tap
+  Đổi ảnh bìa (the cover sheet of §2, stored at once, R21) / Xuất GPX (§12, R25) / Xóa chuyến đi; tap
   step → Step detail; tap a leg chip → Leg mode sheet; **one FAB** "Thêm" that shrinks to "+" when
   the list scrolls down and opens a small menu: "Thêm điểm dừng" → Step form, "Thêm từ ảnh" → From
   photos. The FAB floats over the list, so while scrolling it can pass over a card; at rest at the
@@ -585,6 +589,34 @@ The picker returns its result to the step form through the previous screen's sav
   mountain areas without signal). Ready-made regions instead of drawing a box on a map: simpler,
   and keeps downloads bounded for the donated tile server.
 
+## 12. GPX and backup — "Xuất GPX", "Nhập tệp GPX", "Sao lưu dữ liệu", "Khôi phục từ bản sao lưu" (R25, R26)
+
+No screen of their own: menu entries, the system file picker and dialogs (`ui/transfer/TransferUi.kt`).
+
+* **Entries:** trip card ⋮ and trip detail ⋮ → "Xuất GPX"; trip list ⋮ "Tùy chọn khác" → "Nhập
+  tệp GPX", "Sao lưu dữ liệu", "Khôi phục từ bản sao lưu" (between "Bản đồ offline" and the debug
+  "Tạo dữ liệu mẫu").
+* **Export:** dialog "Xuất tệp GPX" / "Hành trình GPS đã ghi và các điểm dừng (không gồm nháp) của
+  “<tên>”, đọc được bằng các ứng dụng bản đồ khác." / "Chia sẻ…" (share sheet) · "Lưu vào tệp…"
+  (system "save as" with `<tên chuyến đi>.gpx`) → snackbar "Đã lưu tệp GPX".
+* **Import:** system "open" picker → while reading a modal "Đang xử lý tệp GPX…" → the new trip
+  opens, snackbar "Đã nhập “<tên>”: N điểm dừng, M điểm GPS". Error: dialog "Không nhập được tệp
+  GPX" with the reason and "Không có gì được tạo." · "Đóng".
+* **Backup:** system "save as" with `LuTrinh-saoluu-<ngày>.zip` → modal "Đang sao lưu…" → snackbar
+  "Đã sao lưu 2 chuyến đi, 14 điểm dừng, 16 ảnh, 1 hành trình GPS (359 điểm) (0,3 MB)" (size as on the offline screen).
+* **Restore:** system "open" picker → modal "Đang khôi phục…" while checking → dialog "Thay thế
+  toàn bộ dữ liệu?" / "Bản sao lưu ngày <thứ, dd/MM/yyyy HH:mm> có: <counts>. Dữ liệu hiện có trên máy
+  (<counts>) sẽ bị THAY THẾ hoàn toàn và không lấy lại được." / "Hủy" · "Thay thế" (error colour)
+  → modal "Đang khôi phục…" → snackbar "Đã khôi phục <counts>"; the list reloads. Errors: dialog
+  "Không khôi phục được" ending "Dữ liệu hiện tại không thay đổi." (not a backup / newer version
+  "Hãy cập nhật ứng dụng" / damaged / recording / failed).
+* The modal cannot be dismissed while working; the work continues if the screen rotates.
+* **Screens:** `img/gpx-backup/01-trip-list-menu.png`, `img/gpx-backup/02-gpx-export-choice.png`,
+  `img/gpx-backup/03-gpx-imported-trip.png`, `img/gpx-backup/04-gpx-malformed-error.png`,
+  `img/gpx-backup/05-restore-confirm.png`, `img/gpx-backup/06-restored-step-photos.png`.
+* **Inspired by:** Polarsteps has no GPX import or local backup (its data lives on its server);
+  this is Lữ Trình's way out while it is local-only.
+
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
 
 | File | Shows |
@@ -698,6 +730,12 @@ The picker returns its result to the step form through the previous screen's sav
 | place-search/05-step-auto-name.png | new step after "Dùng vị trí này": "Tên địa điểm" = Mã Pí Lèng Pass (R24) |
 | place-search/06-step-typed-name-kept.png | typed name "Nha nghi cua toi" kept after the pin moved |
 | place-search/07-step-pin-drop-auto-name.png | name cleared, pin dragged: the name is filled again from the nearest place |
+| gpx-backup/01-trip-list-menu.png | trip list ⋮ "Tùy chọn khác": Bản đồ offline / Nhập tệp GPX / Sao lưu dữ liệu / Khôi phục từ bản sao lưu / Tạo dữ liệu mẫu (debug) |
+| gpx-backup/02-gpx-export-choice.png | "Xuất GPX" on the Hà Giang card: dialog "Xuất tệp GPX" with "Chia sẻ…" and "Lưu vào tệp…" |
+| gpx-backup/03-gpx-imported-trip.png | the exported Hà Giang file imported (R25): a new trip, 10 steps, the GPS track (359 points) on the header map |
+| gpx-backup/04-gpx-malformed-error.png | a truncated GPX: "Không nhập được tệp GPX … (lỗi đọc ở dòng 168). Không có gì được tạo." |
+| gpx-backup/05-restore-confirm.png | "Thay thế toàn bộ dữ liệu?" with the backup's and the current counts (R26) |
+| gpx-backup/06-restored-step-photos.png | after the restore: Cổng Trời Quản Bạ with its 2 photos |
 
 ## Accessibility and UI tests
 

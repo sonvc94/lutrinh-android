@@ -65,7 +65,8 @@ each picked image is **imported right away** into the app's private folder:
   counted; the form shows "Không đọc được N ảnh". A partial file is deleted.
 * Why copy instead of `takePersistableUriPermission`: the Photo Picker's URIs cannot be persisted
   on all Android versions; and a copy keeps working if the user deletes the photo from the
-  gallery, is included in the app's backup, and maps directly to iOS (copy the picked data into
+  gallery, is included in the app's backup (R26 puts every referenced file under `photos/` in the
+  zip), and maps directly to iOS (copy the picked data into
   the app container).
 
 ### Import processing (rule R11 in 04-business-rules.md)

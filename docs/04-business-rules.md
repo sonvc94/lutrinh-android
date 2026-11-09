@@ -745,6 +745,101 @@ Code: `Gazetteer.nearest`, `AutoName`, `AutoTitle` (`domain/usecase/Places.kt`);
 keeps a near step, else names the gazetteer place`, `bundled gazetteer - a point near Ma Pi Leng
 gets a nearby name`). Checked by hand: `img/place-search/05`–`07`.
 
+## R25 — GPX export and import ("Xuất GPX", "Nhập tệp GPX")
+
+Code: `domain/usecase/Gpx.kt` (`GpxFormat`, `GpxWriter`, `GpxImport`, `ExportGpx`, `ImportGpx`),
+`domain/usecase/GpxParser.kt` (SAX), `data/RoomTripImportRepository.kt` (one transaction),
+`ui/transfer/TransferUi.kt` (menus, file picker, dialogs). File format: 02-data-model.md "GPX file".
+No storage permission: files go through the system file picker (Android SAF / iOS document picker)
+or the share sheet.
+
+* **Export** (trip card ⋮ or trip detail ⋮ → "Xuất GPX" → dialog "Xuất tệp GPX" → "Lưu vào tệp…"
+  (system "save as", default name `<tên chuyến đi>.gpx`) or "Chia sẻ…" (share sheet)): ONE GPX 1.1
+  file per trip:
+  * `metadata`: trip title, description (when not blank), export time;
+  * one `wpt` per **published** step (drafts are never exported, R20) in timeline order: `lat`/`lon`,
+    `time` = the step's local arrival time read in the device time zone and written in UTC, `name`
+    = step title, `desc` = note (when not blank);
+  * one `trk` per recorded track with points (oldest first), named after the trip; one `trkseg`
+    per track segment (pauses split segments, R16); each `trkpt` has `lat`/`lon`, `ele` when the fix
+    had an altitude, and `time` in UTC. Every stored point is written (never simplified).
+  * Times: ISO-8601 UTC with `Z`, fractions only when not whole seconds (`2025-10-20T01:00:00Z`,
+    `…02:00:00.123Z`). Coordinates: decimal degrees, ≤ 7 decimals, never an exponent.
+  * Text is XML-escaped (`& < > " '`); characters XML 1.0 forbids (control characters) are dropped;
+    Vietnamese is written as UTF-8 as is.
+* **Import** (trip list ⋮ "Tùy chọn khác" → "Nhập tệp GPX" → pick a file; any MIME type is
+  offered, because many apps label GPX `application/octet-stream`): always a **NEW** trip, never
+  merged into an existing one.
+  * Read: GPX 1.1 and 1.0 (elements matched by local name, any namespace); `trk`/`trkseg`/`trkpt`,
+    `rte`/`rtept`, `wpt`; `name`, `desc` (else `cmt`), `time`, `ele`; extensions and unknown
+    elements are ignored. A time without an offset is read as UTC.
+  * Trip: title = metadata `name`, else the first track/route name, else the file name without
+    extension, else "Chuyến đi từ GPX" (≤ 60 characters); description = metadata `desc`
+    (≤ 1000); start/end date = the local dates of the earliest/latest time in the file (no time
+    at all: today, one day).
+  * Steps: one per `wpt`, published, in file order: name kept (≤ 80), else the R24 automatic place
+    name, else "Điểm dừng HH:mm"; note = `desc`/`cmt` (≤ 2000); arrival = the waypoint time in local
+    time at minute precision, or the trip's first day 00:00 when it has none. No photos.
+  * Tracks: each `trk` and each `rte` (one segment) becomes one ended track (status `ended`, not
+    interrupted); empty segments are dropped; a point without a time takes the previous point's
+    time (the first ones: the first time in the track); active time = sum of each segment's
+    first→last time; distance = the R16 sum within segments.
+  * Trip, steps, tracks and points are written in **one transaction**, then the new trip opens.
+* **Errors — nothing is created**, a dialog "Không nhập được tệp GPX" says why: not well-formed
+  XML (truncated, binary; with the line where reading stopped), root is not `<gpx>`, a point
+  without a valid `lat`/`lon` (with its line), a file without any `trkpt`/`rtept`/`wpt`, an
+  unreadable file. External DTDs and entities are never loaded (no file or network access from a GPX).
+
+*Tests:* `GpxTest` (`writerOutputIsWellFormedGpx11`, `writerEscapesVietnameseAndXmlSpecials`,
+`writerTimesAreUtcIso8601`, `parserReadsTracksRoutesAndWaypoints`, `parserAcceptsGpx10WithoutNamespace`,
+`malformedFilesAreErrors`, `externalEntitiesAreNeverLoaded`, `malformedOrEmptyFileCreatesNothing`, `importMakesANewTripFromTheFile`,
+`titleFallsBackToTheFileName`, `exportThenImportKeepsPointsAndStepNames`); fixture
+`app/src/test/resources/gpx/sample.gpx`. Checked by hand on the captain's data: the Hà Giang
+export has 359 `trkpt` (= its track points) and 10 `wpt` (= its published steps), `xmllint` clean;
+importing it gives a new trip with 10 steps and 359 points (`img/gpx-backup/03`); a truncated file
+shows the error (`img/gpx-backup/04`).
+
+## R26 — Local backup and restore ("Sao lưu dữ liệu", "Khôi phục từ bản sao lưu")
+
+Code: `domain/usecase/Backup.kt` (`BackupManifest`, `BackupCounts`, `BackupProblem`,
+`BackupRules`), `data/BackupManager.kt` (write / prepare / restore), `ui/transfer/TransferUi.kt`.
+File format: 02-data-model.md "Backup file". Data stays on the device: no account, no cloud, no
+schedule; the user picks where the file goes (Downloads, a USB stick, a Drive folder through the
+system picker — the app only sees a file).
+
+* **Backup** (trip list ⋮ "Tùy chọn khác" → "Sao lưu dữ liệu" → system "save as", default name
+  `LuTrinh-saoluu-<yyyy-MM-dd>.zip`): one zip with `manifest.json`, `lutrinh.db` (a consistent copy
+  of all user tables, every table from the same moment) and `photos/<file>` for every photo file a
+  `photos` row refers to (step photos, which also covers chosen trip covers, R21). A row whose file
+  is already missing on the device is counted in `missingPhotoFiles` and skipped. Snackbar "Đã sao
+  lưu <counts> (<size>)". A failed write deletes the half-written document.
+* **Restore** (→ "Khôi phục từ bản sao lưu" → pick the file):
+  1. **Checks, nothing changes yet:** the zip has `manifest.json` with format `lutrinh-backup`
+     (else "không phải bản sao lưu"); `formatVersion` ≤ the app's; `schemaVersion` ≤ the app's
+     database version — a **newer schema is refused** ("Hãy cập nhật ứng dụng"), an older one is
+     accepted; `lutrinh.db` is present and its `user_version` equals the manifest; the number of
+     `photos/` entries equals `photoFiles` and every name is a plain file name (no paths); the copy
+     opens with the app's own migrations (older schema → current, like an app update) and its row
+     counts equal the manifest. Any failure: a dialog "Không khôi phục được … Dữ liệu hiện tại không
+     thay đổi."
+  2. **Confirmation** "Thay thế toàn bộ dữ liệu?" with the backup's date and counts and the current
+     counts, which "sẽ bị THAY THẾ hoàn toàn"; "Thay thế" (error colour) or "Hủy".
+  3. **Replace, all or nothing:** photo files not on the device yet are added first; then in ONE
+     database transaction every user table is emptied and refilled from the copy and the counts
+     are checked; if anything fails the transaction rolls back and the added files are deleted, so
+     the current data stays exactly as it was. Only after the commit are photo files that no row
+     refers to any more deleted. The screens reload from the database (no restart).
+* Refused while a track is recording ("Hãy dừng ghi trước khi khôi phục"). After a restore, a track
+  the backup caught while recording is closed as interrupted (R16 recovery), not resumed.
+* Not in a backup: downloaded offline maps (R15), the place gazetteer (app data), on-device flags
+  (R22 battery guide), files in the share cache.
+
+*Tests:* `BackupManagerTest` (Robolectric, real schema: `backupHoldsManifestDatabaseAndEveryPhoto`,
+`restoreReplacesAllDataWithTheBackup`, `restoreFailureLeavesCurrentDataIntact`, `newerSchemaIsRefused`,
+`otherFilesAreRefusedAndChangeNothing`, `olderSchemaBackupIsMigrated`). Checked by hand on the captain's data:
+backup of `2|14|16|1|359|1` (287 717 B, 16 photo files), restored over the same data: every row and
+every photo file byte-identical (`img/gpx-backup/05`, `06`).
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

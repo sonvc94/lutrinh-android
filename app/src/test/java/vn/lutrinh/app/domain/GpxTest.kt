@@ -137,6 +137,14 @@ class GpxTest {
         assertTrue(expectError("""<gpx><wpt lon="105"/></gpx>""") is GpxError.BadPoint)
     }
 
+    @Test fun externalEntitiesAreNeverLoaded() {
+        val secret = java.io.File.createTempFile("secret", ".txt").apply { writeText("SECRET"); deleteOnExit() }
+        val xml = """<?xml version="1.0"?><!DOCTYPE gpx [<!ENTITY x SYSTEM "${secret.toURI()}">]>""" +
+            """<gpx><wpt lat="22" lon="105"><name>a&x;</name></wpt></gpx>"""
+        val name = runCatching { GpxParser.parse(xml.byteInputStream()).waypoints.single().name }.getOrNull()
+        assertFalse(name.orEmpty().contains("SECRET")) // refused (JVM) or read without the entity (Android)
+    }
+
     private class RecordingStore : TripImportRepository {
         val stored = ArrayList<Trip>()
         var steps = 0

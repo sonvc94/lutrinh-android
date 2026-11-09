@@ -60,6 +60,9 @@ object GpxParser {
         private val path = ArrayList<String>()
         private val text = StringBuilder()
 
+        /** Never load an external DTD or entity (no file or network access from a GPX file). */
+        override fun resolveEntity(publicId: String?, systemId: String?): InputSource = InputSource(java.io.StringReader(""))
+
         private var name: String? = null
         private var desc: String? = null
         private val tracks = ArrayList<GpxTrack>()

@@ -405,5 +405,6 @@ Drawing a custom offline box on the map, background download as a foreground ser
 (today downloads stop when the process dies and resume at the next start), dark map, clustering for trips with many steps, road-following routes
 (snap-to-roads / OSRM — legs stay straight or arcs), photo thumbnails inside pins, current-location
 button and following the user on the map (location is used only while recording a track, R16),
-snapping recorded tracks to roads, GPX export, a self-hosted or paid tile source
+snapping recorded tracks to roads (GPX export/import is done, R25: an imported track is drawn
+like a recorded one), a self-hosted or paid tile source
 for production (also for offline areas, see "Provider note").

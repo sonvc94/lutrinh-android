@@ -193,7 +193,69 @@ then the v6 build installed over it with `install -r`: counts trips|steps|photos
 Photo files live outside the database in `<app private files>/photos/<uuid>.<ext>` (`jpg` for
 re-encoded photos, `png` when transparent, otherwise the picked format — R11); the database
 only stores the file name, so the folder can move (backup/restore, iOS container) without a
-migration.
+migration; a backup (R26) stores the files under `photos/` with the same names.
+
+## GPX file (R25)
+
+Exchange format for one trip with other map apps (GPX 1.1, `http://www.topografix.com/GPX/1/1`,
+UTF-8, MIME `application/gpx+xml`, extension `.gpx`). Not a backup: photos, drafts, transport
+modes, covers and stop decisions are not in it.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Lữ Trình" xmlns="http://www.topografix.com/GPX/1/1" …>
+  <metadata><name>trip title</name><desc>trip description</desc><time>export time, UTC</time></metadata>
+  <wpt lat="22.8233" lon="104.9836">            <!-- one per published step, timeline order -->
+    <time>2025-10-20T01:00:00Z</time>            <!-- arrival: local time → UTC -->
+    <name>TP Hà Giang</name><desc>step note</desc>
+  </wpt>
+  <trk><name>trip title</name>                   <!-- one per recorded track -->
+    <trkseg>                                     <!-- one per track segment (R16) -->
+      <trkpt lat="22.8233" lon="104.9836"><ele>110.0</ele><time>2025-10-20T01:10:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
+```
+
+| GPX | Lữ Trình (export → import) |
+| --- | --- |
+| `metadata/name`, `metadata/desc` | trip `title`, `description` (import falls back to the first `trk`/`rte` name, then the file name) |
+| `wpt@lat/@lon`, `time`, `name`, `desc` (`cmt` on import) | published step `latitude/longitude`, `arrived_at` (minute precision on import), `title`, `note` |
+| `trk` (one `trkseg` per segment), `rte` (one segment, import only) | `tracks` row (`ended`), `track_points` with `segment` = index of the non-empty segment |
+| `trkpt@lat/@lon`, `ele`, `time` | `track_points.latitude/longitude`, `altitude_m`, `recorded_at` |
+
+Import reads GPX 1.0 too (elements by local name) and ignores extensions; rules in R25.
+
+## Backup file (R26)
+
+One zip (`application/zip`, default name `LuTrinh-saoluu-<yyyy-MM-dd>.zip`) with all user data:
+
+```
+manifest.json            what is in the file (below)
+lutrinh.db               SQLite copy of the app database: Room schema `schemaVersion`, user tables
+                         trips, steps, photos, tracks, track_points, stop_decisions (journal mode
+                         TRUNCATE, no -wal/-shm files)
+photos/<uuid>.<ext>      every photo file a `photos` row refers to (bytes as stored, no re-encode)
+```
+
+```json
+{
+  "format": "lutrinh-backup", "formatVersion": 1,
+  "appId": "vn.lutrinh.app", "appVersion": "0.1.0",
+  "schemaVersion": 6, "createdAt": "2026-11-09T10:17:55Z",
+  "counts": { "trips": 2, "steps": 14, "photos": 16, "tracks": 1, "trackPoints": 359, "stopDecisions": 1 },
+  "photoFiles": 16, "missingPhotoFiles": 0
+}
+```
+
+* `formatVersion` changes only when the zip layout changes; `schemaVersion` is the database
+  version of this document (`pragma user_version`), so an iOS app on the same schema can restore
+  an Android backup and vice versa (same tables and column names; dates are text as above).
+* The copy is made by creating an empty database with the current schema and copying every
+  user table row by row inside one read transaction of the live database (consistent, and the
+  live WAL is never copied as a file). Room's own `room_master_table` comes with the new file.
+* Restore checks and replaces as in R26; a copy with an older `schemaVersion` is migrated with
+  the same migrations as an app update (MIGRATION_x_y above).
 
 ## Validation errors (returned by the domain, shown by the UI)
 
@@ -215,6 +277,6 @@ Several errors can be returned at once; the form shows each next to its field.
 ## Not modelled yet (on purpose)
 
 Visibility/privacy, travel buddies, drafts, likes/comments, planned steps, sync state and
-tombstones, videos; links between a track and steps (no automatic steps from a track), GPX
-import/export. Photo EXIF date/GPS is read once when steps are made from photos (R13) and
+tombstones, videos; links between a track and steps (no automatic steps from a track). GPX
+export/import (R25) and the backup file (R26) are formats above, not tables. Photo EXIF date/GPS is read once when steps are made from photos (R13) and
 never stored (the stored copies have no GPS, R11). See 03-screens.md "Intentional changes".
