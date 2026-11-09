@@ -28,7 +28,7 @@ ported 1:1 from `DisplayFormatTest`); no screen formats km, durations or in-trip
 | Shared page (leaves the app) | weekday + dd/MM/yyyy | "Thứ Hai, 20/10/2025" |
 | Km tile (trip detail) | label "km", a second line names the source: "đường chim bay" (straight line through the steps) or "đã ghi GPS" (sum of the finished tracks, used when it is at least the straight line, R10) | "139 / km / đường chim bay" |
 | Place without a name (step detail, step form, from-photos card) | "gần <điểm dừng gần nhất của chuyến>, <km>" (the km rule above; "gần <điểm dừng>" alone under 50 m); coordinates `lat, lng` as a smaller second line; no other step → coordinates only. No gazetteer (`PlaceLabel`, Swift: same pure function) | "gần TP Hà Giang, 9,7 km" / "22.91042, 104.97814" |
-| Default step name (from photos, stop suggestion) | "Điểm dừng HH:mm" of the step's arrival | "Điểm dừng 09:05" |
+| Default step name (from photos, stop suggestion) | "Điểm dừng HH:mm" of the step's arrival (`DisplayFormat.defaultStepTitle`, one function for both) | "Điểm dừng 09:05" |
 | Stat order (trip detail, share image, share page; My map keeps its own set in the same order) | điểm dừng, ảnh, km, ngày (My map: chuyến đi, điểm dừng, km) | |
 
 Theme: the app is light-only. The system bars are forced to the light style (dark icons) so the
@@ -164,7 +164,9 @@ The picker returns its result to the step form through the previous screen's sav
   end date) and trips ending today or later can record.
 * **Stop feedback:** every stop (button or notification action) shows a snackbar, app-wide: "Đã
   lưu hành trình 12,3 km", or, when the track had fewer than 2 points or under 50 m, "Hành trình
-  quá ngắn (dưới 50 m) nên không được lưu", and that track is deleted (R16).
+  quá ngắn (dưới 50 m) nên không được lưu", and that track is deleted (R16). After a process death
+  the same rule runs at the next start (no snackbar): an interrupted track under 50 m / 2 points
+  is deleted, a longer one stays in the list as "Dừng do ứng dụng bị đóng khi đang ghi".
 * **Idle:** a short hint ("Bấm "Ghi hành trình" khi lên đường: …", detail only) and the tonal
   button **"Ghi hành trình"** (route icon). Tap → permission flow of R16: explanation dialog
   "Ghi hành trình bằng GPS" (Tiếp tục / Hủy) → system location prompt → (Android 13+)
@@ -188,7 +190,9 @@ The picker returns its result to the step form through the previous screen's sav
   `img/gps-track/01-recording-notification.png`,
   `img/gps-track/02-trip-detail-recording.png`, `img/gps-track/03-trip-map-track.png`,
   `img/gps-track/04-airplane-trip-map-track.png`, `img/gps-track/05-track-list-interrupted.png`,
-  `img/gps-track/06-my-map-track.png`.
+  `img/gps-track/06-my-map-track.png`, `img/gps-track/07-stop-saved-snackbar.png`,
+  `img/gps-track/08-stop-dropped-snackbar.png`, `img/gps-track/09-new-trip-auto-record.png`,
+  `img/gps-track/10-recovered-after-force-stop.png`.
 * **Inspired by:** polarsteps' automatic route tracking (its docs describe a background tracker
   that fills the trip line between steps). **Changed:** recording is manual and visible
   (start / pause / stop, always with a notification), stored per trip as separate tracks, drawn
@@ -545,6 +549,10 @@ The picker returns its result to the step form through the previous screen's sav
 | gps-track/03-trip-map-track.png | Hà Giang trip map zoomed to TP Hà Giang: the recorded track (crimson, along the road, gap = a pause) next to the planned straight leg |
 | gps-track/04-airplane-trip-map-track.png | airplane mode, app restarted: basemap from the offline pack + the track |
 | gps-track/05-track-list-interrupted.png | after a force-stop while recording: the track ended, "Dừng do ứng dụng bị đóng khi đang ghi" |
+| gps-track/07-stop-saved-snackbar.png | Stop on an ongoing trip (7 points, 1,0 km): snackbar "Đã lưu hành trình 1,0 km", the track row in the list |
+| gps-track/08-stop-dropped-snackbar.png | Stop after one fix: snackbar "Hành trình quá ngắn (dưới 50 m) nên không được lưu", no new row |
+| gps-track/09-new-trip-auto-record.png | "Tạo chuyến mới và ghi" from an ended trip → trip form → the new trip opens already recording |
+| gps-track/10-recovered-after-force-stop.png | force-stop while recording 334 m, reopened: the track is kept as interrupted ("Dừng do ứng dụng bị đóng khi đang ghi"); a 1-fix recording killed the same way left no row |
 | gps-track/06-my-map-track.png | "Bản đồ của tôi" zoomed to TP Hà Giang: the recorded track over the trip line |
 | stop-suggest/01-trip-detail-suggestions.png | a track recorded with `emu geo fix` (drive, then 22 min at one spot) ended: "Gợi ý điểm dừng" on the trip detail |
 | stop-suggest/02-step-form-prefilled.png | "Thêm điểm dừng" from a suggestion: step form with "Điểm dừng HH:mm", date/time and place prefilled |

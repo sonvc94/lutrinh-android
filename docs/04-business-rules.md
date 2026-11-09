@@ -59,7 +59,8 @@ When "Thêm điểm dừng" opens an empty step form:
    background permission) followed by the trip's other steps (timeline order, the edited step left
    out) — `stepChips`. There is no fixed list of places and no online search (D4).
 4. **Default step name:** "Điểm dừng HH:mm" of the arrival, for a step made from a stop suggestion
-   (R17) and for a suggestion from photos (R13) alike; a hand-made step is named by the user.
+   (R17) and for a suggestion from photos (R13) alike (one function, `DisplayFormat.defaultStepTitle`,
+   test `DisplayFormatTest.defaultStepTitle_isTheArrivalTime`); a hand-made step is named by the user.
 5. **Place wording** (step detail, step form, from-photos card): a point without a name is shown as
    "gần <nearest other step of the trip>, <km>" (`PlaceLabel`, straight line, km rule of
    docs/03 "Display conventions"; under 50 m just "gần <step>"), with the coordinates as a second
@@ -67,7 +68,7 @@ When "Thêm điểm dừng" opens an empty step form:
 
 *Tests:* `OrderingTest.newStepDefaultsToNowWhenTravellingToday`,
 `OrderingTest.newStepDefaultsToDayAfterLastStepClampedToTrip`, `OrderingTest.pickerOpensAtLastStep`,
-`PlaceLabelTest` (nearest/label, own step excluded, no other step → null),
+`PlaceLabelTest` (nearest/label, own step excluded, no other step → null; the stop-suggestion card uses the same `PlaceLabel.nearest`),
 `PhotoGroupingTest.suggestionsNumberAfterExistingStepsAndFlagDatesOutsideTheTrip` (default names).
 *Inspired by* polarsteps docs/22 §1.3 (later steps default to the next day at a fixed morning
 time, picker starts at the previous step). *Changed:* 09:00 instead of 10:00 and "now" when the
@@ -320,7 +321,7 @@ Constants live in `domain/usecase/TrackLogic.kt` (`TrackRules`); the iOS port co
   (`TrackRules.MIN_KEEP_POINTS`, `MIN_KEEP_DISTANCE_M`, `isWorthKeeping`) is **deleted** instead
   of kept; every stop emits a `StopOutcome` (`Saved` / `Dropped`) and the app shows a snackbar
   "Đã lưu hành trình 12,3 km" or "Hành trình quá ngắn (dưới 50 m) nên không được lưu". (A track
-  ended by process death, see below, is kept as before.)
+  ended by process death, see below, follows the same keep rule, without a snackbar.)
 * **Process death.** Every accepted point is stored at once, together with the track's distance /
   count / `updatedAt`, in one transaction: nothing accepted is lost. If the app process dies
   while a track is open (force-stop, crash, low-memory kill of the service), the system does not
@@ -328,6 +329,10 @@ Constants live in `domain/usecase/TrackLogic.kt` (`TrackRules`); the iOS port co
   that is not the live one is **ended**: `interrupted = true`, `endedAt` = its last save (last
   point, or the pause/resume time), duration counted up to that moment; the points stay. The list
   shows it with "Dừng do ứng dụng bị đóng khi đang ghi". Recording never resumes by itself.
+  **The keep rule of Stop applies here too:** an interrupted track with fewer than 2 points or
+  under 50 m (`isWorthKeeping`) is deleted with its points, not kept as an empty row;
+  `recoverInterrupted()` returns one `StopOutcome` (`Saved` / `Dropped`) per track found, not
+  shown to the user (nobody is looking at a fresh process).
 * **Drawing.** Stored points are never simplified. For display each segment becomes one line,
   simplified with Douglas–Peucker at **5·10⁻⁵°** (≈ 5.5 m, `DISPLAY_EPSILON_DEG`, finer than the
   route's 2·10⁻⁴° so mountain switchbacks stay); segments of fewer than 2 points draw nothing.
@@ -345,7 +350,7 @@ with the point before the pause`, `length sums the segments and never the gap of
 simplified but keep both ends`, `distance and duration formats`); `TrackRecorderTest` (`duration
 excludes pauses and distance only joins points of one segment`, `filtered fixes are not stored`,
 `only one recording at a time and only for an existing trip`, `process death ends the open track
-with its saved points`, `a paused track interrupted keeps the time before the pause`, `delete
+with its saved points`, `process death drops an empty or too short open track like stop does`, `a paused track interrupted keeps the time before the pause`, `delete
 removes an ended track and its points but never the open one`, `deleting the trip stops its
 recording`, `a track deleted under the recorder ends the recording instead of crashing`, `stopping
 drops a track with fewer than 2 points or under 50 m and says so`, `the keep rule needs 2 points

@@ -154,7 +154,6 @@
     <string name="from_photos_title">Thêm từ ảnh</string>
     <string name="from_photos_pick">Chọn ảnh</string>
     <string name="from_photos_pick_hint">Chọn nhiều ảnh: ảnh có vị trí và ngày chụp sẽ được gom thành các điểm dừng gợi ý. Cho phép truy cập vị trí trong ảnh để gom theo nơi chụp.</string>
-    <string name="from_photos_default_title">Điểm dừng %1$s</string>
     <string name="from_photos_intro_title">Thêm điểm dừng từ ảnh</string>
     <string name="from_photos_intro_gps">Chọn ảnh có vị trí GPS và ngày chụp: Lữ Trình gom ảnh cùng ngày, cùng nơi thành các điểm dừng gợi ý để bạn xem lại.</string>
     <string name="from_photos_intro_review">Chưa có gì được tạo cho đến khi bạn bấm “Tạo điểm dừng”. Ảnh gốc trong máy không bị thay đổi.</string>
@@ -244,7 +243,6 @@
     <string name="stop_suggest_hint">Nơi hành trình đã dừng từ 20 phút trở lên mà chưa có điểm dừng.</string>
     <string name="stop_suggest_add">Tạo điểm dừng ở đây</string>
     <string name="stop_suggest_dismiss">Bỏ qua</string>
-    <string name="stop_suggest_default_title">Điểm dừng %1$s</string>
     <string name="stop_suggest_duration">Dừng %1$s</string>
     <string name="stop_suggest_photos">%1$d ảnh chụp lúc này</string>
     <string name="stop_suggest_near">gần %1$s, %2$s</string>

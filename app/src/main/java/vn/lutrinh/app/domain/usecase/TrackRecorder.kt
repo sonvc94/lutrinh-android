@@ -131,20 +131,26 @@ class TrackRecorder(
     /**
      * Run once when the process starts, before anything can record: an open track in storage
      * belongs to a process that died while recording. It is ended with the points already saved;
-     * the open segment counts up to the last saved change ([Track.updatedAt]). Returns how many.
+     * the open segment counts up to the last saved change ([Track.updatedAt]). Same rule as
+     * [stop]: one under [TrackRules.isWorthKeeping] is deleted with its points. Returns one
+     * outcome per track found (not emitted on [stopped]: nobody is looking at a fresh process).
      */
-    suspend fun recoverInterrupted(): Int = mutex.withLock {
+    suspend fun recoverInterrupted(): List<StopOutcome> = mutex.withLock {
         val open = tracks.openTracks().filter { it.id != _active.value?.id }
-        open.forEach { t ->
+        open.map { t ->
             val endAt = maxOf(t.updatedAt, t.resumedAt ?: t.updatedAt)
-            tracks.updateTrack(
-                t.copy(
-                    status = TrackStatus.ENDED, activeMs = t.durationMs(endAt), resumedAt = null, endedAt = endAt,
-                    interrupted = true, updatedAt = clock.nowMillis(),
-                ),
+            val ended = t.copy(
+                status = TrackStatus.ENDED, activeMs = t.durationMs(endAt), resumedAt = null, endedAt = endAt,
+                interrupted = true, updatedAt = clock.nowMillis(),
             )
+            if (TrackRules.isWorthKeeping(ended)) {
+                tracks.updateTrack(ended)
+                StopOutcome.Saved(ended)
+            } else {
+                tracks.deleteTrack(ended.id)
+                StopOutcome.Dropped(ended)
+            }
         }
-        open.size
     }
 
     private suspend fun save(t: Track): Track {

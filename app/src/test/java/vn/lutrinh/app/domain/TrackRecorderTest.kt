@@ -107,7 +107,7 @@ class TrackRecorderTest {
 
         // A new process: a new recorder over the same storage.
         val afterRestart = TrackRecorder(tracks, store, clock, SeqIds())
-        assertEquals(1, afterRestart.recoverInterrupted())
+        assertEquals(1, afterRestart.recoverInterrupted().size)
         val t = tracks.tracks.value.values.single()
         assertEquals(TrackStatus.ENDED, t.status)
         assertTrue(t.interrupted)
@@ -115,13 +115,38 @@ class TrackRecorderTest {
         assertEquals(30_000L, t.activeMs) // counted up to the last saved fix
         assertEquals(savedBefore, tracks.points.value.size)
         assertNull(afterRestart.active.value)
-        assertEquals(0, afterRestart.recoverInterrupted())
+        assertEquals(0, afterRestart.recoverInterrupted().size)
+    }
+
+    @Test fun `process death drops an empty or too short open track like stop does`() = runTest {
+        trip("t1"); trip("t2")
+        // no fix at all
+        val empty = (recorder.start("t1") as TrackRecorder.StartResult.Started).track
+        advance(10)
+        val out1 = TrackRecorder(tracks, store, clock, SeqIds()).recoverInterrupted().single()
+        assertTrue(out1 is StopOutcome.Dropped && out1.track.id == empty.id && out1.track.interrupted)
+        assertTrue(tracks.tracks.value.isEmpty())
+
+        // two points 11 m apart (under 50 m): also dropped, with its points
+        val short = TrackRecorder(tracks, store, clock, SeqIds())
+        val started = (short.start("t2") as TrackRecorder.StartResult.Started).track
+        short.onFix(fix(0.0))
+        advance(30)
+        short.onFix(fix(0.0001))
+        assertEquals(2, tracks.points.value.size)
+        val out2 = TrackRecorder(tracks, store, clock, SeqIds()).recoverInterrupted().single()
+        assertTrue(out2 is StopOutcome.Dropped && out2.track.id == started.id)
+        assertNull(tracks.getTrack(started.id))
+        assertTrue(tracks.points.value.isEmpty())
     }
 
     @Test fun `a paused track interrupted keeps the time before the pause`() = runTest {
         trip()
         recorder.start("t1")
-        advance(90)
+        recorder.onFix(fix(0.0))
+        advance(45)
+        recorder.onFix(fix(0.001))
+        advance(45)
         recorder.pause()
         advance(1000)
         TrackRecorder(tracks, store, clock, SeqIds()).recoverInterrupted()

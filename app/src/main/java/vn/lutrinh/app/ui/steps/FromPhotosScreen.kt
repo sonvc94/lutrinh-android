@@ -86,6 +86,7 @@ import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
 import vn.lutrinh.app.domain.usecase.PhotoGrouping
@@ -102,7 +103,6 @@ import vn.lutrinh.app.ui.common.displayDateTime
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.ChangeLocationButton
 import vn.lutrinh.app.ui.common.DiscardDialog
-import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.placeLines
 import java.time.LocalDateTime
 
@@ -237,7 +237,7 @@ fun FromPhotosScreen(
     // R13: the system Photo Picker redacts GPS, so this flow uses the system file picker and
     // ACCESS_MEDIA_LOCATION (docs/06-photos.md). Denied -> photos come without location.
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        vm.onPicked(uris) { at -> context.getString(R.string.from_photos_default_title, at.displayTime()) }
+        vm.onPicked(uris, DisplayFormat::defaultStepTitle)
     }
     val pick = { picker.launch(arrayOf("image/*")) }
     val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { pick() }

@@ -35,10 +35,6 @@ object StopRules {
     const val STEP_MATCH_TIME_MS = 60 * 60_000L
 }
 
-/** The step closest to [point] and its distance in km ("gần Hà Giang, 3,2 km" on a suggestion), or null without steps. */
-fun nearestStep(point: GeoPoint, steps: List<Step>): Pair<Step, Double>? =
-    steps.minByOrNull { Geo.distanceKm(point, it.location) }?.let { it to Geo.distanceKm(point, it.location) }
-
 /** Finds stays in one track's points (R17). Pure; unit-tested in StopDetectionTest. */
 object StopDetection {
     /**

@@ -102,7 +102,7 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
 * Room schema bump = bump `AppDatabase.VERSION`, add `MIGRATION_x_y` to `MIGRATIONS`, commit
   `app/schemas/.../<v>.json`, extend `MigrationTest` (no destructive fallback, on purpose).
 * Gboard on emulator-5580 shows a "Try out your stylus" popup on scripted taps; it swallows
-  `adb shell input text`. Dismiss the onboarding once by hand-tap, or enter text with Compose tests.
+  `adb shell input text`. Dismiss the onboarding once by hand-tap, or enter text with Compose tests. The popup is a Gboard window that uiautomator does not list: tap its "Cancel" by coordinates (about 55% x, 95% y of the screen), then tap the field and type again.
 * The emulator is shared: another crew's `install -r` replaces your APK within seconds (check `pm path` + `unzip -l` for a resource of yours, e.g. `be_vietnam`) — reinstall right before each screenshot batch and script the whole batch in one command.
 * Dates, km and durations: only `domain/usecase/DisplayFormat.kt` (docs/03 "Display conventions"); never
   `String.format(Locale.US, …)` in `ui/`. The theme is light-only, so `MainActivity` forces the light

@@ -30,6 +30,13 @@ class PlaceLabelTest {
         assertEquals("gần Đồng Văn, ${DisplayFormat.km(n.km)}", PlaceLabel.label(p, listOf(hagiang, dongvan)))
     }
 
+    @Test fun `nearest of no steps is null and the closest wins`() {
+        assertNull(PlaceLabel.nearest(GeoPoint(23.0, 105.0), emptyList()))
+        val n = PlaceLabel.nearest(GeoPoint(23.0, 105.0), listOf(step("far", "Xa", 24.0, 105.0), step("near", "Gần", 23.01, 105.0)))!!
+        assertEquals("Gần", n.title)
+        assertEquals(1.1, n.km, 0.1)
+    }
+
     @Test fun `distance is dropped when the point is at the step`() {
         assertEquals("gần Hà Giang", PlaceLabel.label(GeoPoint(22.8234, 104.9836), listOf(hagiang, dongvan)))
     }

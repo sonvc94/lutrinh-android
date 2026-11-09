@@ -24,7 +24,7 @@ import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.StopSuggestion
 import vn.lutrinh.app.domain.usecase.DisplayFormat
-import vn.lutrinh.app.domain.usecase.nearestStep
+import vn.lutrinh.app.domain.usecase.PlaceLabel
 import vn.lutrinh.app.ui.common.displayDay
 import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.formatCoord
@@ -69,7 +69,7 @@ fun StopSuggestionSection(
 private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, steps: List<Step>, onAdd: (StopSuggestion, String) -> Unit, onDismiss: (StopSuggestion) -> Unit) {
     val start = s.dwell.startAt.localDateTime()
     val end = s.dwell.endAt.localDateTime()
-    val defaultTitle = stringResource(R.string.stop_suggest_default_title, start.displayTime())
+    val defaultTitle = DisplayFormat.defaultStepTitle(start)
     Surface(
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -92,9 +92,9 @@ private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, steps: List<St
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    val near = nearestStep(s.dwell.center, steps)
+                    val near = PlaceLabel.nearest(s.dwell.center, steps)
                     Text(
-                        if (near != null) stringResource(R.string.stop_suggest_near, near.first.title, DisplayFormat.trackDistance(near.second * 1000))
+                        if (near != null) stringResource(R.string.stop_suggest_near, near.title, DisplayFormat.trackDistance(near.km * 1000))
                         else formatCoord(s.dwell.center.latitude, s.dwell.center.longitude),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

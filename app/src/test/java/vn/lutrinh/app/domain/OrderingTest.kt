@@ -10,7 +10,6 @@ import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackStatus
 import vn.lutrinh.app.domain.usecase.DistanceSource
 import vn.lutrinh.app.domain.usecase.Geo
-import vn.lutrinh.app.domain.usecase.nearestStep
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
 import vn.lutrinh.app.domain.usecase.TripOrder
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
@@ -76,14 +75,6 @@ class OrderingTest {
         assertEquals(130.0, gps.distanceKm, 0.001)
         // no steps to compare with: any recorded distance is the best number there is
         assertEquals(DistanceSource.GPS, statsOf(trip, emptyList(), listOf(track(5.0))).distanceSource)
-    }
-
-    @Test fun nearestStepGivesTheClosestStepAndItsDistance() {
-        val steps = listOf(step("far", "2026-10-20T08:00", lat = 24.0), step("near", "2026-10-20T09:00", lat = 23.01))
-        val (s, km) = nearestStep(GeoPoint(23.0, 105.0), steps)!!
-        assertEquals("near", s.id)
-        assertEquals(1.1, km, 0.1)
-        assertNull(nearestStep(GeoPoint(23.0, 105.0), emptyList()))
     }
 
     @Test fun newStepDefaultsToNowWhenTravellingToday() {

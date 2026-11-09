@@ -1,6 +1,7 @@
 package vn.lutrinh.app.domain.usecase
 
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToLong
@@ -13,6 +14,7 @@ object DisplayFormat {
     val VI: Locale = Locale.forLanguageTag("vi-VN")
 
     private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, dd/MM", VI)
+    private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", VI)
     private val DAY_YEAR: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy", VI)
 
     /**
@@ -63,4 +65,7 @@ object DisplayFormat {
 
     /** A day on the shared page, which leaves the app: "Thứ Hai, 20/10/2025". */
     fun dayWithYear(d: LocalDate): String = d.format(DAY_YEAR).replaceFirstChar { it.titlecase(VI) }
+
+    /** Name of a step made without one (from a stop suggestion or from photos): "Điểm dừng 09:05" of its arrival. */
+    fun defaultStepTitle(arrival: LocalDateTime): String = "Điểm dừng ${arrival.format(TIME)}"
 }

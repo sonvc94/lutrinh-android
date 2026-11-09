@@ -47,4 +47,9 @@ class DisplayFormatTest {
         assertEquals("Chủ Nhật, 05/10", DisplayFormat.day(LocalDate.of(2025, 10, 5)))
         assertEquals("Thứ Hai, 20/10/2025", DisplayFormat.dayWithYear(LocalDate.of(2025, 10, 20)))
     }
+
+    @Test
+    fun defaultStepTitle_isTheArrivalTime() {
+        assertEquals("Điểm dừng 09:05", DisplayFormat.defaultStepTitle(java.time.LocalDateTime.of(2026, 10, 20, 9, 5, 59)))
+    }
 }
