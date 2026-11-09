@@ -55,7 +55,8 @@ data is sent. On iOS set the header via `MLNNetworkConfiguration`.
 `#4A524E`, on white at 75 % opacity, drawn by the app). The MapLibre logo and the (i) button
 are hidden because the label already gives the required credit.
 
-**Caching.** MapLibre keeps its default ambient HTTP cache; nothing is pre-downloaded.
+**Caching.** MapLibre keeps its default ambient HTTP cache (tiles seen online, in the same
+database as the offline areas); areas the user downloads are kept until deleted ("Offline maps").
 
 ### Basemap tuning (runtime, after the style loads — `RouteLayers.kt` `tuneBasemap`)
 
@@ -221,9 +222,56 @@ better), no pitch/bearing, own durations.
 *Changed from the reference:* polarsteps docs/22 §1.3/§2.6 search places through LocationIQ and
 tap-to-move the pin; neighbour steps are drawn there as a dotted line, here as small context pins.
 
+## Offline maps (R15)
+
+Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map/OfflineConfig.kt`.
+
+* **Engine.** MapLibre's own offline store: `OfflineManager.createOfflineRegion` with an
+  `OfflineTilePyramidRegionDefinition(STYLE_URL, bounds, minZoom 0, maxZoom 14, pixelRatio =
+  screen density, includeIdeographs = false)` and JSON metadata
+  `{"key","name","description","paused"}`. MapLibre downloads style, sprite, glyphs and tiles of
+  every source in the style (vector `openmaptiles` z0–14, Natural Earth relief raster z0–6) into
+  `files/mbgl-offline.db` and serves them to every `MapView` when the network is gone — no change
+  to the map code. The basemap repaint (`tuneBasemap`), route layers, pins and badges are built
+  at runtime after the style loads, so they work offline unchanged.
+* **App side.** `map/OfflineMaps.kt` (one per process, in `AppContainer`, started in
+  `LuTrinhApp.onCreate`) lists regions, maps them to `OfflineArea`s by the metadata key, observes
+  status/errors and exposes `states` (phase, bytes, resources, problem) to the screen and the
+  indicator; `map/NetworkMonitor.kt` gives online/offline (`ConnectivityManager` default network
+  callback, permission `ACCESS_NETWORK_STATE`); `map/OfflineIndicator.kt` draws the chip/card
+  over every map (camera centre from the camera-idle listener).
+* **Zoom range.** z14 is the last vector zoom of the OpenFreeMap tileset; storing z15+ would only
+  duplicate it. Readability was checked at town zoom in airplane mode (img/offline/04).
+* **Sizes (2026-11-09, emulator, xxhdpi):**
+
+| Area | Tiles z0–14 (one source) | Estimate shown | Stored (screen) |
+| --- | --- | --- | --- |
+| Hà Giang | ~1 780 | ~26 MB | 26,3 MB |
+| Ninh Bình | ~610 | ~25 MB | 24,5 MB |
+| both | | | `mbgl-offline.db` 33,5 MB (fonts shared) |
+
+  The fonts (~17 MB for all glyph ranges of the 3 Noto stacks) dominate small areas; tile bytes
+  are only ~8 MB per area.
+* **Provider note.** OpenFreeMap is a donated public instance: downloads are kept modest on
+  purpose (two ready-made regions, trip areas capped at 150 MB, no country/province packs, one
+  revalidation per process). A production release with many users should self-host the
+  OpenMapTiles data (or use a paid provider) before offering offline areas widely; only
+  `STYLE_URL` changes, `OfflineConfig` re-measures `BYTES_PER_TILE`/`FIXED_BYTES`.
+* **Tileset versions.** The style's vector source is a TileJSON (`/planet`, max-age 1 h) whose
+  `tiles` URL contains a version (`/planet/20261101_080013_pt/{z}/{x}/{y}.pbf`). Offline, MapLibre
+  uses the stored TileJSON, so the pack stays consistent. Online after a new OpenFreeMap
+  release, the start-up revalidation downloads the new version's tiles; old tiles stay linked to
+  the region until it is deleted (the pack can grow by one version's tiles; delete + re-download
+  shrinks it).
+* **Testing offline on the emulator.**
+  `adb -s emulator-5580 shell cmd connectivity airplane-mode enable` (check
+  `settings get global airplane_mode_on` = 1), `am force-stop vn.lutrinh.app` + `am start`, then
+  `… airplane-mode disable`. Store size: `adb shell run-as vn.lutrinh.app ls -l files/mbgl-offline.db`.
+
 ## Not done (later)
 
-Offline packs, dark map, clustering for trips with many steps, road-following routes
+Drawing a custom offline box on the map, background download as a foreground service/WorkManager
+(today downloads stop when the process dies and resume at the next start), dark map, clustering for trips with many steps, road-following routes
 (snap-to-roads / OSRM — legs stay straight or arcs), photo thumbnails inside pins, current-location
 button (needs location permission; tracking is out of scope), a self-hosted or paid tile source
-for production.
+for production (also for offline areas, see "Provider note").

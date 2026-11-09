@@ -19,6 +19,7 @@ app/src/main/java/vn/lutrinh/app/
   domain/   models, repository interfaces, validation, ordering, use cases (pure Kotlin)
   data/     Room DB, repositories, PhotoStorage (import: EXIF/downscale/GPS strip), data/photo/ (pure maths), sample data
   map/      MapConfig.kt (the ONLY place for style URL/basemap tuning/attribution/User-Agent),
+            OfflineConfig.kt (the ONLY place for offline areas/zooms/limits), OfflineMaps.kt,
             RouteLayers.kt (route layer stack), Pins.kt, MapLibre views
   ui/       screens + view models; ui/common/Common.kt has formatters and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
@@ -80,4 +81,9 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
 * Test JPEGs with GPS/date: write the EXIF with a small script (APP1 with IFD0 + Exif + GPS IFDs),
   `adb push` to `/sdcard/Pictures/…`, then per file
   `am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/…`; check stored copies via `run-as vn.lutrinh.app cat files/photos/<f>`.
+* Offline maps (docs/05 "Offline maps"): airplane mode on the AVD with
+  `adb -s emulator-5580 shell cmd connectivity airplane-mode enable|disable`
+  (`settings get global airplane_mode_on`); MapLibre's store is `files/mbgl-offline.db`
+  (`run-as vn.lutrinh.app ls -l files/`). Offline, z0–7 tiles of a pack also draw far outside
+  its box — judge coverage at town zoom. `connectedDebugAndroidTest` wipes downloaded areas too.
 * Polarsteps analysis docs (`/Volumes/wdblack/workspace/vietmap/vietmap/polarsteps/docs`) are reference only; write our own code and copy.

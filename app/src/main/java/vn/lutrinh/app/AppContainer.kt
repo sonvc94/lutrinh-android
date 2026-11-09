@@ -13,6 +13,8 @@ import vn.lutrinh.app.domain.usecase.DeleteTrip
 import vn.lutrinh.app.domain.usecase.SaveStep
 import vn.lutrinh.app.domain.usecase.SaveTrip
 import vn.lutrinh.app.domain.usecase.SetLegTransport
+import vn.lutrinh.app.map.NetworkMonitor
+import vn.lutrinh.app.map.OfflineMaps
 import java.time.LocalDate
 import java.util.UUID
 
@@ -36,4 +38,7 @@ class AppContainer(context: Context) {
     val saveStep = SaveStep(trips, steps, photos, clock, ids)
     val deleteStep = DeleteStep(steps, photos)
     val setLegTransport = SetLegTransport(steps, clock)
+
+    val network = NetworkMonitor(context)
+    val offlineMaps = OfflineMaps(context, network)
 }

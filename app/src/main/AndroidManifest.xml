@@ -4,6 +4,8 @@
 
     <!-- Only for the map style + tiles (MapLibre + OpenFreeMap/OpenStreetMap). No other network use. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Offline maps (R15): know when the device is offline to show the offline indicator. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- No storage/media read permission: step photos come from the system Photo Picker.
          "Thêm từ ảnh" (R13) opens the system file picker and needs this permission to read the
          GPS position in the photos' EXIF (Android 10+ redacts it otherwise). The stored copies

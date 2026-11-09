@@ -23,7 +23,8 @@ Trip list ──FAB "Chuyến đi mới"─────────────�
    │  card ⋮ → Xóa → confirm                     │  map icon / header expand ─▶ Trip map
    ├─ globe "Bản đồ của tôi" ─▶ My map           │  FAB "Thêm điểm dừng" ─▶ Step form (create)
    │       └─ tap trip card ─▶ Trip detail       │  small FAB "Thêm từ ảnh" ─▶ From photos
-   └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │  tap leg chip ─▶ Leg mode sheet
+   ├─ ⋮ "Bản đồ offline" ─▶ Offline maps         │  tap leg chip ─▶ Leg mode sheet
+   └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │
                                                  │  tap step ─▶ Step detail
 From photos ── file picker ─▶ review ── "Chọn trên bản đồ" ─▶ Location picker ─▶ back with point
 From photos ── "Tạo N điểm dừng" ─▶ back to Trip detail (toast "Đã tạo N điểm dừng từ ảnh")
@@ -31,12 +32,13 @@ Step form ── "Chọn trên bản đồ"/"Đổi vị trí" ──▶ Locatio
 Step form ── "Thêm ảnh" ──▶ system Photo Picker ─▶ back with URIs
 Step detail ── pencil ─▶ Step form (edit) │ bin ─▶ confirm ─▶ back │ tap photo ─▶ Photo viewer
 Trip map ── tap card ─▶ Step detail │ tap leg chip on a card / mode badge on the map ─▶ Leg mode sheet
+Trip map ── top-bar icon "Bản đồ offline" ─▶ Offline maps (with this trip's area first)
 ```
 
 Route strings (Android, kept for deep links later): `trips`, `tripEdit?tripId=`, `trip/{tripId}`,
 `trip/{tripId}/map`, `trip/{tripId}/stepEdit?stepId=`, `trip/{tripId}/step/{stepId}`,
 `trip/{tripId}/pick?stepId=&lat=&lng=`, `trip/{tripId}/step/{stepId}/photos?index=`, `myMap`,
-`trip/{tripId}/fromPhotos`. The leg mode sheet is a bottom sheet, not a route.
+`trip/{tripId}/fromPhotos`, `offline?tripId=`. The leg mode sheet is a bottom sheet, not a route.
 The picker returns its result to the step form through the previous screen's saved state
 (`picked_location` = `"lat,lng"`); on iOS use a binding or a callback closure.
 
@@ -46,8 +48,8 @@ The picker returns its result to the step form through the previous screen's sav
 * **Content:** large title; one card per trip with cover photo (or a gradient placeholder), title,
   date range (`6 thg 11 – 9 thg 11, 2026`, or `từ …` when open-ended), "N điểm dừng · M ảnh".
 * **Actions:** tap → Trip detail; ⋮ or long-press → Sửa / Xóa; FAB "Chuyến đi mới"; globe icon
-  in the top bar (label "Bản đồ của tôi") → My map.
-  Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
+  in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Thêm tùy chọn") →
+  "Bản đồ offline" (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
 * **Empty:** suitcase icon, "Chưa có chuyến đi nào" + invitation text; in debug builds a
   "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip.
 * **Screens:** `img/01-trip-list-empty.png`, `img/04-trip-list.png`, `img/15-trip-list-sample.png`,
@@ -213,6 +215,45 @@ The picker returns its result to the step form through the previous screen's sav
   picks the photos (no gallery scan), an explicit review screen with editable titles, same-day +
   2 km grouping, no place-name lookup.
 
+## 11. Offline maps — "Bản đồ offline"
+
+* **Opens from:** the trip list ⋮ menu (all trips' areas) or the Trip map top bar (icon with
+  label "Bản đồ offline"; then this trip's area is listed first). Route `offline?tripId=`.
+* **Content (one list):** intro text (what it is, © OpenStreetMap via OpenFreeMap); when the
+  device has no network a banner "Đang không có mạng — chỉ xem được các vùng đã tải.";
+  * **"Chuyến đi này"** (only when opened from a trip): card "Tải vùng của chuyến đi này" with
+    "Khung bao mọi điểm dừng của “<title>”, thêm 10 km mỗi phía."; a trip without steps shows
+    "Chuyến đi chưa có điểm dừng nào để tải bản đồ."; a trip too wide for the limit shows
+    "Chuyến đi trải quá rộng để tải một lần (ước tính …, tối đa 150,0 MB). Hãy tải từng vùng có sẵn."
+  * **"Vùng có sẵn"**: Hà Giang and Ninh Bình, each with the places it covers;
+  * **"Vùng của các chuyến đi"**: trip areas already stored (downloading or downloaded) that
+    are not the current trip's;
+  * footer "Bộ nhớ bản đồ đang dùng: X (gồm cả bộ đệm khi xem online) · Còn trống: Y".
+* **One card per area, by phase (R15):**
+
+| Phase | Status line | Buttons |
+| --- | --- | --- |
+| not downloaded | "Ước tính ~26,3 MB" | "Tải về" |
+| downloading | "Đang tải 42% · 11,0 MB" + progress bar | "Tạm dừng", "Hủy tải" |
+| waiting for network | "Mất mạng · 42% · sẽ tự tải tiếp khi có mạng" | "Tạm dừng", "Hủy tải" |
+| paused | "Đã tạm dừng · 42% · 11,0 MB" | "Tiếp tục", "Hủy tải" |
+| failed | error text: "Không có mạng. Hãy kết nối Wi‑Fi hoặc 4G rồi thử lại." / "Không đủ bộ nhớ trống (cần ~X). …" / "Máy chủ bản đồ đang lỗi, đang thử lại…" / "Không tải được vùng này. Hãy thử lại." | "Tải về" (retry) or "Tiếp tục", "Hủy tải" when something is stored |
+| downloaded | "Đã tải · 26,3 MB" (stored size) | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng 26,3 MB. …" / Xóa · Hủy |
+
+* **Behaviour:** downloads run in the app process, not in the screen: leaving the screen does
+  not stop them; after the app is killed they resume at the next start (unless paused).
+* **On every map** (trip detail header, trip map, step maps, location picker, Bản đồ của tôi),
+  only while the device is offline: top-left chip "Ngoại tuyến · Hà Giang" when a downloaded
+  area contains the camera centre, otherwise a red card "Không có mạng" / "Vùng này chưa tải bản
+  đồ offline." (the basemap there is empty or blurry; route and pins are still drawn).
+* **Screens:** `img/offline/01-offline-list.png` (not downloaded, estimates),
+  `img/offline/02-offline-downloaded.png` (both downloaded with sizes),
+  `img/offline/03-airplane-hagiang-region.png`, `img/offline/04-airplane-hagiang-city.png`,
+  `img/offline/05-airplane-hoian-not-downloaded.png`.
+* **Inspired by:** nothing in the polarsteps reference (offline maps are a Lữ Trình addition for
+  mountain areas without signal). Ready-made regions instead of drawing a box on a map: simpler,
+  and keeps downloads bounded for the donated tile server.
+
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
 
 | File | Shows |
@@ -248,6 +289,11 @@ The picker returns its result to the step form through the previous screen's sav
 | 28-upgrade-after-v2.png | same data after installing the v2 build over it, leg chips "Chọn cách di chuyển" |
 | 29-from-photos-review.png | "Thêm từ ảnh" review: 2 GPS groups + the placed no-GPS group |
 | 30-from-photos-result.png | the trip after "Tạo 3 điểm dừng" |
+| offline/01-offline-list.png | "Bản đồ offline" before any download: ready-made regions with estimates |
+| offline/02-offline-downloaded.png | Hà Giang and Ninh Bình downloaded, stored sizes, storage footer |
+| offline/03-airplane-hagiang-region.png | airplane mode, app restarted: Hà Giang trip map at region zoom from the pack, chip "Ngoại tuyến · Hà Giang" |
+| offline/04-airplane-hagiang-city.png | same at town zoom (street + village labels, route, pins) |
+| offline/05-airplane-hoian-not-downloaded.png | airplane mode, location picker at Hội An (not downloaded): "Không có mạng / Vùng này chưa tải bản đồ offline." |
 
 ## Accessibility and UI tests
 
@@ -257,7 +303,8 @@ The picker returns its result to the step form through the previous screen's sav
 * Instrumented Compose tests (`app/src/androidTest/.../ui/TripFlowsTest.kt`) drive the real app
   on a device: create trip, edit trip, delete trip, add a step with the "Mã Pí Lèng" quick-place
   chip, set a leg's mode to "Xe máy" from the timeline (checked in the database), open "Bản đồ
-  của tôi" from the list. They find nodes by the Vietnamese texts/labels above (changing a string means updating the
+  của tôi" from the list, open "Bản đồ offline" from the list menu (ready-made regions listed) and
+  from a trip map ("Tải vùng của chuyến đi này"). They find nodes by the Vietnamese texts/labels above (changing a string means updating the
   test) and delete every trip whose title starts with `UITEST` afterwards. Run with
   `./gradlew connectedDebugAndroidTest` (needs network for tiles only cosmetically; the picker
   centre updates without tiles).

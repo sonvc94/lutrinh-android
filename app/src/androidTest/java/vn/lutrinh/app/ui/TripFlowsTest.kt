@@ -143,6 +143,39 @@ class TripFlowsTest {
         waitForText(title) // newest trip first in the card row
     }
 
+    @Test
+    fun openOfflineMaps_fromTheTripListMenu_listsTheReadyMadeRegions() {
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithContentDescription("Chuyến đi mới").fetchSemanticsNodes().isNotEmpty() }
+        // Trip cards have a "Thêm tùy chọn" menu too; the top bar's one is the highest on screen.
+        val menus = rule.onAllNodesWithContentDescription("Thêm tùy chọn")
+        val top = menus.fetchSemanticsNodes().withIndex().minBy { it.value.boundsInRoot.top }.index
+        menus[top].performClick()
+        rule.onNodeWithText("Bản đồ offline").performClick()
+
+        waitForText("Vùng có sẵn")
+        waitForText("Hà Giang")
+        waitForText("Mèo Vạc") // the Hà Giang loop's places
+        waitForText("Ninh Bình")
+        waitForText("Cúc Phương")
+        waitForText("Ước tính ~")
+        clickable("Tải về").fetchSemanticsNodes().let { assert(it.size >= 2) { "a download button per region" } }
+    }
+
+    @Test
+    fun openOfflineMaps_fromATripMap_offersTheTripArea() {
+        seedTripWithTwoSteps(title)
+        rule.onAllNodesWithText(title).onFirst().performClick()
+        waitForText("Hồ Gươm")
+        rule.onAllNodesWithContentDescription("Xem bản đồ").onFirst().performClick()
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithContentDescription("Bản đồ offline").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithContentDescription("Bản đồ offline").performClick()
+
+        waitForText("Tải vùng của chuyến đi này")
+        waitForText(title)
+        waitForText("Hà Giang")
+        waitForText("Ninh Bình")
+    }
+
     /** Creates a trip (today) with two steps through the app container; returns the second step id. */
     private fun seedTripWithTwoSteps(name: String): String = runBlocking {
         val c = container()

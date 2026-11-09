@@ -47,7 +47,7 @@ concrete classes by hand (no DI framework), so the iOS app can use a plain `stru
 | `domain/usecase` | `Validation.kt` (limits, inputs, error enums, validators), `Ordering.kt` (comparators, route, distance, stats, new-step defaults), `UseCases.kt` |
 | `data/local` | Database entities, DAOs, type converters, mappers |
 | `data` | `RoomTripRepository`, `RoomStepRepository`, `PhotoStorage`, `SampleData` |
-| `map` | `MapConfig` (style URL, basemap tuning, attribution, User-Agent, zooms), `MapSetup`, `MapViews`, `RouteLayers`, `Pins`, `CameraMath` |
+| `map` | `MapConfig` (style URL, basemap tuning, attribution, User-Agent, zooms), `MapSetup`, `MapViews`, `RouteLayers`, `Pins`, `CameraMath`; offline areas: `OfflineConfig` (pure: areas, zooms, size estimate, limits), `OfflineState`, `OfflineMaps` (MapLibre offline store), `NetworkMonitor`, `OfflineIndicator` |
 | `ui/*` | One file per screen + view model; `ui/common` holds shared widgets and dialogs |
 | `AppContainer`, `LuTrinhApp`, `MainActivity` | Composition root, app start, single activity |
 

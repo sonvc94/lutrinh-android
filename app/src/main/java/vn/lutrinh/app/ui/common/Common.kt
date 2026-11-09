@@ -86,6 +86,12 @@ fun dateRange(start: LocalDate, end: LocalDate?, openEnded: (String) -> String):
     else -> "${start.display()} – ${end.display()}"
 }
 
+/** Storage size for the UI: "9,4 MB", "1,2 GB" (Vietnamese decimal comma, 1 MB = 10^6 bytes). */
+fun formatBytes(bytes: Long): String {
+    val mb = bytes / 1_000_000.0
+    return if (mb >= 1000) String.format(VI, "%.1f GB", mb / 1000) else String.format(VI, "%.1f MB", mb)
+}
+
 fun formatCoord(lat: Double, lng: Double): String = String.format(Locale.US, "%.5f, %.5f", lat, lng)
 
 @Composable

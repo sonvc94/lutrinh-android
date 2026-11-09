@@ -13,6 +13,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.ui.offline.OfflineMapsScreen
 import vn.lutrinh.app.ui.photos.PhotoViewerScreen
 import vn.lutrinh.app.ui.picker.LocationPickerScreen
 import vn.lutrinh.app.ui.steps.FromPhotosScreen
@@ -36,6 +37,7 @@ object Routes {
     const val PICKER = "trip/{tripId}/pick?stepId={stepId}&lat={lat}&lng={lng}"
     const val PHOTOS = "trip/{tripId}/step/{stepId}/photos?index={index}"
     const val FROM_PHOTOS = "trip/{tripId}/fromPhotos"
+    const val OFFLINE = "offline?tripId={tripId}"
 
     fun tripEdit(tripId: String? = null) = if (tripId == null) "tripEdit" else "tripEdit?tripId=$tripId"
     fun trip(tripId: String) = "trip/$tripId"
@@ -51,6 +53,7 @@ object Routes {
         append(params.joinToString("&"))
     }
     fun fromPhotos(tripId: String) = "trip/$tripId/fromPhotos"
+    fun offline(tripId: String? = null) = if (tripId == null) "offline" else "offline?tripId=$tripId"
     fun photos(tripId: String, stepId: String, index: Int) = "trip/$tripId/step/$stepId/photos?index=$index"
 }
 
@@ -73,7 +76,11 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 onOpen = { nav.navigate(Routes.trip(it)) },
                 onEdit = { nav.navigate(Routes.tripEdit(it)) },
                 onOpenMyMap = { nav.navigate(Routes.MY_MAP) },
+                onOpenOffline = { nav.navigate(Routes.offline()) },
             )
+        }
+        composable(Routes.OFFLINE, arguments = listOf(optional("tripId"))) {
+            OfflineMapsScreen(onBack = { nav.popBackStack() })
         }
         composable(Routes.MY_MAP) {
             MyMapScreen(onBack = { nav.popBackStack() }, onOpenTrip = { nav.navigate(Routes.trip(it)) })
@@ -101,7 +108,11 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
         }
         composable(Routes.TRIP_MAP, arguments = listOf(required("tripId"))) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!
-            TripMapScreen(onBack = { nav.popBackStack() }, onOpenStep = { nav.navigate(Routes.step(tripId, it)) })
+            TripMapScreen(
+                onBack = { nav.popBackStack() },
+                onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
+                onOpenOffline = { nav.navigate(Routes.offline(tripId)) },
+            )
         }
         composable(Routes.STEP_EDIT, arguments = listOf(required("tripId"), optional("stepId"))) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!

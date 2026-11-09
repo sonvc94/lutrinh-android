@@ -157,12 +157,14 @@ fun TripMap(
     val badges = rememberTransportBadges()
     val clickHandler = rememberUpdatedState(onMarkerClick)
     val legClickHandler = rememberUpdatedState(onLegClick)
+    val center = rememberCameraCenter()
 
     Box(modifier) {
         AndroidView(
             factory = {
                 mapView.getMapAsync { map ->
                     map.applyCommonSettings(interactive)
+                    map.trackCenter(center)
                     map.loadBasemap { style ->
                         style.addSource(GeoJsonSource(SRC_ROUTE))
                         style.addSource(GeoJsonSource(SRC_LEG_BADGES))
@@ -226,6 +228,7 @@ fun TripMap(
                 state.render(context, mapView, fitPaddingDp, fitExtraBottomDp, interactive)
             },
         )
+        OfflineIndicator(center.value, Modifier.align(Alignment.TopStart))
         OsmAttribution(Modifier.align(Alignment.BottomEnd))
     }
 }
@@ -418,11 +421,13 @@ fun PickerMap(
     val scheme = MaterialTheme.colorScheme
     val pinColors = PinColors(scheme.primary.toArgb(), scheme.secondary.toArgb(), scheme.tertiary.toArgb(), scheme.secondary.toArgb())
     val state = remember { PickerState() }
+    val center = rememberCameraCenter()
     Box(modifier) {
         AndroidView(
             factory = {
                 mapView.getMapAsync { map ->
                     map.applyCommonSettings(true)
+                    map.trackCenter(center)
                     map.moveCamera(
                         CameraUpdateFactory.newLatLngZoom(LatLng(initial.latitude, initial.longitude), initialZoom),
                     )
@@ -468,6 +473,7 @@ fun PickerMap(
                 }
             },
         )
+        OfflineIndicator(center.value, Modifier.align(Alignment.TopStart))
         OsmAttribution(Modifier.align(Alignment.BottomEnd))
     }
 }

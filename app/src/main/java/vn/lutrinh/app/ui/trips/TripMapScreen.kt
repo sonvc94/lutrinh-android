@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -60,6 +61,7 @@ import vn.lutrinh.app.ui.common.factory
 fun TripMapScreen(
     onBack: () -> Unit,
     onOpenStep: (String) -> Unit,
+    onOpenOffline: () -> Unit,
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -81,6 +83,9 @@ fun TripMapScreen(
                 title = { Text(detail?.trip?.title ?: stringResource(R.string.trip_map_title), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) }
+                },
+                actions = {
+                    IconButton(onClick = onOpenOffline) { Icon(Icons.Outlined.DownloadForOffline, stringResource(R.string.offline_title)) }
                 },
             )
         },

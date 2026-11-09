@@ -9,7 +9,9 @@ class LuTrinhApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        container = AppContainer(this)
         MapSetup.init(this)
+        container = AppContainer(this)
+        // Re-attach offline map areas; resumes a download the app was killed in (R15).
+        container.offlineMaps.start()
     }
 }

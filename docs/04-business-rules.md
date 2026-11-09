@@ -187,6 +187,60 @@ screen, 2 km / same-day rule, no automatic place names (no geocoding offline).
 `LegsTest.tripColoursFollowCreationOrderAndStayWhenTripsAreAdded`; UI:
 `TripFlowsTest.openMyMap_fromTheTripList_showsTotalsAndTrips`.
 
+## R15 — Offline map areas ("Bản đồ offline")
+
+All numbers live in `map/OfflineConfig.kt` (pure Kotlin; the iOS port copies them).
+
+* **Areas.** Ready-made: **Hà Giang** `ha-giang` (S 22.70, W 104.85, N 23.42, E 105.60: TP Hà
+  Giang, Quản Bạ, Yên Minh, Lũng Cú, Đồng Văn, Mã Pí Lèng, Mèo Vạc, Du Già) and **Ninh Bình**
+  `ninh-binh` (S 20.10, W 105.48, N 20.45, E 106.05: Tràng An, Tam Cốc, Hang Múa, Hoa Lư, Bái
+  Đính, Vân Long, Cúc Phương). **Trip area** `trip:<tripId>`: the box around all the trip's steps
+  plus 10 km on each side (latitude margin 10/111.32°, longitude margin measured at the box's
+  widest latitude); a trip without steps has no area.
+* **What is stored.** For each area MapLibre's offline store keeps the basemap style
+  (`MapConfig.STYLE_URL`), its sprite, its fonts (Latin/Vietnamese glyph ranges, no CJK) and
+  every tile of the style's sources inside the box for **zoom 0–14**. The vector tiles end at
+  z14, so maps over-zoom them up to z19 with the same street and village names. Style, sprite
+  and fonts are shared between areas and stored once. Nothing about trips, steps or photos is
+  stored there (they are already local).
+* **Size.** Before a download the screen shows an estimate: 17 MB fixed (style + sprite + fonts)
+  + Σ over z0–14 of (tiles in the box at z × the measured average tile size at z). Areas whose
+  estimate is over **150 MB** cannot be downloaded (keeps the donated server's load modest and
+  forbids whole provinces/the country); for a trip that wide the screen explains why. Measured on
+  2026-11-09: Hà Giang ~26 MB, Ninh Bình ~25 MB stored (both together 33,5 MB on disk, the fonts
+  being shared). After the download the stored size is shown.
+* **Start conditions.** A download starts only when the device is online and the free space on
+  the store's volume is at least estimate + **50 MB**; otherwise the card shows "Không có mạng…" or
+  "Không đủ bộ nhớ trống…" and nothing is stored.
+* **Running.** Downloads belong to the app process, not to the screen. Losing the network pauses
+  the transfer ("Mất mạng · … · sẽ tự tải tiếp khi có mạng") and it continues by itself when the
+  network returns. "Tạm dừng" stops it until "Tiếp tục"; the paused flag is stored with the area,
+  so after the app is killed an unpaused, incomplete download resumes at the next app start and a
+  paused one stays paused. Server errors are retried by MapLibre; storage or other errors stop the
+  download with an error and a retry button.
+* **Cancel / delete.** "Hủy tải" and "Xóa" (after a confirmation) both remove the area from the
+  store; tiles no other area uses are freed. Deleting a trip does **not** delete its area: it stays
+  under "Vùng của các chuyến đi" until deleted there.
+* **Freshness.** Once per app process, when online, every downloaded area is re-checked against
+  the server (MapLibre fetches only what changed). OpenFreeMap versions its tileset (TileJSON
+  `tiles` URLs contain a date); without this check a style refresh after a new tileset would point
+  to tiles not in the pack.
+* **Use.** No setting: every map (trip detail, trip map, step maps, location picker, Bản đồ của
+  tôi) reads from the store automatically when the network is gone. Offline, a map shows the chip
+  "Ngoại tuyến · <area>" when a downloaded area's box contains the camera centre, otherwise "Không
+  có mạng / Vùng này chưa tải bản đồ offline."; online it shows nothing. Outside downloaded areas
+  low zoom levels may still appear (z0–7 tiles are large and spill over), blurry when zoomed in.
+
+*Tests:* `OfflineConfigTest.readyMadeRegions_coverTheirPlaces`,
+`readyMadeRegions_stayWithinTheSizeTarget`, `tileCount_isOnePerZoomInsideOneTile_andGrowsWithZoom`,
+`tripArea_isTheStepsBoxPlusTenKmEachSide`, `tripArea_ofOneStepIsAboutTwentyKmWide_andNoStepsGivesNone`,
+`tripArea_spanningTheCountryIsOverTheLimit`, `storageCheck_keepsAReserve`,
+`covering_findsTheAreaContainingThePoint`, `phases_followTheStoredStatus`,
+`problems_areMappedFromOfflineErrors`, `progress_isTheShareOfStoredResources`; UI:
+`TripFlowsTest.openOfflineMaps_fromTheTripListMenu_listsTheReadyMadeRegions`,
+`TripFlowsTest.openOfflineMaps_fromATripMap_offersTheTripArea`. Download, resume after kill and
+airplane-mode use are checked by hand on the emulator (docs/05 "Offline maps").
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

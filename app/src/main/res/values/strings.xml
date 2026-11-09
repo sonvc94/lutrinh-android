@@ -143,4 +143,35 @@
     <string name="from_photos_count">%1$d ảnh</string>
     <string name="from_photos_confirm">Tạo %1$d điểm dừng</string>
     <string name="from_photos_created">Đã tạo %1$d điểm dừng từ ảnh</string>
+
+    <!-- Offline maps (R15) -->
+    <string name="offline_title">Bản đồ offline</string>
+    <string name="offline_intro">Tải sẵn bản đồ một vùng để vẫn xem được đường đi, làng bản và lộ trình khi mất sóng. Bản đồ © OpenStreetMap, qua OpenFreeMap.</string>
+    <string name="offline_section_ready">Vùng có sẵn</string>
+    <string name="offline_section_trip">Chuyến đi này</string>
+    <string name="offline_section_trips">Vùng của các chuyến đi</string>
+    <string name="offline_trip_area">Tải vùng của chuyến đi này</string>
+    <string name="offline_trip_area_body">Khung bao mọi điểm dừng của “%1$s”, thêm %2$d km mỗi phía.</string>
+    <string name="offline_trip_no_steps">Chuyến đi chưa có điểm dừng nào để tải bản đồ.</string>
+    <string name="offline_trip_too_big">Chuyến đi trải quá rộng để tải một lần (ước tính %1$s, tối đa %2$s). Hãy tải từng vùng có sẵn.</string>
+    <string name="offline_estimate">Ước tính ~%1$s</string>
+    <string name="offline_progress">Đang tải %1$d%% · %2$s</string>
+    <string name="offline_waiting_network">Mất mạng · %1$d%% · sẽ tự tải tiếp khi có mạng</string>
+    <string name="offline_paused">Đã tạm dừng · %1$d%% · %2$s</string>
+    <string name="offline_complete">Đã tải · %1$s</string>
+    <string name="offline_error_no_network">Không có mạng. Hãy kết nối Wi‑Fi hoặc 4G rồi thử lại.</string>
+    <string name="offline_error_storage">Không đủ bộ nhớ trống (cần ~%1$s). Hãy giải phóng bộ nhớ rồi thử lại.</string>
+    <string name="offline_error_server">Máy chủ bản đồ đang lỗi, đang thử lại…</string>
+    <string name="offline_error_other">Không tải được vùng này. Hãy thử lại.</string>
+    <string name="offline_download">Tải về</string>
+    <string name="offline_pause">Tạm dừng</string>
+    <string name="offline_resume">Tiếp tục</string>
+    <string name="offline_cancel">Hủy tải</string>
+    <string name="offline_delete_title">Xóa bản đồ offline “%1$s”?</string>
+    <string name="offline_delete_body">Giải phóng %1$s. Khi mất sóng, vùng này sẽ không còn bản đồ. Có thể tải lại bất cứ lúc nào.</string>
+    <string name="offline_store">Bộ nhớ bản đồ đang dùng: %1$s (gồm cả bộ đệm khi xem online) · Còn trống: %2$s</string>
+    <string name="offline_offline_now">Đang không có mạng — chỉ xem được các vùng đã tải.</string>
+    <string name="offline_indicator">Ngoại tuyến · %1$s</string>
+    <string name="offline_no_network">Không có mạng</string>
+    <string name="offline_not_downloaded">Vùng này chưa tải bản đồ offline.</string>
 </resources>

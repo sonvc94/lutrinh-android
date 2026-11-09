@@ -2,11 +2,13 @@ package vn.lutrinh.app.map
 
 import android.graphics.RectF
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -63,12 +65,14 @@ fun AllTripsMap(
     val mapView = rememberMapView()
     val state = remember { AllTripsState() }
     val click = rememberUpdatedState(onTripClick)
+    val center = rememberCameraCenter()
 
     Box(modifier) {
         AndroidView(
             factory = {
                 mapView.getMapAsync { map ->
                     map.applyCommonSettings(true)
+                    map.trackCenter(center)
                     map.loadBasemap { style ->
                         style.addSource(GeoJsonSource(SRC_TRIPS))
                         style.addSource(GeoJsonSource(SRC_TRIP_STOPS))
@@ -136,6 +140,8 @@ fun AllTripsMap(
                 state.render(mapView)
             },
         )
+        // Below the overlay at the top of the map (e.g. the stats card of "Bản đồ của tôi").
+        OfflineIndicator(center.value, Modifier.align(Alignment.TopStart).padding(top = if (fitExtraTopDp > 0) (fitExtraTopDp + 16).dp else 0.dp))
         OsmAttribution(Modifier.align(Alignment.BottomEnd))
     }
 }
