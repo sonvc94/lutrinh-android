@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mvt
 from concurrent.futures import ThreadPoolExecutor
-BOXES = {"HS": (15.4, 110.9, 17.4, 113.2), "TS": (6.8, 111.3, 12.2, 116.3)}  # S W N E
+BOXES = {"HS": (12.2, 110.0, 17.4, 113.2), "TS": (6.8, 110.0, 12.2, 116.3)}  # S W N E
 LAYERS = {"place", "water_name", "aerodrome_label", "transportation_name", "waterway", "mountain_peak", "poi", "boundary"}
 def inbox(lon, lat):
     for k, (s, w, n, e) in BOXES.items():

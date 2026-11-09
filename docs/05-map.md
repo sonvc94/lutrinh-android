@@ -188,7 +188,7 @@ Vietnam, so (rule R30):
 
 * **Filter.** `applyBasemap` (live maps, both basemaps) and `MapLibreEngine.snapshot` (share
   snapshot) add `all(<layer's own filter>, not(hidden))` to every label layer of the table above,
-  where `hidden` = `within(Hoàng Sa box) or within(Trường Sa box)` and (any name field in
+  where `hidden` = `within(Hoàng Sa box) or within(Trường Sa box)` (the boxes include the open sea to 110.0 E and 12.2 N, where Chinese-only seamount/ridge names sit, e.g. 晋卿西海山 at 15.3 N 112.5 E) and (any name field in
   `BLOCKED_NAMES`, or contains a blocked substring, or `class` in the admin classes and `name`
   not in `VIETNAMESE_ADMIN`, or `has name:nonlatin` and not (`class` in
   island/ocean/sea/bay/strait/lake and `has name:vi`)). Decided per feature by its tags, not by its text, so it does not depend on the

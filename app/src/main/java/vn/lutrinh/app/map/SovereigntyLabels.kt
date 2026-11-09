@@ -31,18 +31,22 @@ object SovereigntyLabels {
     /** One archipelago: the Vietnamese label, where it is drawn, and the box its filter covers. */
     data class Archipelago(val label: String, val at: GeoPoint, val area: GeoBounds)
 
-    /** Paracels: reefs 15.7–17.1 N, 111.1–112.9 E. Box keeps clear of Hainan (18.1 N) and the coast (108–109 E). */
+    /**
+     * Paracels: reefs 15.7–17.1 N, 111.1–112.9 E. The box also covers the open sea south and west of
+     * them (to 12.2 N, 110.0 E): the tiles name seamounts/ridges there in Chinese only ("晋卿西海山"
+     * at 15.3 N 112.5 E, 10.7–15.7 N, 110.2–112.7 E in all). Keeps clear of Hainan (18.1 N) and the coast (≥ 108.2 E).
+     */
     val HOANG_SA = Archipelago(
         label = "Quần đảo Hoàng Sa",
         at = GeoPoint(16.45, 111.95),
-        area = GeoBounds(south = 15.4, west = 110.9, north = 17.4, east = 113.2),
+        area = GeoBounds(south = 12.2, west = 110.0, north = 17.4, east = 113.2),
     )
 
-    /** Spratlys: reefs 7.4–11.5 N, 111.5–116.0 E. East edge 116.3 E keeps Palawan/Balabac (≥ 116.9 E) and Sabah out. */
+    /** Spratlys: reefs 7.4–11.5 N, 111.5–116.0 E; west edge 110.0 E takes in the Chinese-only seamount names (10.7 N 110.5 E). East edge 116.3 E keeps Palawan/Balabac (≥ 116.9 E) and Sabah out. */
     val TRUONG_SA = Archipelago(
         label = "Quần đảo Trường Sa",
         at = GeoPoint(10.0, 114.3),
-        area = GeoBounds(south = 6.8, west = 111.3, north = 12.2, east = 116.3),
+        area = GeoBounds(south = 6.8, west = 110.0, north = 12.2, east = 116.3),
     )
 
     val ARCHIPELAGOS = listOf(HOANG_SA, TRUONG_SA)

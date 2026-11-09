@@ -19,6 +19,20 @@ class SovereigntyLabelsTest {
         mapOf("class" to cls, "name" to name, "name:vi" to vi, "name:latin" to latin, "name:nonlatin" to (if (nonLatin) name else null))
 
     @Test
+    fun chineseSeamountNames_inTheSeaAroundTheReefs_areHidden() {
+        fun sea(name: String) = mapOf("class" to "strait", "name" to name, "name:nonlatin" to name)
+        listOf(
+            sea("晋卿西海山") to GeoPoint(15.30, 112.49), sea("琵琶海山") to GeoPoint(13.89, 111.97),
+            sea("闲潭海台") to GeoPoint(11.48, 110.23), sea("江畔海山") to GeoPoint(10.68, 110.52),
+        ).forEach { (p, at) -> assertTrue(p.toString(), SovereigntyLabels.hides(p, at)) }
+        // Land and the Vietnamese coast stay out of the boxes; Haikou keeps its label.
+        val haikou = place("city", "海口市")
+        assertFalse(SovereigntyLabels.hides(haikou, GeoPoint(20.04, 110.33)))
+        assertFalse(SovereigntyLabels.hides(place("city", "Đà Nẵng", nonLatin = false), GeoPoint(16.05, 108.2)))
+        assertFalse(SovereigntyLabels.hides(place("city", "Nha Trang", nonLatin = false), GeoPoint(12.24, 109.19)))
+    }
+
+    @Test
     fun blockedNames_coverTheThreeAdminUnits_inBothScripts() {
         listOf("三沙市", "Tam Sa", "Sansha", "西沙区", "Quận Tây Sa", "Xisha", "南沙区", "Quận Nam Sa", "Nansha").forEach {
             assertTrue(it, it in SovereigntyLabels.BLOCKED_NAMES)

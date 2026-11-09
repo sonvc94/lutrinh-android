@@ -183,8 +183,8 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   "Quận Nam Sa", 三沙市…); every map (both basemaps) hides them via `maplibre/SovereigntyLayers.kt` and draws "Quần đảo
   Hoàng Sa/Trường Sa". A new style, a new label layer or a new tile build: add the layer to the
   filter (the provider's `labelLayerPrefixes` + `labelLayerIds`, e.g. `Positron.LABEL_*`), resurvey z5–10 tiles over the
-  boxes and extend `SovereigntyLabels.BLOCKED_NAMES` (open: a Chinese seamount label "…海山" near
-  15.3 N 112.5 E, just south of the Hoàng Sa box, shows at z8 on main too); `tools/map-survey/` decodes the tiles and
+  boxes and extend `SovereigntyLabels.BLOCKED_NAMES` (Chinese seamount labels "…海山" south/west of the reefs are
+  covered by the widened boxes, W 110.0, Hoàng Sa S 12.2); `tools/map-survey/` decodes the tiles and
   lists what the rule keeps. Admin labels there survive only by `VIETNAMESE_ADMIN` (claimants,
   docs/04 R30). Map text is GL-drawn: uiautomator cannot see it, judge screenshots. To get there
   on the AVD: open "Bản đồ của tôi" (globe at 875,209), `adb emu geo fix <lon> <lat>`, tap "Vị

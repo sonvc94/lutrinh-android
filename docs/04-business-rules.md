@@ -955,8 +955,11 @@ layer, on every basemap of R32: `BasemapTest.hybrid_keepsSovereigntyFilterOnEver
 `.light_keepsTodaysLook`, `.snapshot_declaredPlanFiltersTheKnownLabelLayers`). Lữ Trình is made for Vietnam: no map ever shows a Chinese administrative name for Vietnam's
 Hoàng Sa (Paracel) and Trường Sa (Spratly) archipelagos.
 
-* **Areas.** Hoàng Sa box S 15.4, W 110.9, N 17.4, E 113.2; Trường Sa box S 6.8, W 111.3, N 12.2,
-  E 116.3 (clear of the Vietnamese coast, Hainan, Palawan and Sabah).
+* **Areas.** Hoàng Sa box S 12.2, W 110.0, N 17.4, E 113.2; Trường Sa box S 6.8, W 110.0, N 12.2,
+  E 116.3 (clear of the Vietnamese coast, Hainan, Palawan and Sabah). The boxes include the open sea
+  west and south of the reefs, where the tiles name seamounts, ridges and hills in Chinese only
+  (晋卿西海山 at 15.3 N 112.5 E, 10.7–15.7 N 110.2–112.7 E in all): rule (d) hides them
+  (`class` strait, no `name:vi`). Land labels (Hainan, mainland, Philippines) are outside the boxes.
 * **Hidden.** On every basemap label layer (place, water, road, airport names), a label whose point
   lies in an area is hidden when
   (a) its `name`, `name:vi`, `name:latin`, `name_en`, `name:en`, `name_int` or `name:zh` is a
@@ -994,7 +997,7 @@ Hoàng Sa (Paracel) and Trường Sa (Spratly) archipelagos.
 `.chineseAdminUnits_areHidden_byEachOfTheirNames`, `.otherChineseScriptLabels_inTheAreas_areHidden`,
 `.vietnameseAndLatinLabels_stay`, `.otherCountriesAdminNames_inTheAreas_areHidden` (Kalayaan, Pag-asa,
 Malaysian and Taiwanese units, embedded "Tam Sa"), `.vietnameseAdminUnits_andNaturalFeatures_stay`,
-`.outsideTheAreas_nothingIsHidden`,
+`.outsideTheAreas_nothingIsHidden`, `.chineseSeamountNames_inTheSeaAroundTheReefs_areHidden`,
 `.ourLabels_areInTheirAreas_andInTheGeoJson`, `.mapFilter_isTheSameRule`. Checked on emulator-5580,
 "Bản đồ của tôi" (`img/sovereignty/`): before, "Tam Sa", "Yongle Qundao", "Quận Nam Sa", "Zhubi";
 after, none of them, our two labels shown. Claimants (captain: "chỉ giữ tên tiếng Việt cho đơn vị
