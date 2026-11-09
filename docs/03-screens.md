@@ -286,14 +286,16 @@ The picker returns its result to the step form through the previous screen's sav
     trong máy chụp trong khoảng này."
   * **Partial access (Android 14+):** the grid shows only the photos the user allowed, then "Bạn
     chỉ cho phép xem một số ảnh." and "Chọn thêm ảnh" (re-opens the system dialog, where the user
-    can select more photos or allow all).
+    can select more photos or allow all; on Android 16 it reads "Allow Lữ Trình to access more
+    photos and videos…" with "Allow limited access / Allow all / Don’t select more"). Photos
+    added there arrive ticked.
   The section re-reads the gallery when the screen resumes (back from settings or the system
   sheet). The ticked photos are copied into the step on "Lưu" (after the regular "Ảnh (n)"
   photos); they are not shown in "Ảnh (n)" before that. Back without saving copies nothing.
 * **Photo times:** each added photo's EXIF capture time is read before import and saved with the
   photo (`takenAt`, docs/06); nothing is shown for it on this screen.
 * **Save:** top-bar "Lưu" and bottom button; errors per field. Edit mode also has delete.
-* **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`, `img/stop-photos/01-…07-*.png`.
+* **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`, `img/stop-photos/01-…09-*.png`.
 * **Inspired by:** docs/22 §1.3 (New/Edit Step: map header with edit pencil, name, arrival date +
   time, media box, note). **Changed:** no "Publish / Save as draft" sheet (a step is saved
   directly), no location search (offline: map + quick places), suggested photos only for a step made
@@ -462,6 +464,8 @@ The picker returns its result to the step form through the previous screen's sav
 | stop-photos/05-no-double-offer.png | an overlapping suggestion (window 08:50–09:36) after saving: only 09:12 offered (08:58 and 09:31 are in the trip) |
 | stop-photos/06-card-gallery-count.png | suggestion cards "… · 1 ảnh trong máy" / "· 0 ảnh trong máy" |
 | stop-photos/07-access-denied.png | media permission revoked, "Don’t allow": the note and "Thêm ảnh" below |
+| stop-photos/08-partial-access-grid.png | "Allow limited access", 08:58 and 09:12 selected in the system sheet: "Đã chọn 2/2", "Bạn chỉ cho phép xem một số ảnh.", "Chọn thêm ảnh" |
+| stop-photos/09-partial-pick-more.png | "Chọn thêm ảnh" → "Allow limited access", 09:31 added: "Đã chọn 3/3" |
 
 ## Accessibility and UI tests
 

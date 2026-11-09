@@ -122,6 +122,9 @@ can show what was shot during the stop without the user searching for it.
   returns only the photos the user selected; asking again re-opens the selection); ≤ 12
   `READ_EXTERNAL_STORAGE`. Asked only after the in-app explanation and a tap on "Cho phép xem
   ảnh"; checked again on every resume. Denied → the Photo Picker stays the way in. Images only.
+  "Thêm từ ảnh" (R13) is independent of it: once the user has answered the media dialog here,
+  its `ACCESS_MEDIA_LOCATION` request may return without showing a dialog; on the Android 16
+  AVD with partial access it still read the GPS of a picked photo (checked by hand, 2026-11-09).
 * **Query:** `MediaStore.Images.Media.EXTERNAL_CONTENT_URI`, columns `_ID`, `DATE_TAKEN`,
   `DATE_MODIFIED`, `SIZE`, where `DATE_TAKEN` is within the stop window ± 26 h (`DATE_TAKEN` is an
   instant MediaStore derived from the EXIF date; the slack absorbs any zone it guessed) **or
