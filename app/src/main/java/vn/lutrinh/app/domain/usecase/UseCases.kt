@@ -8,6 +8,7 @@ import vn.lutrinh.app.domain.repository.Clock
 import vn.lutrinh.app.domain.repository.IdGenerator
 import vn.lutrinh.app.domain.repository.PhotoFileStore
 import vn.lutrinh.app.domain.repository.StepRepository
+import vn.lutrinh.app.domain.repository.TrackRepository
 import vn.lutrinh.app.domain.repository.TripRepository
 
 sealed interface SaveResult<out E> {
@@ -43,8 +44,14 @@ class SaveTrip(
 }
 
 /** R7: deleting a trip removes its steps, photo rows and photo files. */
-class DeleteTrip(private val trips: TripRepository, private val files: PhotoFileStore) {
+class DeleteTrip(
+    private val trips: TripRepository,
+    private val files: PhotoFileStore,
+    /** A recording of the trip is stopped first; its tracks go with the trip (R7, R16). */
+    private val recorder: TrackRecorder? = null,
+) {
     suspend operator fun invoke(tripId: String) {
+        recorder?.stopIfTrip(tripId)
         val orphaned = trips.deleteTrip(tripId)
         files.delete(orphaned)
     }
@@ -100,4 +107,12 @@ class DeleteStep(private val steps: StepRepository, private val files: PhotoFile
 class SetLegTransport(private val steps: StepRepository, private val clock: Clock) {
     suspend operator fun invoke(toStepId: String, mode: TransportMode?): Boolean =
         steps.setArrivalTransport(toStepId, mode, clock.nowMillis())
+}
+
+/** Deletes a recorded track and its points (R16). An open track must be stopped first. */
+class DeleteTrack(private val tracks: TrackRepository, private val recorder: TrackRecorder) {
+    suspend operator fun invoke(trackId: String): Boolean {
+        if (recorder.active.value?.id == trackId) return false
+        return tracks.deleteTrack(trackId)
+    }
 }

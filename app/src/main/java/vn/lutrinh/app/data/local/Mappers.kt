@@ -3,6 +3,9 @@ package vn.lutrinh.app.data.local
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.Track
+import vn.lutrinh.app.domain.model.TrackPoint
+import vn.lutrinh.app.domain.model.TrackStatus
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
@@ -41,4 +44,22 @@ fun Step.toEntity() = StepEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     transportMode = arrivalTransport?.code,
+)
+
+fun TrackEntity.toDomain() = Track(
+    id, tripId, TrackStatus.fromCode(status), startedAt, endedAt, activeMs, resumedAt, segment, distanceM, pointCount,
+    interrupted, createdAt, updatedAt,
+)
+
+fun Track.toEntity() = TrackEntity(
+    id, tripId, status.code, startedAt, endedAt, activeMs, resumedAt, segment, distanceM, pointCount, interrupted,
+    createdAt, updatedAt,
+)
+
+fun TrackPointEntity.toDomain() =
+    TrackPoint(trackId, segment, recordedAt, GeoPoint(latitude, longitude), accuracyM, altitudeM, speedMps)
+
+fun TrackPoint.toEntity() = TrackPointEntity(
+    trackId = trackId, segment = segment, recordedAt = recordedAt, latitude = location.latitude,
+    longitude = location.longitude, accuracyM = accuracyM, altitudeM = altitudeM, speedMps = speedMps,
 )

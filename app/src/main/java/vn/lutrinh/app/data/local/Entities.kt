@@ -84,3 +84,58 @@ data class DateRangeRow(
     @ColumnInfo(name = "first_day") val firstDay: String?,
     @ColumnInfo(name = "last_day") val lastDay: String?,
 )
+
+/** A recorded GPS track of a trip (R16, DB version 3). Times are epoch milliseconds. */
+@Entity(
+    tableName = "tracks",
+    foreignKeys = [
+        ForeignKey(
+            entity = TripEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["trip_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("trip_id")],
+)
+data class TrackEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "trip_id") val tripId: String,
+    /** TrackStatus.code */
+    val status: String,
+    @ColumnInfo(name = "started_at") val startedAt: Long,
+    @ColumnInfo(name = "ended_at") val endedAt: Long?,
+    @ColumnInfo(name = "active_ms") val activeMs: Long,
+    @ColumnInfo(name = "resumed_at") val resumedAt: Long?,
+    val segment: Int,
+    @ColumnInfo(name = "distance_m") val distanceM: Double,
+    @ColumnInfo(name = "point_count") val pointCount: Int,
+    val interrupted: Boolean,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
+)
+
+/** A stored (filtered, unsimplified) GPS point of a track (DB version 3). */
+@Entity(
+    tableName = "track_points",
+    foreignKeys = [
+        ForeignKey(
+            entity = TrackEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["track_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index(value = ["track_id", "segment", "recorded_at"])],
+)
+data class TrackPointEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "track_id") val trackId: String,
+    val segment: Int,
+    @ColumnInfo(name = "recorded_at") val recordedAt: Long,
+    val latitude: Double,
+    val longitude: Double,
+    @ColumnInfo(name = "accuracy_m") val accuracyM: Float?,
+    @ColumnInfo(name = "altitude_m") val altitudeM: Double?,
+    @ColumnInfo(name = "speed_mps") val speedMps: Float?,
+)

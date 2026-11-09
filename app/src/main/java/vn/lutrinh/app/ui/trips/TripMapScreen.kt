@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import vn.lutrinh.app.R
 import vn.lutrinh.app.map.TripMap
+import vn.lutrinh.app.ui.tracks.RecordTrackControl
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.LocalPhoto
@@ -65,6 +66,7 @@ fun TripMapScreen(
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val recording by vm.recording.collectAsStateWithLifecycle()
     var selected by remember { mutableStateOf<String?>(null) }
     var editLegTo by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
@@ -106,6 +108,14 @@ fun TripMapScreen(
                 selectedLegTo = editLegTo,
                 onMarkerClick = { selected = it },
                 onLegClick = { editLegTo = it },
+                tracks = detail.trackLines,
+            )
+            // "Ghi hành trình" (R16) floats top-right; the offline indicator sits top-left.
+            RecordTrackControl(
+                tripId = detail.trip.id, active = recording,
+                onPause = { vm.pauseRecording() }, onResume = { vm.resumeRecording() }, onStop = { vm.stopRecording() },
+                modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+                compact = true,
             )
             if (detail.steps.isEmpty()) {
                 Surface(

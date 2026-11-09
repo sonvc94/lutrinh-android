@@ -66,22 +66,31 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.TransportMode
+import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.usecase.Leg
+import vn.lutrinh.app.domain.usecase.TrackMath
 import vn.lutrinh.app.domain.usecase.TripStats
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
 import vn.lutrinh.app.domain.usecase.legsOf
 import vn.lutrinh.app.domain.usecase.statsOf
 import vn.lutrinh.app.map.MapMarker
+import vn.lutrinh.app.map.TrackLine
 import vn.lutrinh.app.map.TripMap
+import vn.lutrinh.app.ui.tracks.RecordTrackControl
+import vn.lutrinh.app.ui.tracks.TrackList
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
@@ -94,7 +103,15 @@ import vn.lutrinh.app.ui.common.factory
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-data class TripDetail(val trip: Trip, val steps: List<Step>, val stats: TripStats) {
+data class TripDetail(
+    val trip: Trip,
+    val steps: List<Step>,
+    val stats: TripStats,
+    /** Recorded GPS tracks, newest first (R16). */
+    val tracks: List<Track> = emptyList(),
+    /** The tracks as drawable lines (one per segment, simplified). */
+    val trackLines: List<TrackLine> = emptyList(),
+) {
     /** legs[i] = steps[i] -> steps[i+1] (R12). */
     val legs: List<Leg> = legsOf(steps)
     val legModes: List<TransportMode?> get() = legs.map { it.mode }
@@ -107,19 +124,32 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
     val tripId: String = checkNotNull(handle["tripId"])
     val deleted = MutableStateFlow(false)
 
+    /** The app's open recording (any trip), for the "Ghi hành trình" control. */
+    val recording: StateFlow<Track?> = c.recorder.active
+
+    private val trackLines = combine(c.tracks.observePoints(tripId), c.recorder.active.map { it?.id }.distinctUntilChanged()) { points, liveId ->
+        points.groupBy { it.trackId }.flatMap { (id, pts) -> TrackMath.displayLines(pts).map { TrackLine(id, it, live = id == liveId) } }
+    }.flowOn(Dispatchers.Default)
+
     val state: StateFlow<Loadable<TripDetail>> =
-        combine(c.trips.observeTrip(tripId), c.steps.observeSteps(tripId)) { trip, steps ->
+        combine(c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observeTracks(tripId), trackLines) { trip, steps, tracks, lines ->
             if (trip == null) {
                 Loadable.Missing
             } else {
                 val ordered = steps.inTimelineOrder()
-                Loadable.Ready(TripDetail(trip, ordered, statsOf(trip, ordered)))
+                Loadable.Ready(TripDetail(trip, ordered, statsOf(trip, ordered), tracks, lines))
             }
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
 
     fun setLegMode(toStepId: String, mode: TransportMode?) = viewModelScope.launch { c.setLegTransport(toStepId, mode) }
+
+    // Recording commands run in the app scope: leaving the screen must not cancel a stop.
+    fun pauseRecording() = c.appScope.launch { c.recorder.pause() }
+    fun resumeRecording() = c.appScope.launch { c.recorder.resume() }
+    fun stopRecording() = c.appScope.launch { c.recorder.stop() }
+    fun deleteTrack(trackId: String) = viewModelScope.launch { c.deleteTrack(trackId) }
 
     fun delete() = viewModelScope.launch {
         c.deleteTrip(tripId)
@@ -140,6 +170,7 @@ fun TripDetailScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val deleted by vm.deleted.collectAsStateWithLifecycle()
+    val recording by vm.recording.collectAsStateWithLifecycle()
     var menu by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var editLegTo by remember { mutableStateOf<String?>(null) }
@@ -194,7 +225,19 @@ fun TripDetailScreen(
             Loadable.Loading -> LoadingState(Modifier.padding(padding))
             Loadable.Missing -> MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
             is Loadable.Failed -> MessageState(Icons.Outlined.ErrorOutline, stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
-            is Loadable.Ready -> TripDetailContent(s.value, padding, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it })
+            is Loadable.Ready -> TripDetailContent(
+                s.value, padding, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it },
+                tracksSection = {
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        RecordTrackControl(
+                            tripId = s.value.trip.id, active = recording,
+                            onPause = { vm.pauseRecording() }, onResume = { vm.resumeRecording() }, onStop = { vm.stopRecording() },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        TrackList(s.value.tracks, onDelete = { vm.deleteTrack(it) })
+                    }
+                },
+            )
         }
     }
 
@@ -220,6 +263,7 @@ private fun TripDetailContent(
     onAddStep: () -> Unit,
     onOpenStep: (String) -> Unit,
     onEditLeg: (toStepId: String) -> Unit,
+    tracksSection: @Composable () -> Unit,
 ) {
     LazyColumn(
         contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 104.dp),
@@ -227,7 +271,7 @@ private fun TripDetailContent(
     ) {
         item {
             Box(Modifier.fillMaxWidth().height(220.dp)) {
-                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize())
+                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize(), tracks = d.trackLines)
                 Box(Modifier.fillMaxSize().clickable(onClick = onOpenMap))
                 SmallFloatingActionButton(
                     onClick = onOpenMap,
@@ -237,6 +281,7 @@ private fun TripDetailContent(
             }
         }
         item { TripHeader(d) }
+        item(key = "tracks") { tracksSection() }
         if (d.steps.isEmpty()) {
             item {
                 MessageState(

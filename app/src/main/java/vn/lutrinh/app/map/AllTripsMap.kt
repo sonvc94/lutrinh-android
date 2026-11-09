@@ -42,6 +42,7 @@ data class MapTrip(
 
 private const val SRC_TRIPS = "trips-src"
 private const val SRC_TRIP_STOPS = "trip-stops-src"
+private const val SRC_TRACKS = "all-tracks-src"
 private const val LAYER_TRIPS_SHADOW = "trips-shadow-layer"
 private const val LAYER_TRIPS_CASING = "trips-casing-layer"
 private const val LAYER_TRIPS = "trips-layer"
@@ -60,6 +61,8 @@ fun AllTripsMap(
     fitPaddingDp: Int = 48,
     fitExtraBottomDp: Int = 0,
     fitExtraTopDp: Int = 0,
+    /** Every recorded GPS track (R16), drawn above the trip lines and below the step dots. */
+    tracks: List<TrackLine> = emptyList(),
 ) {
     val context = LocalContext.current
     val mapView = rememberMapView()
@@ -76,6 +79,7 @@ fun AllTripsMap(
                     map.loadBasemap { style ->
                         style.addSource(GeoJsonSource(SRC_TRIPS))
                         style.addSource(GeoJsonSource(SRC_TRIP_STOPS))
+                        style.addSource(GeoJsonSource(SRC_TRACKS))
                         val selected = isSelected()
                         // Same recipe as a trip's ground legs: soft shadow, white casing, coloured core.
                         style.addLayer(
@@ -105,6 +109,7 @@ fun AllTripsMap(
                                 PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                             ),
                         )
+                        style.addTrackLayers(SRC_TRACKS)
                         style.addLayer(
                             CircleLayer(LAYER_TRIP_STOPS, SRC_TRIP_STOPS).withProperties(
                                 PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
@@ -134,6 +139,7 @@ fun AllTripsMap(
             update = {
                 val density = context.resources.displayMetrics.density
                 state.trips = trips
+                state.tracks = tracks
                 state.selectedId = selectedId
                 val p = (fitPaddingDp * density).toInt()
                 state.padding = intArrayOf(p, p + (fitExtraTopDp * density).toInt(), p, p + (fitExtraBottomDp * density).toInt())
@@ -150,6 +156,7 @@ private class AllTripsState {
     var map: MapLibreMap? = null
     var style: Style? = null
     var trips: List<MapTrip> = emptyList()
+    var tracks: List<TrackLine> = emptyList()
     var selectedId: String? = null
     var padding: IntArray = intArrayOf(0, 0, 0, 0)
     private var fittedKey: Pair<List<GeoPoint>, List<Int>>? = null
@@ -184,6 +191,8 @@ private class AllTripsState {
         }
         style.getSourceAs<GeoJsonSource>(SRC_TRIPS)?.setGeoJson(FeatureCollection.fromFeatures(lines))
         style.getSourceAs<GeoJsonSource>(SRC_TRIP_STOPS)?.setGeoJson(FeatureCollection.fromFeatures(stops))
+        // Tracks are drawn but not fitted: the camera frames the trips (R14).
+        style.getSourceAs<GeoJsonSource>(SRC_TRACKS)?.setGeoJson(tracks.toFeatureCollection())
         // Fit the whole drawn route (flight arcs included), not only the steps.
         val points = trips.flatMap { t ->
             if (t.points.size < 2) t.points

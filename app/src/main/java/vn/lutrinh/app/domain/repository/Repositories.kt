@@ -3,6 +3,8 @@ package vn.lutrinh.app.domain.repository
 import kotlinx.coroutines.flow.Flow
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.Track
+import vn.lutrinh.app.domain.model.TrackPoint
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
@@ -47,6 +49,34 @@ interface StepRepository {
 
     /** Sets the transport of the leg ending at [stepId] (null = clear). False when the step does not exist. */
     suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean
+}
+
+/** Recorded GPS tracks and their points (R16). */
+interface TrackRepository {
+    /** Tracks of a trip, newest first. */
+    fun observeTracks(tripId: String): Flow<List<Track>>
+
+    /** Points of every track of a trip, grouped by track, in segment then time order. */
+    fun observePoints(tripId: String): Flow<List<TrackPoint>>
+
+    /** Points of every track of every trip, grouped by track ("Bản đồ của tôi"). */
+    fun observeAllPoints(): Flow<List<TrackPoint>>
+
+    suspend fun getTrack(id: String): Track?
+
+    /** Tracks still RECORDING or PAUSED (at most one in normal use). */
+    suspend fun openTracks(): List<Track>
+
+
+    suspend fun insertTrack(track: Track)
+
+    suspend fun updateTrack(track: Track)
+
+    /** Stores [point] and the track's new totals in one transaction. */
+    suspend fun addPoint(track: Track, point: TrackPoint)
+
+    /** Deletes the track and all its points. False when it did not exist. */
+    suspend fun deleteTrack(id: String): Boolean
 }
 
 /** Owns the photo files in app-private storage. */

@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import vn.lutrinh.app.domain.model.Step
+import vn.lutrinh.app.domain.model.Track
+import vn.lutrinh.app.domain.model.TrackPoint
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
@@ -11,6 +13,7 @@ import vn.lutrinh.app.domain.repository.Clock
 import vn.lutrinh.app.domain.repository.IdGenerator
 import vn.lutrinh.app.domain.repository.PhotoFileStore
 import vn.lutrinh.app.domain.repository.StepRepository
+import vn.lutrinh.app.domain.repository.TrackRepository
 import vn.lutrinh.app.domain.repository.TripRepository
 import vn.lutrinh.app.domain.usecase.TripOrder
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
@@ -87,4 +90,32 @@ class FixedClock(var millis: Long = 1_000L, var day: LocalDate = LocalDate.of(20
 class SeqIds : IdGenerator {
     private var n = 0
     override fun newId() = "id-${++n}"
+}
+
+/** In-memory [TrackRepository] with the Room contract (ordering, delete of points). */
+class FakeTrackStore : TrackRepository {
+    val tracks = MutableStateFlow<Map<String, Track>>(emptyMap())
+    val points = MutableStateFlow<List<TrackPoint>>(emptyList())
+
+    override fun observeTracks(tripId: String) =
+        tracks.map { all -> all.values.filter { it.tripId == tripId }.sortedByDescending { it.startedAt } }
+    override fun observePoints(tripId: String) = points.map { all ->
+        all.filter { tracks.value[it.trackId]?.tripId == tripId }
+    }
+    override fun observeAllPoints(): Flow<List<TrackPoint>> = points
+    override suspend fun getTrack(id: String) = tracks.value[id]
+    override suspend fun openTracks() = tracks.value.values.filter { it.isOpen }
+    override suspend fun insertTrack(track: Track) { tracks.value = tracks.value + (track.id to track) }
+    override suspend fun updateTrack(track: Track) {
+        if (track.id in tracks.value) tracks.value = tracks.value + (track.id to track)
+    }
+    override suspend fun addPoint(track: Track, point: TrackPoint) {
+        check(track.id in tracks.value) { "FOREIGN KEY constraint failed" }
+        points.value = points.value + point
+        tracks.value = tracks.value + (track.id to track)
+    }
+    override suspend fun deleteTrack(id: String): Boolean {
+        points.value = points.value.filterNot { it.trackId == id }
+        return (id in tracks.value).also { tracks.value = tracks.value - id }
+    }
 }

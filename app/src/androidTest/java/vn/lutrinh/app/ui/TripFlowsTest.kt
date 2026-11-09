@@ -63,6 +63,15 @@ class TripFlowsTest {
         waitForText(title)
     }
 
+    /** R16: the trip screen offers "Ghi hành trình" (not tapped: it would ask for location). */
+    @Test
+    fun tripDetail_showsTheRecordTrackControl() {
+        createTrip(title)
+        waitForText("Chưa có điểm dừng")
+        rule.waitUntil(TIMEOUT) { clickable("Ghi hành trình").fetchSemanticsNodes().isNotEmpty() }
+        clickable("Ghi hành trình").onFirst().assertExists()
+    }
+
     @Test
     fun editTrip_changesTheTitle() {
         createTrip(title)

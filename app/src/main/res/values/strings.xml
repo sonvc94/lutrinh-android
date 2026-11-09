@@ -174,4 +174,31 @@
     <string name="offline_indicator">Ngoại tuyến · %1$s</string>
     <string name="offline_no_network">Không có mạng</string>
     <string name="offline_not_downloaded">Vùng này chưa tải bản đồ offline.</string>
+    <!-- GPS track recording (R16) -->
+    <string name="track_record">Ghi hành trình</string>
+    <string name="track_recording">Đang ghi</string>
+    <string name="track_paused">Tạm dừng</string>
+    <string name="track_pause">Tạm dừng</string>
+    <string name="track_resume">Tiếp tục</string>
+    <string name="track_stop">Dừng</string>
+    <string name="track_other_trip">Đang ghi hành trình cho chuyến đi khác</string>
+    <string name="track_section_title">Hành trình đã ghi</string>
+    <string name="track_section_empty">Bấm \"Ghi hành trình\" khi lên đường: Lữ Trình vẽ lại đường bạn đi bằng GPS, kể cả khi tắt màn hình.</string>
+    <string name="track_interrupted">Dừng do ứng dụng bị đóng khi đang ghi</string>
+    <string name="track_points">%1$d điểm GPS</string>
+    <string name="track_delete">Xóa hành trình</string>
+    <string name="track_delete_confirm_title">Xóa hành trình này?</string>
+    <string name="track_delete_confirm_body">Hành trình ghi lúc %1$s (%2$s, %3$d điểm GPS) sẽ bị xóa khỏi máy. Không thể hoàn tác.</string>
+    <string name="track_permission_title">Ghi hành trình bằng GPS</string>
+    <string name="track_permission_body">Lữ Trình dùng vị trí chính xác của máy để vẽ lại đường bạn đi. Chỉ ghi sau khi bạn bấm Ghi, luôn có thông báo trong lúc ghi để bạn dừng bất cứ lúc nào, và dữ liệu chỉ lưu trên máy này.\n\nTiếp theo, hãy cho phép vị trí chính xác và thông báo.</string>
+    <string name="track_permission_continue">Tiếp tục</string>
+    <string name="track_permission_denied_title">Chưa có quyền vị trí chính xác</string>
+    <string name="track_permission_denied_body">Không có vị trí chính xác thì không ghi được hành trình. Bạn có thể cho phép trong Cài đặt → Quyền → Vị trí → \"Chỉ cho phép khi dùng ứng dụng\" và bật \"Dùng vị trí chính xác\".</string>
+    <string name="track_location_off_title">Vị trí đang tắt</string>
+    <string name="track_location_off_body">Hãy bật Vị trí của máy để ghi hành trình.</string>
+    <string name="action_open_settings">Mở cài đặt</string>
+    <string name="track_channel_name">Ghi hành trình</string>
+    <string name="track_channel_description">Thông báo trong lúc ghi hành trình bằng GPS</string>
+    <string name="track_notif_recording">Đang ghi hành trình</string>
+    <string name="track_notif_paused">Đã tạm dừng ghi hành trình</string>
 </resources>

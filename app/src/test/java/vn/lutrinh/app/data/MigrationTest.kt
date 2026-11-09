@@ -18,6 +18,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import vn.lutrinh.app.data.local.AppDatabase
+import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.Track
+import vn.lutrinh.app.domain.model.TrackPoint
+import vn.lutrinh.app.domain.model.TrackStatus
 import vn.lutrinh.app.domain.model.TransportMode
 import java.io.File
 import java.time.LocalDate
@@ -39,8 +43,9 @@ class MigrationTest {
 
     @After fun close() { room?.close(); ctx.deleteDatabase(name) }
 
-    private fun createVersion1() {
-        val schema = JSONObject(File(SCHEMAS, "1.json").readText()).getJSONObject("database")
+    /** Creates the database exactly as [version] created it and fills it with one trip. */
+    private fun createVersion(version: Int) {
+        val schema = JSONObject(File(SCHEMAS, "$version.json").readText()).getJSONObject("database")
         val file = ctx.getDatabasePath(name).apply { parentFile?.mkdirs() }
         SQLiteDatabase.openOrCreateDatabase(file, null).use { db ->
             val entities = schema.getJSONArray("entities")
@@ -55,7 +60,7 @@ class MigrationTest {
             }
             val setup = schema.getJSONArray("setupQueries")
             for (i in 0 until setup.length()) db.execSQL(setup.getString(i))
-            db.version = 1
+            db.version = version
 
             db.insert("trips", null, ContentValues().apply {
                 put("id", "t1"); put("title", "Vòng cung Hà Giang"); put("description", "xe máy")
@@ -74,7 +79,7 @@ class MigrationTest {
     }
 
     @Test fun version1UpgradesToCurrentWithoutDataLoss() = runTest {
-        createVersion1()
+        createVersion(1)
         val db = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
             .addMigrations(*AppDatabase.MIGRATIONS)
             .allowMainThreadQueries()
@@ -99,6 +104,42 @@ class MigrationTest {
         assertEquals(5L, steps.getStep("s2")!!.updatedAt)
         assertNull(steps.getStep("s1")!!.arrivalTransport)
     }
+
+    @Test fun version2UpgradesWithTrackTablesAndKeepsTripsAndSteps() = runTest {
+        createVersion(2)
+        val db = open()
+        val trips = RoomTripRepository(db)
+        val steps = RoomStepRepository(db)
+        val tracks = RoomTrackRepository(db)
+
+        assertEquals(listOf("t1"), trips.observeTripSummaries().first().map { it.trip.id })
+        assertEquals(listOf("s1", "s2"), steps.getSteps("t1").map { it.id })
+        assertEquals(listOf("a.jpg"), steps.getSteps("t1")[1].photos.map { it.fileName })
+        assertTrue(tracks.observeTracks("t1").first().isEmpty())
+
+        // The new tables work: a track with points, deleted with its points.
+        val track = Track("k1", "t1", TrackStatus.RECORDING, 10, null, 0, 10, 0, 0.0, 0, false, 10, 10)
+        tracks.insertTrack(track)
+        tracks.addPoint(track.copy(pointCount = 1), TrackPoint("k1", 0, 11, GeoPoint(22.82, 104.98), 5f, 300.0, 1f))
+        tracks.addPoint(track.copy(pointCount = 2), TrackPoint("k1", 0, 16, GeoPoint(22.83, 104.98)))
+        assertEquals(2, tracks.observePoints("t1").first().size)
+        assertEquals(2, tracks.getTrack("k1")!!.pointCount)
+        assertTrue(tracks.deleteTrack("k1"))
+        assertTrue(tracks.observeAllPoints().first().isEmpty())
+
+        // A trip's tracks and points go with the trip (foreign keys cascade).
+        tracks.insertTrack(track)
+        tracks.addPoint(track.copy(pointCount = 1), TrackPoint("k1", 0, 11, GeoPoint(22.82, 104.98)))
+        trips.deleteTrip("t1")
+        assertNull(tracks.getTrack("k1"))
+        assertTrue(tracks.observeAllPoints().first().isEmpty())
+    }
+
+    private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
+        .addMigrations(*AppDatabase.MIGRATIONS)
+        .allowMainThreadQueries()
+        .build()
+        .also { room = it }
 
     @Test fun everySchemaVersionHasAnExportedFileAndAMigration() {
         val current = AppDatabase.VERSION

@@ -68,6 +68,11 @@ import vn.lutrinh.app.domain.usecase.routeOf
 import vn.lutrinh.app.domain.usecase.tripColorSlots
 import vn.lutrinh.app.map.AllTripsMap
 import vn.lutrinh.app.map.MapTrip
+import vn.lutrinh.app.map.TrackLine
+import vn.lutrinh.app.domain.usecase.TrackMath
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.MessageState
@@ -86,18 +91,27 @@ data class MyMapTrip(val summary: TripSummary, val color: Color, val steps: List
     val id: String get() = summary.trip.id
 }
 
-data class MyMap(val trips: List<MyMapTrip>, val stats: OverallStats)
+data class MyMap(
+    val trips: List<MyMapTrip>,
+    val stats: OverallStats,
+    /** Every recorded GPS track (R16), one line per segment. */
+    val tracks: List<TrackLine> = emptyList(),
+)
 
 class MyMapViewModel(c: AppContainer) : ViewModel() {
+    private val trackLines = c.tracks.observeAllPoints().map { points ->
+        points.groupBy { it.trackId }.flatMap { (id, pts) -> TrackMath.displayLines(pts).map { TrackLine(id, it) } }
+    }.flowOn(Dispatchers.Default)
+
     val state: StateFlow<Loadable<MyMap>> =
-        combine(c.trips.observeTripSummaries(), c.steps.observeAllSteps()) { summaries, steps ->
+        combine(c.trips.observeTripSummaries(), c.steps.observeAllSteps(), trackLines) { summaries, steps, tracks ->
             val byTrip = steps.groupBy { it.tripId }
             val slots = tripColorSlots(summaries.map { it.trip }, TripPalette.size)
             val trips = summaries.map { s ->
                 val own = byTrip[s.trip.id].orEmpty()
                 MyMapTrip(s, TripPalette[slots.getValue(s.trip.id)], own, Geo.routeLengthKm(routeOf(own)))
             }
-            Loadable.Ready(MyMap(trips, overallStatsOf(summaries.map { it.trip }, steps))) as Loadable<MyMap>
+            Loadable.Ready(MyMap(trips, overallStatsOf(summaries.map { it.trip }, steps), tracks)) as Loadable<MyMap>
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
@@ -156,6 +170,7 @@ fun MyMapScreen(
                 modifier = Modifier.fillMaxSize(),
                 fitExtraTopDp = statsDp,
                 fitExtraBottomDp = cardsDp,
+                tracks = data.tracks,
             )
             Surface(
                 shape = RoundedCornerShape(16.dp),

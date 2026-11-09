@@ -9,6 +9,11 @@ import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.PropertyValue
 import org.maplibre.android.style.layers.SymbolLayer
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.LineString
+import org.maplibre.geojson.Point
+import vn.lutrinh.app.domain.model.GeoPoint
 
 /*
  * Basemap loading + the route/pin layer stack shared by the map composables
@@ -162,3 +167,52 @@ internal fun Style.addRouteLayers(source: String, colors: RouteColors, below: St
 
 /** Pins and badges shrink a little at country zoom so a long trip does not turn into a blob. */
 internal val SYMBOL_SIZE_BY_ZOOM: Expression get() = byZoom(4f to 0.75f, 8f to 0.9f, 10f to 1f)
+
+/** Recorded GPS track layer ids, bottom to top (docs/05-map.md "Recorded tracks"). */
+internal object TrackLayerIds {
+    const val CASING = "track-casing"
+    const val LINE = "track-line"
+}
+
+/**
+ * Colour of a recorded track (R16): crimson, a hue no planned route uses (route green, selected
+ * gold, the "Bản đồ của tôi" trip palette), so "where I really went" never reads as a planned leg.
+ */
+internal const val TRACK_COLOR = "#D7263D"
+
+/**
+ * Adds the recorded-track layers for GeoJSON source [source] (one LineString per track segment).
+ * Thinner than a ground leg, solid, on a thin white casing: a GPS trace on top of the plan.
+ */
+internal fun Style.addTrackLayers(source: String, below: String? = null) {
+    fun add(layer: Layer) = if (below != null) addLayerBelow(layer, below) else addLayer(layer)
+    add(
+        LineLayer(TrackLayerIds.CASING, source).withProperties(
+            PropertyFactory.lineColor("#FFFFFF"),
+            PropertyFactory.lineWidth(byZoom(5f to 3.2f, 9f to 4.6f, 13f to 6.5f)),
+            PropertyFactory.lineOpacity(0.9f),
+            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+        ),
+    )
+    add(
+        LineLayer(TrackLayerIds.LINE, source).withProperties(
+            PropertyFactory.lineColor(TRACK_COLOR),
+            PropertyFactory.lineWidth(byZoom(5f to 1.6f, 9f to 2.6f, 13f to 4f)),
+            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+        ),
+    )
+}
+
+/** One drawable track line (a segment of a recorded track, already simplified). */
+data class TrackLine(val trackId: String, val points: List<GeoPoint>, val live: Boolean = false)
+
+internal fun List<TrackLine>.toFeatureCollection(): FeatureCollection =
+    FeatureCollection.fromFeatures(
+        filter { it.points.size >= 2 }.map { line ->
+            Feature.fromGeometry(
+                LineString.fromLngLats(line.points.map { Point.fromLngLat(it.longitude, it.latitude) }),
+            ).apply { addStringProperty("track", line.trackId) }
+        },
+    )

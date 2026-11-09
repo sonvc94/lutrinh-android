@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -83,4 +84,44 @@ interface StepDao {
 
     @Insert
     suspend fun insertPhotos(photos: List<PhotoEntity>)
+}
+
+@Dao
+interface TrackDao {
+    @Query("SELECT * FROM tracks WHERE trip_id = :tripId ORDER BY started_at DESC, id")
+    fun observeForTrip(tripId: String): Flow<List<TrackEntity>>
+
+    @Query(
+        "SELECT p.* FROM track_points p JOIN tracks t ON p.track_id = t.id WHERE t.trip_id = :tripId " +
+            "ORDER BY t.started_at, p.track_id, p.segment, p.recorded_at, p.id",
+    )
+    fun observePointsForTrip(tripId: String): Flow<List<TrackPointEntity>>
+
+    @Query(
+        "SELECT p.* FROM track_points p JOIN tracks t ON p.track_id = t.id " +
+            "ORDER BY t.trip_id, t.started_at, p.track_id, p.segment, p.recorded_at, p.id",
+    )
+    fun observeAllPoints(): Flow<List<TrackPointEntity>>
+
+    @Query("SELECT * FROM tracks WHERE id = :id")
+    suspend fun get(id: String): TrackEntity?
+
+    @Query("SELECT * FROM tracks WHERE status != 'ended'")
+    suspend fun open(): List<TrackEntity>
+
+
+    @Insert
+    suspend fun insert(track: TrackEntity)
+
+    @Update
+    suspend fun update(track: TrackEntity): Int
+
+    @Insert
+    suspend fun insertPoint(point: TrackPointEntity)
+
+    @Query("DELETE FROM track_points WHERE track_id = :trackId")
+    suspend fun deletePoints(trackId: String)
+
+    @Query("DELETE FROM tracks WHERE id = :id")
+    suspend fun delete(id: String): Int
 }
