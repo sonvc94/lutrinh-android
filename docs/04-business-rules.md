@@ -96,8 +96,9 @@ The step form edits a list of file names; on save:
 * A photo already attached to the step keeps its `id`, `createdAt` and `takenAt` (matched by file
   name); a new photo gets `takenAt` from its EXIF date read before import (R17, docs/06).
 * Photos removed from the list lose their row **and file** after the save commits.
-* Position 0 is the step cover; tapping a thumbnail moves it to position 0.
-* At most 30 photos per step (`TOO_MANY_PHOTOS`).
+* Position 0 is the step cover; tapping a thumbnail moves it to position 0; long-press + drag
+  puts it anywhere (R27). The list may hold videos (R29); they follow the same rules.
+* At most 30 photos and videos per step (`TOO_MANY_PHOTOS`).
 
 *Tests:* `UseCasesTest.savingStepNumbersPhotosAndKeepsIdsOfExistingOnes`,
 `RoomRepositoryTest.savingStepReplacesPhotosAndReportsRemovedFiles`,
@@ -628,7 +629,9 @@ Code: `TripCover` in `domain/usecase/Drafts.kt`, `SetTripCover` in `UseCases.kt`
   The row and the menu entry exist only for a saved trip; a trip without photos shows "Chuyến đi
   chưa có ảnh…" in the sheet.
 * **Automatic** (`coverPhotoId` null): the first photo (by position) of the first step in timeline
-  order that has photos — unchanged from before v6. Drafts count here: the cover is private (the
+  order that has photos — unchanged from before v6. Videos are never the cover (R29): the picker
+  lists photos only and both cover subqueries add `media_type = 'photo'`, so a step whose first item
+  is a video gives its first photo. Drafts count here: the cover is private (the
   trip list), it never leaves the device.
 * **Fallback.** A chosen id that no longer names a photo of this trip (photo removed from its step,
   step or trip deleted, an id from another trip) reads as automatic; the stale id is not cleaned
@@ -836,9 +839,114 @@ system picker — the app only sees a file).
 
 *Tests:* `BackupManagerTest` (Robolectric, real schema: `backupHoldsManifestDatabaseAndEveryPhoto`,
 `restoreReplacesAllDataWithTheBackup`, `restoreFailureLeavesCurrentDataIntact`, `newerSchemaIsRefused`,
-`otherFilesAreRefusedAndChangeNothing`, `olderSchemaBackupIsMigrated`). Checked by hand on the captain's data:
+`otherFilesAreRefusedAndChangeNothing`, `olderSchemaBackupIsMigrated`, `backupRoundTripKeepsAVideo`,
+`version6BackupRestoresIntoVersion7`). Since v7 the `photos/` entries include videos (R29) and the
+counts "ảnh" in the snackbar and the confirmation count photos and videos together. Checked by hand on the captain's data:
 backup of `2|14|16|1|359|1` (287 717 B, 16 photo files), restored over the same data: every row and
-every photo file byte-identical (`img/gpx-backup/05`, `06`).
+every photo file byte-identical (`img/gpx-backup/05`, `06`); and a schema-7 backup with two videos
+(`2|15|19|1|359|1`, 454 951 B) restored over 18 files: 19 files md5-identical (`img/photo-video/11`).
+
+## R27 — Photo order ("Nhấn giữ rồi kéo để đổi thứ tự")
+
+Code: `MediaOrder` in `domain/usecase/Media.kt` (pure), `ReorderableMediaRow` in
+`ui/steps/MediaStrip.kt`, `StepEditViewModel.reorderPhotos`; stored as `photos.position` (R8,
+dense since DB v7, 02-data-model.md).
+
+* **Gesture.** In the step editor's strip ("Ảnh & video"), long-press a tile, then drag it
+  sideways: the tile lifts (slightly larger, shadow), the others slide aside as its centre passes
+  theirs, and the strip scrolls when the tile reaches an edge. On release the new order replaces
+  the form's list; **"Lưu" stores it** (Back without saving discards it, like any edit). A tap
+  still means "make this the step cover" (R8: moves it to the front); "×" still removes. Each tile
+  also has the accessibility actions "Đưa lên trước" / "Đưa ra sau" (TalkBack; one place, nothing
+  past the ends). Gallery suggestions ticked in R19 are not in the strip yet (they become files on
+  save, appended at the end) and do not take part.
+* **Order everywhere.** Saving renumbers the list 0…n-1 (R8) and keeps every photo's `id`,
+  `createdAt`, `takenAt`, source and video length; the first item is the step cover. Timeline
+  thumbnails, step detail (header + grid), the viewer (and its "i / n"), the share image/page (R18
+  photo choice reads position), GPX has no photos (R25), the backup (R26) copies the column.
+* **Trip cover.** A chosen trip cover (R21) is a photo id, so reordering never changes it; the
+  automatic cover follows the new first photo of the first step.
+* **Upgrade.** DB v6 → v7 renumbers existing positions densely in the order already shown
+  (`position`, then `createdAt`, then `id`), so nothing moves on screen (02-data-model.md
+  "Migrations").
+
+*Tests:* `MediaTest.moveTakesAnItemToAnyPlaceAndKeepsTheOthersInOrder`,
+`.moveEarlierAndLaterStepOnePlaceAndStopAtTheEnds`, `.reorderedPhotosPersistWithTheirIdsAndTheCoverIsUnaffected`,
+`.aSavedVideoKeepsItsTypeAndLengthThroughReorder`; `RoomRepositoryTest.photosReadInStoredOrderAndAVideoIsNeverTheCover`;
+`MigrationTest.version6UpgradesKeepingPhotoOrderAndAddsMediaType`. Checked by hand on the
+captain's data (emulator-5580): "Đèo Mã Pí Lèng" photos dragged last → first, saved, Back to the
+list and reopened: the timeline, the detail grid and the viewer show the new order, photo ids
+unchanged (`img/photo-video/01`–`04`); then dragged back (dump identical to before).
+*Polarsteps lets the step editor drag photos too; ours keeps the order per step, no captions.*
+
+## R28 — Take a photo in the app ("Chụp ảnh")
+
+Code: `data/MediaCapture.kt`, `CaptureWithSystemCamera` in `ui/steps/MediaStrip.kt`,
+`StepEditViewModel.startCapture` / `onCaptureResult`; FileProvider path `capture/` in
+`res/xml/share_paths.xml`.
+
+* **Camera.** "Chụp ảnh" (next to "Thêm ảnh/video") opens the phone's own camera app
+  (`ACTION_IMAGE_CAPTURE`). The app declares **no CAMERA permission** and has no camera code: the
+  camera writes into a file the app owns, `<cache>/capture/<uuid>.jpg`, handed over as a
+  FileProvider `content://` URI with a one-time write grant. No camera app → "Không mở được ứng
+  dụng máy ảnh."
+* **Result.** OK with a written file → imported like a picked photo (R11: upright, ≤ 2560 px, no
+  GPS EXIF) into `photos/`, appended to the strip; `takenAt` = now (minute), no gallery source;
+  its place is the step's (photos have no location of their own). A camera that ignores the file
+  and returns its own URI is imported from that URI.
+* **No leftovers.** The capture file is deleted in every case — cancelled, OK with nothing written,
+  failed import, success (`MediaCapture.finish`). The pending capture's name is kept in the saved
+  state, so a result after process death is still handled; when the editor opens with no capture
+  pending, files left in `capture/` by a dead process are cleared. Like any import, a captured
+  photo not saved with the step is deleted when the form is left (R9).
+* At most 30 photos/videos per step (R8): the three add buttons are disabled once the strip holds 30
+  (and while an import runs).
+
+*Tests:* `MediaCaptureTest.aCancelledCaptureLeavesNoFile`, `.anOkResultWithNothingWrittenLeavesNoFile`,
+`.aTakenPhotoIsImportedAndTheTemporaryFileRemoved`, `.aCameraThatReturnsItsOwnUriIsImportedFromThere`,
+`.aFailedImportStillRemovesTheTemporaryFile`, `.leftoversAreClearedAndOnlyPlainNamesResolve`.
+Checked by hand on emulator-5580 (emulated camera): cancel → `files/photos` count 16 → 16 and
+`cache/capture` empty; shutter + "Done" → 17 and the photo in the strip (`img/photo-video/05`, `06`).
+
+## R29 — Short videos ("Quay video", videos in "Thêm ảnh/video")
+
+Code: `VideoRules` / `VideoProblem` in `domain/usecase/Media.kt` (pure), `PhotoStorage.importVideo`,
+`data/VideoMeta.kt`, `Photo.mediaType` / `durationMs` (DB v7), `VideoBadge` / `LocalMedia` in
+`ui/common/Common.kt`, `VideoPage` in `ui/photos/PhotoViewerScreen.kt`.
+
+* **Adding.** "Quay video" opens the system camera for video (`ACTION_VIDEO_CAPTURE`,
+  `EXTRA_DURATION_LIMIT` 60 s) into `<cache>/capture/<uuid>.mp4` exactly as R28 (no permission,
+  file always deleted, `takenAt` = now). "Thêm ảnh/video" (Photo Picker, images **and** videos)
+  adds videos among the photos in the order picked; a picked video's `takenAt` is its recording
+  time from the file metadata (UTC → local wall clock, minute), else null.
+* **Limits.** A video is accepted when its length is **≤ 60 whole seconds** (60.9 s passes, so a
+  recording stopped by the camera's limit is kept; 61.0 s is refused) and its size **≤ 200 MB**
+  (decimal, 200 000 000 B; also enforced while copying, for providers that report no size). Longer,
+  larger or unreadable videos are **refused, nothing is copied**, with "Video dài 1:05: chỉ thêm
+  được video tối đa 60 giây (ứng dụng không cắt video).", "Video <size>: chỉ thêm được video tối
+  đa 200 MB." or "Không đọc được video này." No trimming, no re-encoding.
+* **Storage.** An accepted video is a byte copy `photos/<uuid>.mp4` (or its own extension) and a
+  `photos` row with `mediaType = video`, `durationMs`; it counts towards the 30 per step (R8), takes
+  part in order (R27) and in deletes (R7, R9) like a photo.
+* **Showing.** Every thumbnail (strip, timeline, step detail) is a still frame with a play badge
+  and the length ("Video 0:08", `DisplayFormat.clock`). The step-detail heading is "Ảnh & video
+  (n)". In the viewer a video page plays full screen in the platform player (Android: VideoView +
+  MediaController, no player library; tap shows play/pause/seek); it starts when its page becomes
+  current and pauses when swiped away.
+* **Not a cover.** A video is never the trip cover (R21: left out of the picker and the automatic
+  choice). As the first item it is still the step's first thumbnail.
+* **Share.** The share image and page (R18) show a still frame of a video, never the video.
+* **Backup.** Videos are files in `photos/` and rows of `photos`, so a backup (R26) carries them and
+  restore puts them back byte for byte; a schema-6 backup (no videos yet) restores into v7.
+
+*Tests:* `MediaTest.videosUpTo60SecondsAnd200MbAreAcceptedLongerOrLargerRefused`,
+`.aSavedVideoKeepsItsTypeAndLengthThroughReorder`, `.aVideoIsNeverTheTripCover`;
+`VideoMetaTest.utcRecordingTimeBecomesLocalWallClockMinute`, `.missingPlaceholderOrGarbageDatesAreUnknown`;
+`RoomRepositoryTest.photosReadInStoredOrderAndAVideoIsNeverTheCover`;
+`BackupManagerTest.backupRoundTripKeepsAVideo`, `.version6BackupRestoresIntoVersion7`.
+Checked by hand on emulator-5580: a ~3 s recording and a picked 8 s video show badges and play in
+the viewer (`img/photo-video/07`, `09`, `10`); a picked 65 s video is refused with the message and
+no file (`08`); backup with two videos and restore: every file md5-identical (`11`).
 
 ## Text rules
 

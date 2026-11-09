@@ -2,8 +2,9 @@
 
 ## Picking
 
-* The step form's "Thêm ảnh" opens the **system photo picker** (Android Photo Picker via
-  `PickMultipleVisualMedia`, images only, at most 30 per pick).
+* The step form's "Thêm ảnh/video" opens the **system photo picker** (Android Photo Picker via
+  `PickMultipleVisualMedia`, images and videos — `ImageAndVideo` — at most 30 per pick). A picked
+  item whose MIME type is `video/*` goes to the video import (below, R29); the rest are photos.
 * **The picker needs no permission**: it runs in the system process and grants the app temporary
   read access to the chosen items only. (Merged manifest permissions: `INTERNET`,
   `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` — all for map tiles — plus `ACCESS_MEDIA_LOCATION`,
@@ -48,8 +49,8 @@ copies pulled with `run-as` had the date and **no GPS**.
 
 *Inspired by* polarsteps docs/22 §3.1 (androidx Photo Picker as the "Library" button). *Changed:*
 no in-app MediaStore gallery, no "allow all photos" rationale sheet, no automatic
-suggestions from the whole gallery (only from photos the user picks), no camera capture, no videos — all of these need broad media permissions or more
-UI; they can come later.
+suggestions from the whole gallery (only from photos the user picks). Camera capture and short
+videos came later without any new permission (R28, R29, "Camera" and "Videos" below).
 
 ## Persisting: import into app storage
 
@@ -146,6 +147,55 @@ can show what was shot during the stop without the user searching for it.
   URI; the gallery id when the URI names one (`…/images/media/<id>`, documents `image:<id>` from
   "Thêm từ ảnh"); Photo Picker URIs give no id, so for them de-dup relies on capture minute + size.
 
+## Camera (R28 "Chụp ảnh", R29 "Quay video")
+
+The app has **no camera code and no CAMERA permission**: it asks the phone's camera app to take
+the picture or video (`MediaStore.ACTION_IMAGE_CAPTURE` / `ACTION_VIDEO_CAPTURE` with
+`EXTRA_DURATION_LIMIT` = 60) and to write it into a file the app owns.
+
+1. `data/MediaCapture.newTarget` creates an empty `<cacheDir>/capture/<uuid>.jpg|.mp4`; its name is
+   kept in the editor's saved state (a camera app can outlive our process).
+2. The file is handed over as `content://vn.lutrinh.app.fileprovider/capture/<uuid>.…` (the share
+   FileProvider, path `capture/` in `res/xml/share_paths.xml`) in `EXTRA_OUTPUT` and the intent's
+   `ClipData`, with `FLAG_GRANT_WRITE_URI_PERMISSION` for this one intent. An app that declared
+   CAMERA would have to hold it to send these intents; we declare none on purpose.
+3. On return `MediaCapture.finish`: RESULT_OK and bytes written → imported like a picked file
+   (photo: R11 processing; video: the R29 checks and copy below); OK but nothing written and the
+   camera returned its own URI → that URI is imported; cancelled / nothing → nothing. **The
+   capture file is deleted in every case** (`finally`), so the cache never keeps a capture and a
+   cancelled one leaves no file anywhere (checked: `run-as … ls files/photos | wc -l` 16 → 16,
+   `cache/capture` empty). Files left by a process that died while the camera was open are cleared
+   when the editor next opens with no capture pending.
+4. A captured item has `takenAt` = now (minute) and no gallery source; its place is the step's.
+
+Verified on emulator-5580 (Android 16): the AOSP camera (`com.android.camera2`) shows the emulated
+scene, shutter → review → "Done" returns RESULT_OK with the file written; video recording works
+the same way (`img/photo-video/05`, `06`, `07`).
+
+## Videos (R29)
+
+* **Accepted:** length ≤ 60 whole seconds and size ≤ 200 MB (`VideoRules`, pure). Length and the
+  recording date come from the platform retriever (`data/VideoMeta`, `MediaMetadataRetriever`:
+  `METADATA_KEY_DURATION`, `METADATA_KEY_DATE` = UTC `yyyyMMdd'T'HHmmss[.SSS]Z` → local minute;
+  years before 2000 are encoder placeholders = unknown). Size from the provider (`OpenableColumns.SIZE`)
+  or the file, and again while copying (stops past 200 MB, partial copy deleted).
+* **Refused** (nothing copied): too long, too large, or the length cannot be read (not a playable
+  video); the editor shows why (R29 texts in 04).
+* **Stored as is:** a byte copy `photos/<uuid>.<ext>` (`mp4`, or `3gp`/`webm`/`mov`/`mkv` from the
+  MIME type), no trimming, no re-encoding, no metadata stripping (a phone video may carry its
+  recording location in its `©xyz` atom; it never leaves the app except in the user's own backup,
+  because shares use a still). Our own capture file is **copied, not renamed**: a file renamed out
+  of `cacheDir` keeps the cache's group id (`u0_aNNN_cache`) and is still counted as cache.
+* **Thumbnails:** Coil 3 with `coil-video`'s `VideoFrameDecoder` (registered in `LuTrinhApp` as the
+  singleton `ImageLoader`) draws a frame of the file wherever a photo thumbnail is drawn; a play
+  badge with the length (`DisplayFormat.clock`, "0:08") is drawn on top (`VideoBadge`).
+* **Playback:** the viewer's video page is the platform `VideoView` + `MediaController` (no player
+  library: Media3/ExoPlayer would add a dependency and APK size for features a ≤ 60 s local clip
+  does not need); APK +54 kB for the
+  whole feature, mostly `coil-video`.
+* **Stills for sharing:** `VideoMeta.still` = the sync frame nearest 0.5 s, scaled to the export
+  size; the share image/page (R18) treats it like a photo (no video in the files).
+
 ## Capture time (`photos.taken_at`, DB v4, R17)
 
 * Both import paths (step form "Thêm ảnh" and "Thêm từ ảnh") read the EXIF date of each picked
@@ -164,6 +214,8 @@ can show what was shot during the stop without the user searching for it.
 | Event | File effect |
 | --- | --- |
 | Picked in the form | imported → `photos/x.jpg` (not yet in the database) |
+| Taken / recorded with "Chụp ảnh" / "Quay video" (R28, R29) | camera writes `cache/capture/y.jpg\|.mp4`; imported → `photos/x.…` like a picked file; the capture file is deleted whatever happens |
+| Video refused (too long / large / unreadable, R29) | nothing copied |
 | Ticked in "Ảnh chụp trong lúc dừng" (R19) | nothing until "Lưu"; then imported like a picked photo just before the rows are written (a save that stops at validation or the extend dialog keeps the copies for the next "Lưu", or deletes them when the form is left) |
 | Removed (×) in the form before saving | stays until the form ends, then deleted (R9) |
 | Form saved | rows written; copies picked in this session but no longer in the list are deleted |
@@ -178,11 +230,13 @@ ignored) so a corrupted row can never delete other files.
 
 * Loaded from local files with Coil 3 (core only — the network module is not included, so Coil
   can never fetch a URL). Images are decoded at the size of the view.
-* Thumbnails: step form (row with × and "Ảnh bìa" badge), trip timeline (row per step), step
-  detail grid, map carousel cards, trip card cover.
-* Trip cover = first photo of the first step (R2 order) — computed in the summary query, not
-  stored.
-* Full-screen viewer: horizontal pager over the step's photos in position order, counter
+* Thumbnails: step form (row with × and "Ảnh bìa" badge, long-press drag to reorder, R27), trip
+  timeline (row per step), step detail grid, map carousel cards, trip card cover. Videos draw a
+  frame + play badge (R29; the map carousel shows the frame without a badge).
+* Trip cover = the chosen photo, else the first photo of the first step (R2 order, R21) — computed
+  in the summary query; videos are never the cover.
+* Full-screen viewer: horizontal pager over the step's photos and videos in position order (R27; a
+  video page plays, R29), counter
   "i / n", pinch zoom 1×–5× with pan; while zoomed, horizontal drags pan the image instead of
   changing page. A missing file shows "Không tìm thấy tệp ảnh" instead of crashing.
 
@@ -195,6 +249,7 @@ Photos leave the app only through "Chia sẻ chuyến đi", always re-encoded fr
   `PhotoImportPlan.scaledSize(maxPx)` (long edge ≤ maxPx, never upscaled) and turned upright by
   the EXIF orientation tag if a kept original still has one (stored re-encoded copies are upright
   already, R11). A missing or unreadable file is skipped.
+* **Videos** are never exported: their still frame (above) takes the place of a photo.
 * **Summary image:** up to 4 photos (R18 choice) decoded at a long edge of **640 px**, drawn as
   centre-cropped squares (~225 px) into the PNG.
 * **Summary page:** each photo as **JPEG, long edge ≤ 1280 px, quality 80**, embedded as a
@@ -215,6 +270,7 @@ caption) pushed into the emulator gallery, so that the real Photo Picker flow co
 
 ## Not done (later)
 
-Gallery suggestions outside stop suggestions (manual steps, whole days), cloud-only and video items, thumbnails (Coil decodes at view size from the 2560 px copy), videos,
-camera capture, upload to a server (see 01-architecture.md), photo captions, sharing, removing
+Gallery suggestions outside stop suggestions (manual steps, whole days), cloud-only and video items in
+those suggestions, thumbnails (Coil decodes at view size from the 2560 px copy), video trimming or
+re-encoding, a custom (CameraX) camera, upload to a server (see 01-architecture.md), photo captions, sharing, removing
 location from XMP blocks (only EXIF GPS tags are removed).

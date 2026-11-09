@@ -61,8 +61,10 @@ is `arrivalTransport` of step *i+1* (R12).
 | --- | --- | --- | --- |
 | id | String (UUID) | no | generated on device; kept when the step is edited (R8) |
 | stepId | String | no | owning step |
-| fileName | String | no | unique; name of the file in the app's private `photos/` folder (e.g. `3f2c….jpg`), never a path or URI |
-| position | Int | no | 0-based display order; position 0 = step cover |
+| fileName | String | no | unique; name of the file in the app's private `photos/` folder (e.g. `3f2c….jpg`, a video `….mp4`), never a path or URI |
+| position | Int | no | 0-based display order, dense (0, 1, 2 …) within a step since v7; the user sets it by drag (R27) or by "Đặt làm ảnh bìa" (moves to 0); position 0 = step cover. Every list (timeline, step detail, viewer, share, GPX, backup) reads `ORDER BY position` |
+| mediaType | `photo` \| `video` | no | (v7, R29) default `photo`; a video is a stored `.mp4` copy (≤ 60 s, ≤ 200 MB) shown with a play badge; never a trip cover (R21) |
+| durationMs | Long | yes | (v7, R29) length of a video in milliseconds, read once on import; null for photos |
 | createdAt | Instant | no | |
 | takenAt | LocalDateTime | yes | capture time from the picked file's EXIF (`DateTimeOriginal`, docs/06; local wall clock, minute precision), read **before** import because the stored copy has no EXIF (R11). Set for photos added since DB v4 (step editor and "Thêm từ ảnh") and in sample data; null for older photos and files without a date. Used to count photos in a stop suggestion (R17) and to recognise a gallery photo already in the trip (R19); kept when the step is edited |
 | sourceId | String | yes | (v5, R19) the phone gallery's id of the original (Android MediaStore `_ID`, iOS PHAsset `localIdentifier`) when the photo came from "Ảnh chụp trong lúc dừng" or "Thêm từ ảnh"; null for Photo Picker imports (the picker gives no id), older photos and sample data. Only used so the same gallery photo is not offered twice (R19) |
@@ -135,20 +137,20 @@ overlaps (`startAt..endAt`), so a small change of the detection keeps old decisi
 | stepId | String | yes | the step created (`added` only); not a foreign key: deleting that step brings the suggestion back (R17) |
 | decidedAt | Instant (epoch ms) | no | |
 
-## Storage (Android: SQLite via Room, database `lutrinh.db`, version 6)
+## Storage (Android: SQLite via Room, database `lutrinh.db`, version 7)
 
 | Table | Columns | Keys / indexes |
 | --- | --- | --- |
 | `trips` | id TEXT PK, title, description, start_date TEXT `yyyy-MM-dd`, end_date TEXT nullable, created_at INTEGER, updated_at INTEGER, cover_photo_id TEXT nullable (v6) | — |
 | `steps` | id TEXT PK, trip_id TEXT, title, note, latitude REAL, longitude REAL, arrived_at TEXT `yyyy-MM-dd'T'HH:mm`, created_at, updated_at, transport_mode TEXT nullable (v2), is_draft INTEGER NOT NULL DEFAULT 0 (v6) | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id), (trip_id, arrived_at) |
-| `photos` | id TEXT PK, step_id TEXT, file_name TEXT, position INTEGER, created_at INTEGER, taken_at TEXT `yyyy-MM-dd'T'HH:mm` nullable (v4), source_id TEXT nullable (v5), source_size INTEGER nullable (v5) | FK step_id → steps.id ON DELETE CASCADE; index (step_id); UNIQUE (file_name) |
+| `photos` | id TEXT PK, step_id TEXT, file_name TEXT, position INTEGER, created_at INTEGER, taken_at TEXT `yyyy-MM-dd'T'HH:mm` nullable (v4), source_id TEXT nullable (v5), source_size INTEGER nullable (v5), media_type TEXT NOT NULL DEFAULT 'photo' (v7), duration_ms INTEGER nullable (v7) | FK step_id → steps.id ON DELETE CASCADE; index (step_id); UNIQUE (file_name) |
 | `tracks` (v3) | id TEXT PK, trip_id TEXT, status TEXT, started_at INTEGER, ended_at INTEGER nullable, active_ms INTEGER, resumed_at INTEGER nullable, segment INTEGER, distance_m REAL, point_count INTEGER, interrupted INTEGER (0/1), created_at, updated_at | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id) |
 | `track_points` (v3) | id INTEGER PK AUTOINCREMENT, track_id TEXT, segment INTEGER, recorded_at INTEGER, latitude REAL, longitude REAL, accuracy_m REAL nullable, altitude_m REAL nullable, speed_mps REAL nullable | FK track_id → tracks.id ON DELETE CASCADE; index (track_id, segment, recorded_at) |
 | `stop_decisions` (v4) | track_id TEXT, start_at INTEGER, end_at INTEGER, decision TEXT, step_id TEXT nullable, decided_at INTEGER | PK (track_id, start_at); FK track_id → tracks.id ON DELETE CASCADE; index (track_id) |
 
 Dates are stored as ISO-8601 text so that text order equals time order (used by `ORDER BY` and by
 the step date range query) and the values are readable in any SQLite browser. The exported schemas
-are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 6.json).
+are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 7.json).
 Track times are epoch-millisecond integers (instants, not local times): a recording can cross time
 zones, and only durations and order matter. Each stored point is written in one transaction with
 its track's `distance_m` / `point_count` / `updated_at`, so a process death never leaves them out
@@ -163,6 +165,7 @@ of step.
 | 3 → 4 | stop suggestions (R17) | `ALTER TABLE photos ADD COLUMN taken_at TEXT` (existing photos: null = time unknown), `CREATE TABLE stop_decisions …` + `index_stop_decisions_track_id` (exact SQL = `4.json`) |
 | 4 → 5 | gallery photos of a stop (R19) | `ALTER TABLE photos ADD COLUMN source_id TEXT`, `ALTER TABLE photos ADD COLUMN source_size INTEGER` (existing photos: null = origin unknown) |
 | 5 → 6 | draft steps (R20), trip cover (R21) | `ALTER TABLE steps ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0` (existing steps: published), `ALTER TABLE trips ADD COLUMN cover_photo_id TEXT` (existing trips: automatic cover) |
+| 6 → 7 | photo order (R27), videos (R29) | renumber `position` densely per step in the current display order (`position`, then `created_at`, then `id`) through a temp table — a correlated `UPDATE photos SET position = (SELECT COUNT(*) …)` would see rows it already changed —, then `ALTER TABLE photos ADD COLUMN media_type TEXT NOT NULL DEFAULT 'photo'`, `ALTER TABLE photos ADD COLUMN duration_ms INTEGER` (existing rows: photos). Exact SQL: `AppDatabase.MIGRATION_6_7` |
 
 * There is **no destructive fallback**: a missing migration crashes on open instead of wiping
   the user's trips. Each version bump adds `MIGRATION_x_y` to `AppDatabase.MIGRATIONS`, bumps
@@ -180,7 +183,10 @@ of step.
 photo: `sourceId` / `sourceSize` null, `takenAt` kept) and saves a photo with a source.
 `version5UpgradesWithDraftsAndCoverAndKeepsEverything` builds a v5 file from `5.json`, upgrades it,
 checks that every step is published, the cover is automatic (`a.jpg`, counts 2 steps / 1 photo,
-0 drafts), then sets a draft and a chosen cover. Also checked by hand: the main@b07fcf6 build with sample data, then the v2
+0 drafts), then sets a draft and a chosen cover.
+`version6UpgradesKeepingPhotoOrderAndAddsMediaType` builds a v6 file whose photo positions have
+ties and gaps, upgrades it, checks that the display order is unchanged and numbered 0…n-1, every
+row is a `photo` with null duration, the chosen cover is kept, and a video row can be written. Also checked by hand: the main@b07fcf6 build with sample data, then the v2
   build installed over it (`img/27-upgrade-before-v1.png`, `img/28-upgrade-after-v2.png`); and
   main@d96f285 (v3) with sample data + a recorded track, then the v4 build installed over it:
   2 trips, 14 steps, 16 photos, 1 track, 6 points before and after (`pragma user_version` 3 → 4);
@@ -188,10 +194,15 @@ and main@a664e3e (v4) with sample data, then the v5 build installed over it with
 2 trips, 14 steps, 16 photos, 1 track before and after, all 16 `taken_at` kept, `source_id`
 null (`pragma user_version` 4 → 5); and main@520f4c9 (v5) with the captain's data on emulator-5580,
 then the v6 build installed over it with `install -r`: counts trips|steps|photos|tracks|points|decisions
-`2|14|16|1|359|1` before and after, every step `is_draft = 0`, every `cover_photo_id` null.
+`2|14|16|1|359|1` before and after, every step `is_draft = 0`, every `cover_photo_id` null; and main@f6c7cfc (v6) with the captain's
+data on emulator-5580, then the v7 build with `install -r`: counts `2|14|16|1|359|1` before and
+after, `pragma user_version` 6 → 7, every row `media_type = 'photo'`, and the dump
+`select step_id, position, created_at, id, file_name from photos order by step_id, position, created_at, id`
+identical before and after (the captain's positions were already dense).
 
 Photo files live outside the database in `<app private files>/photos/<uuid>.<ext>` (`jpg` for
-re-encoded photos, `png` when transparent, otherwise the picked format — R11); the database
+re-encoded photos, `png` when transparent, otherwise the picked format — R11; videos are byte
+copies `<uuid>.mp4` or the picked extension, R29); the database
 only stores the file name, so the folder can move (backup/restore, iOS container) without a
 migration; a backup (R26) stores the files under `photos/` with the same names.
 
@@ -235,16 +246,16 @@ manifest.json            what is in the file (below)
 lutrinh.db               SQLite copy of the app database: Room schema `schemaVersion`, user tables
                          trips, steps, photos, tracks, track_points, stop_decisions (journal mode
                          TRUNCATE, no -wal/-shm files)
-photos/<uuid>.<ext>      every photo file a `photos` row refers to (bytes as stored, no re-encode)
+photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (bytes as stored, no re-encode)
 ```
 
 ```json
 {
   "format": "lutrinh-backup", "formatVersion": 1,
   "appId": "vn.lutrinh.app", "appVersion": "0.1.0",
-  "schemaVersion": 6, "createdAt": "2026-11-09T10:17:55Z",
-  "counts": { "trips": 2, "steps": 14, "photos": 16, "tracks": 1, "trackPoints": 359, "stopDecisions": 1 },
-  "photoFiles": 16, "missingPhotoFiles": 0
+  "schemaVersion": 7, "createdAt": "2026-11-09T10:58:31Z",
+  "counts": { "trips": 2, "steps": 15, "photos": 19, "tracks": 1, "trackPoints": 359, "stopDecisions": 1 },
+  "photoFiles": 19, "missingPhotoFiles": 0
 }
 ```
 
@@ -255,7 +266,9 @@ photos/<uuid>.<ext>      every photo file a `photos` row refers to (bytes as sto
   user table row by row inside one read transaction of the live database (consistent, and the
   live WAL is never copied as a file). Room's own `room_master_table` comes with the new file.
 * Restore checks and replaces as in R26; a copy with an older `schemaVersion` is migrated with
-  the same migrations as an app update (MIGRATION_x_y above).
+  the same migrations as an app update (MIGRATION_x_y above), e.g. a schema-6 backup made before
+  videos existed restores into v7 with its photo order kept (`BackupManagerTest.version6BackupRestoresIntoVersion7`).
+  `counts.photos` / `photoFiles` count photos and videos together (videos are rows of `photos`).
 
 ## Validation errors (returned by the domain, shown by the UI)
 
@@ -277,6 +290,6 @@ Several errors can be returned at once; the form shows each next to its field.
 ## Not modelled yet (on purpose)
 
 Visibility/privacy, travel buddies, drafts, likes/comments, planned steps, sync state and
-tombstones, videos; links between a track and steps (no automatic steps from a track). GPX
+tombstones, captions; links between a track and steps (no automatic steps from a track). GPX
 export/import (R25) and the backup file (R26) are formats above, not tables. Photo EXIF date/GPS is read once when steps are made from photos (R13) and
 never stored (the stored copies have no GPS, R11). See 03-screens.md "Intentional changes".

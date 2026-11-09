@@ -405,9 +405,16 @@ The picker returns its result to the step form through the previous screen's sav
 ## 5. Step form — "Điểm dừng mới" / "Sửa điểm dừng"
 
 * **Fields:** Tên địa điểm (required, n/80), Vị trí card (mini map + coordinates; "Chọn trên bản
-  đồ" / "Đổi vị trí"), Ngày đến + Giờ đến (Material pickers, Vietnamese), Ghi chú (multi-line), Ảnh (n) with
-  "Thêm ảnh", thumbnails with a remove (×) button, first photo marked "Ảnh bìa"; tapping a photo
-  makes it the cover. **One grid:** photos picked from the gallery section below (R19) are
+  đồ" / "Đổi vị trí"), Ngày đến + Giờ đến (Material pickers, Vietnamese), Ghi chú (multi-line), "Ảnh & video (n)" with
+  three tonal buttons **"Thêm ảnh/video"** (Photo Picker, photos and videos), **"Chụp ảnh"** (R28)
+  and **"Quay video"** (R29), all disabled at 30 items or while importing; a one-row strip of
+  thumbnails with a remove (×) button, first item marked "Ảnh bìa"; tapping a photo makes it the
+  cover; hint "Chạm vào ảnh để đặt làm ảnh bìa. Nhấn giữ rồi kéo để đổi thứ tự." — **long-press +
+  drag** moves a tile (R27: it lifts, the others slide aside, the strip scrolls at its edges; "Lưu"
+  stores the order). A video tile shows a still with a play badge and its length ("▶ 0:08"). A
+  refused video shows a red line under the strip: "Video dài 1:05: chỉ thêm được video tối đa 60
+  giây (ứng dụng không cắt video).", "Video <size>: chỉ thêm được video tối đa 200 MB." or "Không
+  đọc được video này."; no camera app: "Không mở được ứng dụng máy ảnh." **One grid:** photos picked from the gallery section below (R19) are
   part of it, badged "Từ thư viện", and counted in "Ảnh (n)" (n = saved photos + ticked gallery photos);
   removing a badged tile (×) unticks it. The Vị trí card shows the R-label "gần <điểm dừng>, N km"
   (Display conventions) with the coordinates as a smaller second line; "Đổi vị trí" / "Chọn trên bản đồ" is the
@@ -430,9 +437,9 @@ The picker returns its result to the step form through the previous screen's sav
     dừng ở đây. Ảnh chỉ được sao chép vào chuyến đi khi bạn bấm Lưu; không có gì được gửi đi."
     and the tonal button "Cho phép xem ảnh" → the system dialog (Android 14+: "Allow limited
     access / Allow all / Don’t allow"; 13: allow / don't allow; ≤ 12: storage).
-  * **Denied:** "Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh” bên
-    dưới." and a text button "Cho phép xem ảnh" (asks again; when the system no longer shows the
-    dialog nothing happens and the note stays). "Thêm ảnh" (Photo Picker) works as always.
+  * **Denied:** "Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh/video” ở mục Ảnh & video
+    phía trên." and a text button "Cho phép xem ảnh" (asks again; when the system no longer shows the
+    dialog nothing happens and the note stays). "Thêm ảnh/video" (Photo Picker) works as always.
   * **Access:** "Đã thêm x/y ảnh vào mục Ảnh ở trên; ảnh được sao chép khi bạn bấm Lưu." All start
     ticked and sit in the "Ảnh (n)" grid; the photos the user unticked (× on the tile) are listed
     here under "Chưa thêm — chạm để thêm lại:" as a 3-column grid of washed-out square thumbnails with their time
@@ -452,7 +459,8 @@ The picker returns its result to the step form through the previous screen's sav
   for both. Edit mode also has delete.
 * **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`, `img/stop-photos/01-…09-*.png` (before the
   single grid), `img/ux-flows/02-step-form-from-suggestion.png`, `03-step-form-one-photo-grid.png`,
-  `img/draft-cover/01-step-form-save-draft.png` ("Lưu nháp" | "Lưu").
+  `img/draft-cover/01-step-form-save-draft.png` ("Lưu nháp" | "Lưu"), `img/photo-video/01`, `02`, `05`–`08`
+  (strip, drag, system camera, captured photo, video badges, refused video).
 * **Inspired by:** docs/22 §1.3 (New/Edit Step: map header with edit pencil, name, arrival date +
   time, media box, note) and its "Publish / Save as draft" choice. **Changed:** the choice is two
   buttons on the form ("Lưu nháp" / "Lưu") instead of a sheet, publishing later is "Đăng" on step detail, location search offline in the picker (R23, bundled gazetteer, no API), suggested photos only for a step made
@@ -494,7 +502,8 @@ The picker returns its result to the step form through the previous screen's sav
 * **Content:** cover photo (only when the step has photos), title, date · time, place line
   "gần <điểm dừng khác>, N km" with the coordinates as a smaller line (Display conventions; no other step within
   5 km: the gazetteer place, R24 "Tên, Tỉnh" / "gần Tên (Tỉnh), N km"; neither: the coordinates alone), note ("Chưa có ghi chú." when empty), mini map of the trip with this step highlighted, photo
-  grid "Ảnh (n)". **Draft (R20):** the title has no number and a card under it shows "Nháp", "Bản nháp chưa có
+  grid "Ảnh & video (n)" in the stored order (R27; a video cell = still + play badge + length, R29;
+  the cover header is the first item's still when it is a video). **Draft (R20):** the title has no number and a card under it shows "Nháp", "Bản nháp chưa có
   trên lộ trình, thống kê, bản đồ của tôi và tệp chia sẻ. Bấm “Đăng” khi đã xong." and the button
   **"Đăng"** (publishes; the card goes, the step gets its number).
 * **Actions:** pencil → Step form (edit); bin → "Xóa điểm dừng này?" (shows the photo count);
@@ -503,7 +512,8 @@ The picker returns its result to the step form through the previous screen's sav
   has one step); a tap replaces this screen with that step's detail, so Back still returns to the trip. The mini map's
   OpenStreetMap attribution keeps a fixed 9 dp text size so it stays a thin strip at any font scale.
 * **Screens:** `img/10-step-detail.png`, `img/13-step-delete-confirm.png`, `img/ux-flows/04-step-detail-prev-next.png`,
-  `img/draft-cover/05-step-detail-draft-publish.png`.
+  `img/draft-cover/05-step-detail-draft-publish.png`, `img/photo-video/03-reorder-saved-detail.png`,
+  `09-step-detail-videos.png`.
 * **Inspired by:** docs/22 §1.3 (step story with ⋮ Edit / Delete, delete confirm). **Changed:** a
   scrolling detail page instead of a full-screen story; delete is never blocked (no sync).
 
@@ -511,12 +521,15 @@ The picker returns its result to the step form through the previous screen's sav
 
 * Black full screen pager over the step's photos, counter "2 / 3", close button; pinch to
   zoom (1×–5×), pan when zoomed, swipe to the next photo when not zoomed. Missing file →
-  "Không tìm thấy tệp ảnh".
-* **Screen:** `img/12-photo-viewer.png`.
+  "Không tìm thấy tệp ảnh". Pages follow the stored order (R27).
+* **Video page (R29):** the still until the player is ready, then the video plays full screen
+  (fitted, centred) as soon as its page is current and pauses when swiped away; a tap shows the
+  platform controls (play/pause, seek bar, "00:03 / 00:08"). No zoom on a video page.
+* **Screens:** `img/12-photo-viewer.png`, `img/photo-video/04-reorder-viewer.png`, `10-viewer-video-playing.png`.
 
 ## 9. System Photo Picker (not our UI)
 
-* Opened from the step form, images only, up to 30 per pick. Shows "Lữ Trình will only have access
+* Opened from the step form ("Thêm ảnh/video"), images and videos (R29), up to 30 per pick. Shows "Lữ Trình will only have access
   to the photos you select". **Screen:** `img/07-photo-picker.png`.
 
 ## 10. From photos — "Thêm từ ảnh"
@@ -736,6 +749,17 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 | gpx-backup/04-gpx-malformed-error.png | a truncated GPX: "Không nhập được tệp GPX … (lỗi đọc ở dòng 168). Không có gì được tạo." |
 | gpx-backup/05-restore-confirm.png | "Thay thế toàn bộ dữ liệu?" with the backup's and the current counts (R26) |
 | gpx-backup/06-restored-step-photos.png | after the restore: Cổng Trời Quản Bạ with its 2 photos |
+| photo-video/01-strip-before-reorder.png | "Sửa điểm dừng" Đèo Mã Pí Lèng: "Ảnh & video (3)", the three add buttons, strip and drag hint (R27) |
+| photo-video/02-reorder-dragging.png | the last photo lifted and dragged to the front |
+| photo-video/03-reorder-saved-detail.png | after "Lưu", Back and reopen: step detail grid in the new order |
+| photo-video/04-reorder-viewer.png | the viewer at "3 / 3" following the new order |
+| photo-video/05-system-camera.png | "Chụp ảnh": the system camera app (emulated scene) opened by the app (R28) |
+| photo-video/06-captured-photo-strip.png | the captured photo in the strip of a new step |
+| photo-video/07-strip-video-badges.png | strip with a photo (cover) and two videos "▶ 0:03" / "▶ 0:08" (R29) |
+| photo-video/08-video-too-long.png | a picked 65 s video refused: "Video dài 1:05: chỉ thêm được video tối đa 60 giây (ứng dụng không cắt video)." |
+| photo-video/09-step-detail-videos.png | step detail "Ảnh & video (n)" with video cells |
+| photo-video/10-viewer-video-playing.png | a video playing full screen, controls at 00:03 / 00:08 |
+| photo-video/11-restore-with-videos.png | restoring a v7 backup with videos: "Thay thế toàn bộ dữ liệu?" 19 vs 18 ảnh (R26) |
 
 ## Accessibility and UI tests
 

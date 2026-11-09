@@ -8,7 +8,7 @@ No server, login or API in this phase.
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R26 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R29 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -34,6 +34,9 @@ app/src/main/java/vn/lutrinh/app/
             data/RoomTripImportRepository.kt; backup/restore (R26): domain/usecase/Backup.kt,
             data/BackupManager.kt (zip, staged + checked restore, one transaction);
             menus/pickers/dialogs in ui/transfer/TransferUi.kt; formats in docs/02
+  media     photo order (R27), system-camera capture (R28), short videos (R29): domain/usecase/Media.kt
+            (pure), data/MediaCapture.kt, data/VideoMeta.kt, PhotoStorage.importVideo,
+            ui/steps/MediaStrip.kt (drag strip + camera contract); videos are `photos` rows (media_type)
   data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22)
   ui/       screens + view models; domain/usecase/DisplayFormat.kt has the km/duration/day formatters; ui/common/Common.kt has date helpers and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
@@ -154,3 +157,11 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   `adb -s emulator-5580 exec-out run-as vn.lutrinh.app tar cf - databases files/photos shared_prefs > /tmp/….tar`
   (restoring that tar by hand was not needed so far; it would need `am force-stop` first). Compare
   before/after with the six counts, `pragma user_version` and an md5 of `files/photos/*`.
+* Camera/video (R28/R29) by script: the AVD's AOSP camera (`com.android.camera2`) works with the
+  emulated scene: shutter at about (540, 2240) on the Pixel 6 screen, then the review's "Done"
+  (check icon) returns RESULT_OK; video: tap the shutter to start and again to stop. Count files
+  with `run-as vn.lutrinh.app ls files/photos | wc -l` and `ls cache/capture` (must stay empty).
+  Test videos: `ffmpeg -f lavfi -i testsrc=size=640x360:rate=25 -t 65 -metadata
+  creation_time=2025-06-08T03:20:00Z x.mp4`, `adb push` to `/sdcard/Movies/` + a
+  `MEDIA_SCANNER_SCAN_FILE` broadcast, then they show in the Photo Picker. A file *renamed* out of
+  `cacheDir` keeps the `u0_aNNN_cache` group: copy captured files (PhotoStorage does).
