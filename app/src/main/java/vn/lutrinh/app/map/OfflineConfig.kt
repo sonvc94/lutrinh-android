@@ -48,8 +48,18 @@ object OfflineConfig {
     /** Margin around a trip's steps for "Tải vùng của chuyến đi này", in km on each side. */
     const val TRIP_MARGIN_KM = 10.0
 
-    /** No area may be larger than this (estimate); keeps the donated tile server's load modest. */
-    const val MAX_AREA_BYTES = 150L * 1_000_000
+    /**
+     * R31: one download may be at most this big (estimate) and at most [MAX_AREA_TILES] tiles.
+     * OpenFreeMap's terms allow offline downloads of "≤3,000 tiles or 50 MB per offline download";
+     * a larger area is refused (never split automatically).
+     */
+    const val MAX_AREA_BYTES = 50L * 1_000_000
+
+    /** R31: tiles of all the style's sources in one download (see [estimateTiles]). */
+    const val MAX_AREA_TILES = 3_000L
+
+    /** The style's raster relief source (Positron `ne2_shaded`) stops at this zoom; its tiles count too. */
+    const val RASTER_MAX_ZOOM = 6
 
     /** Free storage kept on top of the estimate before a download is allowed to start. */
     const val STORAGE_RESERVE_BYTES = 50L * 1_000_000
@@ -140,8 +150,18 @@ object OfflineConfig {
     fun estimateBytes(b: GeoBounds): Long =
         FIXED_BYTES + (MIN_ZOOM..MAX_ZOOM).sumOf { z -> tileCount(b, z) * BYTES_PER_TILE[z] }
 
-    /** True when an area of [b] may be downloaded at all ([MAX_AREA_BYTES]). */
-    fun withinLimit(b: GeoBounds): Boolean = estimateBytes(b) <= MAX_AREA_BYTES
+    /**
+     * Estimated tiles of one download of [b]: the vector source at [MIN_ZOOM]..[MAX_ZOOM] plus the
+     * raster relief at [MIN_ZOOM]..[RASTER_MAX_ZOOM]. Hà Giang: 1,757 + 7 estimated, 1,763 stored (2026-11-09).
+     */
+    fun estimateTiles(b: GeoBounds): Long = tileCount(b) + (MIN_ZOOM..min(MAX_ZOOM, RASTER_MAX_ZOOM)).sumOf { tileCount(b, it) }
+
+    /** R31: true when an area of [b] may be downloaded at all ([MAX_AREA_BYTES] and [MAX_AREA_TILES]). */
+    fun withinLimit(b: GeoBounds): Boolean = withinLimit(estimateBytes(b), estimateTiles(b))
+
+    /** R31 on estimates: both limits are inclusive. */
+    fun withinLimit(estimateBytes: Long, estimateTiles: Long): Boolean =
+        estimateBytes <= MAX_AREA_BYTES && estimateTiles <= MAX_AREA_TILES
 
     /** True when [estimate] plus [STORAGE_RESERVE_BYTES] fits in [freeBytes]. */
     fun fitsInStorage(estimate: Long, freeBytes: Long): Boolean = estimate + STORAGE_RESERVE_BYTES <= freeBytes

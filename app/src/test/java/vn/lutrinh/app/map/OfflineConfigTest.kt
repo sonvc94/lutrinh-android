@@ -144,4 +144,46 @@ class OfflineConfigTest {
         assertEquals(0.25f, s.progress)
         assertEquals(0f, s.copy(requiredResources = 0).progress)
     }
+
+    // R31: OpenFreeMap allows ≤ 3,000 tiles or 50 MB per offline download.
+    @Test
+    fun r31_limitsAreOpenFreeMapsTerms_inclusive() {
+        assertEquals(50_000_000L, OfflineConfig.MAX_AREA_BYTES)
+        assertEquals(3_000L, OfflineConfig.MAX_AREA_TILES)
+        assertTrue(OfflineConfig.withinLimit(50_000_000, 3_000))
+        assertTrue(OfflineConfig.withinLimit(17_000_000, 1))
+        assertFalse(OfflineConfig.withinLimit(50_000_001, 3_000))
+        assertFalse(OfflineConfig.withinLimit(50_000_000, 3_001))
+        assertFalse(OfflineConfig.withinLimit(80_000_000, 5_000))
+    }
+
+    @Test
+    fun r31_tileEstimate_countsVectorAndRasterSources() {
+        val tiny = GeoBounds(23.2780, 105.3610, 23.2790, 105.3620)
+        // 15 vector tiles (z0–14) + 7 relief raster tiles (z0–6).
+        assertEquals(22L, OfflineConfig.estimateTiles(tiny))
+        // Hà Giang: 1,757 vector + 7 raster estimated; the store held 1,763 tiles (2026-11-09).
+        assertEquals(1_764L, OfflineConfig.estimateTiles(OfflineConfig.HA_GIANG.bounds))
+    }
+
+    @Test
+    fun r31_readyMadeRegionsAndAHaGiangTripStayAllowed() {
+        OfflineConfig.READY_MADE.forEach {
+            assertTrue("${it.key} tiles", OfflineConfig.estimateTiles(it.bounds) <= OfflineConfig.MAX_AREA_TILES)
+            assertTrue("${it.key} bytes", OfflineConfig.estimateBytes(it.bounds) <= OfflineConfig.MAX_AREA_BYTES)
+            assertTrue(it.key, OfflineConfig.withinLimit(it.bounds))
+        }
+    }
+
+    @Test
+    fun r31_anAreaOverTheTileCapIsRefused_evenUnderTheByteCap() {
+        // Hà Giang loop + Cao Bằng (Bản Giốc): ~1.6° wide, about twice Hà Giang's tiles.
+        val area = OfflineConfig.tripArea(
+            "t", "Hà Giang – Cao Bằng",
+            listOf(GeoPoint(22.8233, 104.9836), GeoPoint(23.3638, 105.4096), GeoPoint(22.8547, 106.7234)),
+        )!!
+        assertTrue(OfflineConfig.estimateTiles(area.bounds) > OfflineConfig.MAX_AREA_TILES)
+        assertTrue(OfflineConfig.estimateBytes(area.bounds) <= OfflineConfig.MAX_AREA_BYTES)
+        assertFalse(OfflineConfig.withinLimit(area.bounds))
+    }
 }

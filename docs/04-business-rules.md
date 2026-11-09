@@ -224,9 +224,8 @@ All numbers live in `map/OfflineConfig.kt` (pure Kotlin; the iOS port copies the
   and fonts are shared between areas and stored once. Nothing about trips, steps or photos is
   stored there (they are already local).
 * **Size.** Before a download the screen shows an estimate: 17 MB fixed (style + sprite + fonts)
-  + Σ over z0–14 of (tiles in the box at z × the measured average tile size at z). Areas whose
-  estimate is over **150 MB** cannot be downloaded (keeps the donated server's load modest and
-  forbids whole provinces/the country); for a trip that wide the screen explains why. Measured on
+  + Σ over z0–14 of (tiles in the box at z × the measured average tile size at z). The download
+  limit is **R31** (50 MB and 3 000 tiles per area). Measured on
   2026-11-09: Hà Giang ~26 MB (estimate ~29,6 MB), Ninh Bình ~25 MB (estimate ~23,9 MB) stored (both together 33,5 MB on disk, the fonts
   being shared). After the download the stored size is shown.
 * **Start conditions.** A download starts only when the device is online and the free space on
@@ -947,6 +946,59 @@ Code: `VideoRules` / `VideoProblem` in `domain/usecase/Media.kt` (pure), `PhotoS
 Checked by hand on emulator-5580: a ~3 s recording and a picked 8 s video show badges and play in
 the viewer (`img/photo-video/07`, `09`, `10`); a picked 65 s video is refused with the message and
 no file (`08`); backup with two videos and restore: every file md5-identical (`11`).
+
+## R30 — Hoàng Sa and Trường Sa labels (sovereignty)
+
+Code: `map/SovereigntyLabels.kt` (pure: areas, blocked names, the rule `hides`, the label GeoJSON;
+the iOS port copies it), `map/SovereigntyLayers.kt` (the same rule as a MapLibre filter + our label
+layer). Lữ Trình is made for Vietnam: no map ever shows a Chinese administrative name for Vietnam's
+Hoàng Sa (Paracel) and Trường Sa (Spratly) archipelagos.
+
+* **Areas.** Hoàng Sa box S 15.4, W 110.9, N 17.4, E 113.2; Trường Sa box S 6.8, W 111.3, N 12.2,
+  E 116.3 (clear of the Vietnamese coast, Hainan, Palawan and Sabah).
+* **Hidden.** On every basemap label layer (place, water, road, airport names), a label whose point
+  lies in an area is hidden when (a) its `name`, `name:vi`, `name:latin`, `name_en`, `name:en`,
+  `name_int` or `name:zh` is a **blocked name**: 三沙市/三沙/Tam Sa/Thành phố Tam Sa/Sansha/Sansha
+  City, 西沙区/西沙/Quận Tây Sa/Tây Sa/Xisha/Xisha District, 南沙区/南沙/Quận Nam Sa/Nam Sa/
+  Nansha/Nansha District, 永兴镇/Yongxing, 永乐群岛/Yongle Qundao, 七连屿/Qilianyu, 渚碧岛/Zhubi;
+  or (b) its local `name` is in a non-Latin script (tile field `name:nonlatin`), unless it is a
+  natural feature (`class` island, ocean, sea, bay, strait, lake) with a Vietnamese `name:vi`, which
+  is what the label shows (e.g. 永兴岛 → "Đảo Phú Lâm"). So Chinese admin units in any script
+  ("Tam Sa", "Xã khu Cam Tuyền", "Yongxing"), Chinese airports ("Sân bay Tam Sa Vĩnh Hưng") and
+  Chinese-only names disappear; Latin-script names stay ("Trường Sa", "Song Tử Tây", "Đảo Nam
+  Yết", and the Philippine "Kalayaan"). Outside the two boxes nothing changes (Guangzhou's own
+  南沙区 keeps its label).
+* **Shown.** The app draws **"Quần đảo Hoàng Sa"** at 16.45 N 111.95 E and **"Quần đảo Trường
+  Sa"** at 10.0 N 114.3 E (italic, label ink, always placed) from **zoom 3 up to, not including,
+  11**; above that the islands' own Vietnamese names take over.
+* **Everywhere.** The trip map, step maps, location picker, "Bản đồ của tôi" and the share image /
+  page map (R18) all apply it; offline packs (R15) store the same style, so offline maps too.
+
+*Tests:* `SovereigntyLabelsTest.blockedNames_coverTheThreeAdminUnits_inBothScripts`,
+`.chineseAdminUnits_areHidden_byEachOfTheirNames`, `.otherChineseScriptLabels_inTheAreas_areHidden`,
+`.vietnameseAndLatinLabels_stay`, `.outsideTheAreas_nothingIsHidden`,
+`.ourLabels_areInTheirAreas_andInTheGeoJson`, `.mapFilter_isTheSameRule`. Checked on emulator-5580,
+"Bản đồ của tôi" (`img/sovereignty/`): before, "Tam Sa", "Yongle Qundao", "Quận Nam Sa", "Zhubi";
+after, none of them, our two labels shown.
+
+## R31 — Offline download limit
+
+OpenFreeMap's terms allow offline downloads of "≤3,000 tiles or 50 MB per offline download".
+Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `withinLimit`.
+
+* **Limit.** One area may be downloaded only when its size estimate (R15) is **≤ 50 MB** (50 000 000
+  B) **and** its tile estimate is **≤ 3 000** (both inclusive). Tile estimate = vector tiles in the
+  box over z0–14 + relief raster tiles (style source `ne2_shaded`, up to z6) over z0–6. Hà Giang:
+  1 764 estimated, 1 763 stored; ~29,6 MB estimated. In Vietnam the tile limit binds first (an area
+  of 3 000 tiles is ~30–40 MB).
+* **Refusal.** A larger trip area is not split: the trip card says "Vùng của chuyến đi quá rộng để
+  tải một lần: ước tính <size>, <n> ô bản đồ; mỗi lần tải tối đa 50 MB và 3.000 ô (điều khoản của
+  OpenFreeMap). Hãy tải một vùng nhỏ hơn, ví dụ các vùng có sẵn ở trên." and offers no download;
+  the store also refuses it if asked. Ready-made areas (Hà Giang, Ninh Bình) stay within it.
+
+*Tests:* `OfflineConfigTest.r31_limitsAreOpenFreeMapsTerms_inclusive`,
+`.r31_tileEstimate_countsVectorAndRasterSources`, `.r31_readyMadeRegionsAndAHaGiangTripStayAllowed`,
+`.r31_anAreaOverTheTileCapIsRefused_evenUnderTheByteCap`, `.tripArea_spanningTheCountryIsOverTheLimit`.
 
 ## Text rules
 

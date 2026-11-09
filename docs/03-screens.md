@@ -385,6 +385,10 @@ The picker returns its result to the step form through the previous screen's sav
 
 ## 4c. My map — "Bản đồ của tôi"
 
+Every map (this one, the trip map, step maps, the location picker, the share image) labels
+Vietnam's archipelagos "Quần đảo Hoàng Sa" / "Quần đảo Trường Sa" and never shows the Chinese
+administrative names there (R30, docs/05; `img/sovereignty/`).
+
 * **Purpose:** every trip on one map (R14).
 * **Drafts (R20)** are not on this map: no pin, not in the lines, the totals or the card counts.
 * **Content:** full-screen map; at the top a card with three totals: số chuyến đi, điểm dừng, km
@@ -572,7 +576,9 @@ The picker returns its result to the step form through the previous screen's sav
   * **"Chuyến đi này"** (only when opened from a trip): card "Tải vùng của chuyến đi này" with
     "Khung bao mọi điểm dừng của “<title>”, thêm 10 km mỗi phía."; a trip without steps shows
     "Chuyến đi chưa có điểm dừng nào để tải bản đồ."; a trip too wide for the limit shows
-    "Chuyến đi trải quá rộng để tải một lần (ước tính …, tối đa 150,0 MB). Hãy tải từng vùng có sẵn."
+    "Vùng của chuyến đi quá rộng để tải một lần: ước tính <size>, <n> ô bản đồ; mỗi lần tải tối đa
+    50 MB và 3.000 ô (điều khoản của OpenFreeMap). Hãy tải một vùng nhỏ hơn, ví dụ các vùng có sẵn ở
+    trên." (limit R31; no download button)
   * **"Vùng có sẵn"**: Hà Giang and Ninh Bình, each with the places it covers;
   * **"Vùng của các chuyến đi"**: trip areas already stored (downloading or downloaded) that
     are not the current trip's;
@@ -760,6 +766,11 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 | photo-video/09-step-detail-videos.png | step detail "Ảnh & video (n)" with video cells |
 | photo-video/10-viewer-video-playing.png | a video playing full screen, controls at 00:03 / 00:08 |
 | photo-video/11-restore-with-videos.png | restoring a v7 backup with videos: "Thay thế toàn bộ dữ liệu?" 19 vs 18 ảnh (R26) |
+| sovereignty/before-hoang-sa-z8.png | before R30 (main APK), "Bản đồ của tôi" at z8 over the Paracels: Chinese admin labels "Tam Sa", "Yongle Qundao" |
+| sovereignty/before-truong-sa-z7.png | before R30, z7 over the Spratlys: "Quận Nam Sa", "Zhubi" |
+| sovereignty/after-hoang-sa-z8.png | R30: same view, Chinese admin labels hidden, "Quần đảo Hoàng Sa" drawn |
+| sovereignty/after-truong-sa-z7.png | R30: same view, "Quần đảo Trường Sa"; Latin-script "Kalayaan" stays |
+| sovereignty/after-overview-z5.png | R30 at z5: Việt Nam, Biển Đông, "Quần đảo Hoàng Sa" and "Quần đảo Trường Sa" |
 
 ## Accessibility and UI tests
 

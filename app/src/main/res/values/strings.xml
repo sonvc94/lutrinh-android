@@ -220,7 +220,7 @@
     <string name="offline_trip_area">Tải vùng của chuyến đi này</string>
     <string name="offline_trip_area_body">Khung bao mọi điểm dừng của “%1$s”, thêm %2$d km mỗi phía.</string>
     <string name="offline_trip_no_steps">Chuyến đi chưa có điểm dừng nào để tải bản đồ.</string>
-    <string name="offline_trip_too_big">Chuyến đi trải quá rộng để tải một lần (ước tính %1$s, tối đa %2$s). Hãy tải từng vùng có sẵn.</string>
+    <string name="offline_trip_too_big">Vùng của chuyến đi quá rộng để tải một lần: ước tính %1$s, %2$s ô bản đồ; mỗi lần tải tối đa %3$s và %4$s ô (điều khoản của OpenFreeMap). Hãy tải một vùng nhỏ hơn, ví dụ các vùng có sẵn ở trên.</string>
     <string name="offline_estimate">Ước tính ~%1$s</string>
     <string name="offline_progress">Đang tải %1$d%% · %2$s</string>
     <string name="offline_waiting_network">Mất mạng · %1$d%% · sẽ tự tải tiếp khi có mạng</string>

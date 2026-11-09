@@ -8,7 +8,7 @@ No server, login or API in this phase.
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R29 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R31 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -19,6 +19,8 @@ app/src/main/java/vn/lutrinh/app/
   domain/   models, repository interfaces, validation, ordering, use cases (pure Kotlin)
   data/     Room DB, repositories, PhotoStorage (import: EXIF/downscale/GPS strip), data/photo/ (pure maths), sample data
   map/      MapConfig.kt (the ONLY place for style URL/basemap tuning/attribution/User-Agent),
+            SovereigntyLabels.kt (R30: Hoàng Sa/Trường Sa names hidden + our labels, pure) +
+            SovereigntyLayers.kt (its filter/layer, applied by loadBasemap/tuneBasemap/StaticTripMap),
             OfflineConfig.kt (the ONLY place for offline areas/zooms/limits), OfflineMaps.kt,
             RouteLayers.kt (route + recorded-track layer stack), Pins.kt, MapLibre views
   tracking/ TrackRecordingService (location foreground service + notification); the logic is
@@ -165,3 +167,16 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   creation_time=2025-06-08T03:20:00Z x.mp4`, `adb push` to `/sdcard/Movies/` + a
   `MEDIA_SCANNER_SCAN_FILE` broadcast, then they show in the Photo Picker. A file *renamed* out of
   `cacheDir` keeps the `u0_aNNN_cache` group: copy captured files (PhotoStorage does).
+* Hoàng Sa / Trường Sa (R30): OSM tiles name Chinese admin units there ("Tam Sa", "Quận Tây Sa",
+  "Quận Nam Sa", 三沙市…); every map hides them via `SovereigntyLayers` and draws "Quần đảo
+  Hoàng Sa/Trường Sa". A new style, a new label layer or a new tile build: add the layer to the
+  filter (`tuneBasemap` prefixes + `MapConfig.LABEL_LAYER_IDS`), resurvey z5–10 tiles over the
+  boxes and extend `SovereigntyLabels.BLOCKED_NAMES`. Map text is GL-drawn: uiautomator cannot
+  see it, judge screenshots. To get there on the AVD: `adb emu geo fix 112.0 16.5`, tap "Vị trí
+  của tôi" on "Bản đồ của tôi" (980,1915), then zoom out with quick-scales anchored at the map
+  centre (540,1284; elsewhere the centre drifts) and read the zoom from `logcat -s
+  Mbgl-HttpRequest` tile URLs (z/x/y); pan with a slow `input swipe … 2500` (no fling).
+* Offline limit (R31): OpenFreeMap allows ≤ 3 000 tiles / 50 MB per offline download;
+  `OfflineConfig.estimateTiles` (vector z0–14 + relief raster z0–6) matched the store (Hà Giang
+  1 764 estimated vs 1 763 in `mbgl-offline.db` `region_tiles`). Never raise the caps without the
+  provider's terms.

@@ -150,13 +150,14 @@ object StaticTripMap {
     private suspend fun snapshot(context: Context, fit: MapFit, pixelRatio: Float): Bitmap? = withContext(Dispatchers.Main) {
         suspendCancellableCoroutine { cont ->
             val options = MapSnapshotter.Options(fit.width, fit.height)
-                .withStyleBuilder(Style.Builder().fromUri(MapConfig.STYLE_URL))
+                .withStyleBuilder(Style.Builder().fromUri(MapConfig.STYLE_URL).withSovereigntyLabels())
                 .withCameraPosition(CameraPosition.Builder().target(LatLng(fit.center.latitude, fit.center.longitude)).zoom(fit.zoom).build())
                 .withPixelRatio(pixelRatio)
                 .withLogo(false)
             val snapshotter = MapSnapshotter(context.applicationContext, options)
             snapshotter.setObserver(object : MapSnapshotter.Observer {
-                // Same warm repaint and Vietnamese-first labels as the live maps (Style.tuneBasemap).
+                // Same warm repaint, Vietnamese-first labels and R30 filter as the live maps (Style.tuneBasemap);
+                // the R30 archipelago labels come with the style builder (withSovereigntyLabels).
                 override fun onDidFinishLoadingStyle() {
                     MapConfig.BASEMAP_TUNING.forEach { (id, paint) ->
                         val layer = snapshotter.getLayer(id) ?: return@forEach
@@ -164,11 +165,13 @@ object StaticTripMap {
                     }
                     val label = Expression.coalesce(*MapConfig.LABEL_FIELD.map { Expression.get(it) }.toTypedArray())
                     MapConfig.LABEL_LAYER_IDS.forEach { id ->
-                        snapshotter.getLayer(id)?.setProperties(
+                        val layer = snapshotter.getLayer(id)
+                        layer?.setProperties(
                             PropertyFactory.textField(label),
                             PropertyFactory.textColor(MapConfig.LABEL_COLOR),
                             PropertyFactory.textHaloColor(MapConfig.LABEL_HALO),
                         )
+                        applySovereigntyFilter(layer)
                     }
                 }
 

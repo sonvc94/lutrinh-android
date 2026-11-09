@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.map.OfflineArea
 import vn.lutrinh.app.map.OfflineAreaState
 import vn.lutrinh.app.map.OfflineConfig
@@ -202,7 +203,13 @@ private fun TripAreaCard(trip: TripOffline, actions: AreaActions) {
         s == null -> InfoCard(stringResource(R.string.offline_trip_area), stringResource(R.string.offline_trip_no_steps))
         trip.tooBig -> InfoCard(
             stringResource(R.string.offline_trip_area),
-            stringResource(R.string.offline_trip_too_big, formatBytes(s.estimateBytes), formatBytes(OfflineConfig.MAX_AREA_BYTES)),
+            stringResource(
+                R.string.offline_trip_too_big,
+                formatBytes(s.estimateBytes),
+                DisplayFormat.count(s.estimateTiles),
+                formatBytes(OfflineConfig.MAX_AREA_BYTES),
+                DisplayFormat.count(OfflineConfig.MAX_AREA_TILES),
+            ),
         )
         else -> AreaCard(
             stringResource(R.string.offline_trip_area),

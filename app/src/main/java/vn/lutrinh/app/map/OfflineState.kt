@@ -17,6 +17,7 @@ data class OfflineAreaState(
     val problem: OfflineProblem? = null,
 ) {
     val estimateBytes: Long get() = OfflineConfig.estimateBytes(area.bounds)
+    val estimateTiles: Long get() = OfflineConfig.estimateTiles(area.bounds)
 
     /** 0..1; resource counts, as the total size is only known at the end. */
     val progress: Float

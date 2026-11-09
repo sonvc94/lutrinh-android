@@ -29,6 +29,9 @@ object DisplayFormat {
     /** Whole kilometres (already rounded, e.g. R18 share stats): "22", "1.234". */
     fun kmNumber(km: Long): String = String.format(VI, "%,d", km)
 
+    /** A whole count with Vietnamese grouping (R31 tile counts): "3.000". */
+    fun count(n: Long): String = String.format(VI, "%,d", n)
+
     /** "9,3 km". */
     fun km(km: Double): String = "${kmNumber(km)} km"
 

@@ -22,15 +22,15 @@ import vn.lutrinh.app.domain.model.GeoPoint
  * stops; MapLibre clamps outside the first/last stop.
  */
 
-/** Loads the basemap style (MapConfig.STYLE_URL), tunes it, then hands it to [onLoaded]. */
+/** Loads the basemap style (MapConfig.STYLE_URL) with the R30 labels, tunes it, then hands it to [onLoaded]. */
 internal fun MapLibreMap.loadBasemap(onLoaded: (Style) -> Unit) {
-    setStyle(Style.Builder().fromUri(MapConfig.STYLE_URL)) { style ->
+    setStyle(Style.Builder().fromUri(MapConfig.STYLE_URL).withSovereigntyLabels()) { style ->
         style.tuneBasemap()
         onLoaded(style)
     }
 }
 
-/** Applies MapConfig.BASEMAP_TUNING colours and Vietnamese-first, soft-ink labels. */
+/** Applies MapConfig.BASEMAP_TUNING colours, Vietnamese-first soft-ink labels and the R30 label filter. */
 internal fun Style.tuneBasemap() {
     MapConfig.BASEMAP_TUNING.forEach { (id, paint) ->
         val layer = getLayer(id) ?: return@forEach
@@ -45,6 +45,7 @@ internal fun Style.tuneBasemap() {
                 PropertyFactory.textColor(MapConfig.LABEL_COLOR),
                 PropertyFactory.textHaloColor(MapConfig.LABEL_HALO),
             )
+            applySovereigntyFilter(l)
         }
 }
 

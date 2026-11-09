@@ -42,7 +42,8 @@ curl https://tile.openstreetmap.org/1/1/0.png            → (35) Recv failure: 
 (`*.openstreetmap.org` resets TLS there; the previous raster source was `tile.openstreetmap.de`.)
 
 **Usage.** OpenFreeMap is a donated public instance with no key and no published limits, asking
-for attribution; it is fine for development and a beta. For production either self-host the
+for attribution; it is fine for development and a beta. Its terms allow offline downloads of
+"≤3,000 tiles or 50 MB per offline download": rule R31, `OfflineConfig.MAX_AREA_TILES`/`MAX_AREA_BYTES`. For production either self-host the
 same OpenMapTiles data (OpenFreeMap is open source) or move to a paid OSM-based provider
 (MapTiler, Stadia…): only `STYLE_URL` and `ATTRIBUTION` change; tuning entries for layer ids the
 new style lacks are skipped.
@@ -77,6 +78,37 @@ first — the tiles carry `name:vi`), text colour `#5F6661` and halo `#F7F4EE`. 
 snapshot cannot list a style's layers, so the same label layers are also named one by one in
 `MapConfig.LABEL_LAYER_IDS` (another style needs its own list). Roads keep
 Positron's light greys. Result: the land is quiet and the route is the darkest thing on the map.
+
+### Hoàng Sa / Trường Sa (R30, `map/SovereigntyLabels.kt`, `map/SovereigntyLayers.kt`)
+
+OpenStreetMap, and so the OpenFreeMap tiles (checked 2026-11-01 build, z3–10 over both
+archipelagos), carries Chinese administrative units there: city 三沙市 (`name:vi` "Tam Sa"),
+districts 西沙区 ("Quận Tây Sa", at 16.83 N 112.33 E, label_city from z3) and 南沙区 ("Quận Nam
+Sa", 9.55 N 112.89 E), towns 永兴镇/永乐群岛/七连屿/渚碧岛, villages 甘泉社区 ("Xã khu Cam
+Tuyền") …, the airport 三沙永兴机场 and Chinese-only island and sea-mount names. The app is for
+Vietnam, so (rule R30):
+
+* **Filter.** `tuneBasemap` (live maps) and `StaticTripMap.onDidFinishLoadingStyle` (share
+  snapshot) add `all(<layer's own filter>, not(hidden))` to every label layer of the table above,
+  where `hidden` = `within(Hoàng Sa box) or within(Trường Sa box)` and (any name field in
+  `BLOCKED_NAMES`, or `has name:nonlatin` and not (`class` in island/ocean/sea/bay/strait/lake and
+  `has name:vi`)). Decided per feature by its tags, not by its text, so it does not depend on the
+  label language; filtering by box keeps Guangzhou's own 南沙区 etc. untouched.
+* **Our labels.** `Style.Builder.withSovereigntyLabels()` adds GeoJSON source
+  `r30-archipelagos` (two points from `SovereigntyLabels.labelsGeoJson()`, bundled in code) and
+  symbol layer `r30-archipelago-labels`: "Quần đảo Hoàng Sa" (16.45 N 111.95 E) and "Quần đảo
+  Trường Sa" (10.0 N 114.3 E), Noto Sans Italic 11→14 sp (z4→z8), label ink + halo, always
+  placed, z3 up to (not incl.) z11. Both `loadBasemap` (trip map, picker, "Bản đồ của tôi") and
+  the snapshotter's style builder use it (the snapshotter has no `addLayer`, but it applies a
+  `Style.Builder`'s sources and layers).
+* **Offline.** Packs store the plain style and tiles; the filter and labels are applied at
+  runtime, so offline maps show the same.
+* **Kept.** Latin-script names (Vietnamese "Trường Sa", "Song Tử Tây", "Đảo Sinh Tồn"; the
+  Philippine town "Kalayaan" too) and natural features with a Vietnamese name ("Đảo Phú Lâm").
+  Boundary lines are not changed.
+* **Another style or tile build** may bring new names: rerun the survey (decode the z5–10 tiles
+  over both boxes, list `place`/`water_name`/`aerodrome_label` features) and extend
+  `BLOCKED_NAMES`; screenshots in `img/sovereignty/` (before/after, "Bản đồ của tôi").
 
 ## Map surfaces
 
@@ -384,8 +416,10 @@ Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map
   calls `OfflineManager.clearAmbientCache` + `packDatabase` afterwards (measured: 33,7 → 28,2 →
   0,07 MB deleting Ninh Bình then Hà Giang; the fonts stay while any area uses them).
 * **Provider note.** OpenFreeMap is a donated public instance: downloads are kept modest on
-  purpose (two ready-made regions, trip areas capped at 150 MB, no country/province packs, one
-  revalidation per process). A production release with many users should self-host the
+  purpose (two ready-made regions; every area within OpenFreeMap's offline rule "≤3,000 tiles or
+  50 MB per offline download" — R31: estimate ≤ 50 MB and ≤ 3 000 tiles, vector z0–14 + relief
+  raster z0–6, else refused without splitting; no country/province packs; one revalidation per
+  process). A production release with many users should self-host the
   OpenMapTiles data (or use a paid provider) before offering offline areas widely; only
   `STYLE_URL` changes, `OfflineConfig` re-measures `BYTES_PER_TILE`/`FIXED_BYTES`.
 * **Tileset versions.** The style's vector source is a TileJSON (`/planet`, max-age 1 h) whose
