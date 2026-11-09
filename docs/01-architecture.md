@@ -53,11 +53,12 @@ concrete classes by hand (no DI framework), so the iOS app can use a plain `stru
 | --- | --- |
 | `domain/model` | Immutable value types |
 | `domain/repository` | Interfaces the domain needs (`TripRepository`, `StepRepository`, `TrackRepository`, `StopDecisionRepository`, `PhotoFileStore`, `Clock`, `IdGenerator`) |
-| `domain/usecase` | `Validation.kt` (limits, inputs, error enums, validators, `TripExtension` for R17), `Ordering.kt` (comparators, route, distance, stats, new-step defaults), `UseCases.kt`; tracks (R16): `TrackLogic.kt` (`TrackRules`, `TrackFilter`, `TrackMath`, `TrackFormat`), `TrackRecorder.kt` (start/pause/resume/stop, fixes, process-death recovery); stop suggestions (R17): `StopSuggestions.kt` (`StopRules`, `StopDetection`, `StopSuggestions`, `StopFormat`) |
+| `domain/usecase` | `Validation.kt` (limits, inputs, error enums, validators, `TripExtension` for R17), `Ordering.kt` (comparators, route, distance, stats, new-step defaults), `UseCases.kt`; tracks (R16): `TrackLogic.kt` (`TrackRules`, `TrackFilter`, `TrackMath`, `TrackFormat`), `TrackRecorder.kt` (start/pause/resume/stop, fixes, process-death recovery); stop suggestions (R17): `StopSuggestions.kt` (`StopRules`, `StopDetection`, `StopSuggestions`, `StopFormat`); sharing (R18): `TripShare.kt` (stats, image photos, file names), `TripPage.kt` (offline HTML + size cap) |
 | `data/local` | Database entities, DAOs, type converters, mappers |
 | `data` | `RoomTripRepository`, `RoomStepRepository`, `RoomTrackRepository`, `RoomStopDecisionRepository`, `PhotoStorage`, `SampleData` |
 | `tracking` | `TrackRecordingService` (foreground service type location: platform GPS → `TrackRecorder.onFix`, GPS on/off with the state) and `TrackNotifications` (channel + notification) |
-| `map` | `MapConfig` (style URL, basemap tuning, attribution, User-Agent, zooms), `MapSetup`, `MapViews`, `RouteLayers`, `Pins`, `CameraMath`; offline areas: `OfflineConfig` (pure: areas, zooms, size estimate, limits), `OfflineState`, `OfflineMaps` (MapLibre offline store), `NetworkMonitor`, `OfflineIndicator` |
+| `map` | `MapConfig` (style URL, basemap tuning, attribution, User-Agent, zooms), `MapSetup`, `MapViews`, `RouteLayers`, `Pins`, `CameraMath`; offline areas: `OfflineConfig` (pure: areas, zooms, size estimate, limits), `OfflineState`, `OfflineMaps` (MapLibre offline store), `NetworkMonitor`, `OfflineIndicator`; share map (R18): `MapFit` (pure fit + Web Mercator projection), `StaticTripMap` (snapshot + drawn overlay) |
+| `share` | `TripExporter` (renders, encodes, writes `cacheDir/share/`, FileProvider `content://` URIs, `ACTION_SEND`, MediaStore save) and `SummaryImage` (the 1080 × 1920 PNG on a `Canvas`) |
 | `ui/*` | One file per screen + view model; `ui/common` holds shared widgets and dialogs; `ui/tracks` the "Ghi hành trình" control and the track list |
 | `AppContainer`, `LuTrinhApp`, `MainActivity` | Composition root, app start, single activity |
 

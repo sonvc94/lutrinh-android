@@ -24,6 +24,8 @@ app/src/main/java/vn/lutrinh/app/
   tracking/ TrackRecordingService (location foreground service + notification); the logic is
             domain/usecase/TrackLogic.kt + TrackRecorder.kt (R16, pure, unit-tested);
             stop suggestions from tracks = domain/usecase/StopSuggestions.kt (R17)
+  share/    TripExporter (files, FileProvider, ACTION_SEND, MediaStore) + SummaryImage (R18);
+            rules in domain/usecase/TripShare.kt + TripPage.kt, map in map/StaticTripMap.kt
   ui/       screens + view models; ui/common/Common.kt has formatters and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
@@ -108,4 +110,8 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   (`settings get global airplane_mode_on`); MapLibre's store is `files/mbgl-offline.db`
   (`run-as vn.lutrinh.app ls -l files/`). Offline, z0–7 tiles of a pack also draw far outside
   its box — judge coverage at town zoom. `connectedDebugAndroidTest` wipes downloaded areas too.
+* Share (R18): `logcat -s ShareTrip TripExporter StaticTripMap` prints each share URI, page
+  size/level and save path; saved files are `/sdcard/Pictures/LuTrinh/*.png` and
+  `/sdcard/Download/LuTrinh/*.html` (`adb pull`). The snapshotter cannot list style layers, so
+  label ids for it are in `MapConfig.LABEL_LAYER_IDS` (change them with the style).
 * Polarsteps analysis docs (`/Volumes/wdblack/workspace/vietmap/vietmap/polarsteps/docs`) are reference only; write our own code and copy.

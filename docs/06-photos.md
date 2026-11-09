@@ -149,6 +149,24 @@ ignored) so a corrupted row can never delete other files.
   "i / n", pinch zoom 1×–5× with pan; while zoomed, horizontal drags pan the image instead of
   changing page. A missing file shows "Không tìm thấy tệp ảnh" instead of crashing.
 
+## Export (share a trip, R18)
+
+Photos leave the app only through "Chia sẻ chuyến đi", always re-encoded from the stored copy
+(`share/TripExporter.kt`), never as the original file:
+
+* **Decode:** bounds first, `inSampleSize` from `PhotoImportPlan.sampleSize`, then scaled to
+  `PhotoImportPlan.scaledSize(maxPx)` (long edge ≤ maxPx, never upscaled) and turned upright by
+  the EXIF orientation tag if a kept original still has one (stored re-encoded copies are upright
+  already, R11). A missing or unreadable file is skipped.
+* **Summary image:** up to 4 photos (R18 choice) decoded at a long edge of **640 px**, drawn as
+  centre-cropped squares (~225 px) into the PNG.
+* **Summary page:** each photo as **JPEG, long edge ≤ 1280 px, quality 80**, embedded as a
+  base64 `data:` URI; if the page would pass 15 MB the size cap lowers this to 1280/q65,
+  1024/q60, 800/q50 and then keeps fewer photos per step (R18). Encodings are reused while the
+  size and quality stay the same.
+* **No metadata:** `Bitmap.compress` writes a bare JPEG (no EXIF: no GPS, date or device).
+* The map image of the page is the share map (docs/05) as JPEG q85.
+
 ## Sample data (debug builds only)
 
 "Tạo dữ liệu mẫu" generates simple landscape images (sky, sun, layered green hills) in code and

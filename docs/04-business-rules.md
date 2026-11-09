@@ -416,6 +416,72 @@ stay is hidden while its step exists`, `photo count uses capture times inside th
 a 20-min stay, accepting and dismissing are checked by hand on the emulator
 (`img/stop-suggest/`).
 
+## R18 — Share a trip ("Chia sẻ chuyến đi")
+
+Rules live in `domain/usecase/TripShare.kt` (stats, photo choice, file names) and
+`domain/usecase/TripPage.kt` (the page and its size cap), both pure; the iOS port copies them.
+Rendering (map, image, photo encoding, files) is `share/TripExporter.kt`, `share/SummaryImage.kt`
+and `map/StaticTripMap.kt` (docs/05 "Static map for sharing", docs/06 "Export").
+
+* **What.** Two outputs of one trip, made on the phone, nothing uploaded (no link, no server):
+  **"Ảnh tóm tắt"** = one portrait PNG 1080 × 1920; **"Trang tóm tắt"** = one self-contained HTML
+  file that opens offline in any browser. Both are rebuilt live while the share screen is open
+  (trip, steps, tracks, "Ẩn ghi chú").
+* **Image contents.** Title (max 2 lines, then "…"), the trip dates as on the trip screen
+  ("… – …", open-ended "từ …"), the map with the route (R3, legs drawn per mode, R12), the
+  recorded tracks (R16) and numbered pins, fitted to all steps and track points (docs/05); the
+  map attribution in its bottom-right corner; four stats; up to four photos; the "Lữ Trình" mark.
+* **Stats** (`TripShare.stats`). km = R10 distance rounded to a whole km (straight lines between
+  steps, not the GPS tracks); ngày = `endDate − startDate + 1`, or for an open-ended trip from the
+  start date to the last step's date (+1), at least 1; điểm dừng and ảnh = counts of the trip.
+* **Image photos** (`TripShare.imagePhotos`). At most 4. With ≥ 4 steps that have photos: the
+  first photo (by position) of 4 of them evenly spaced along the timeline, first and last such
+  step always in (index `round(i·(n−1)/3)`). With fewer: each such step's first photo, then their
+  second photos in turn, and so on, until 4 or none are left. No photos → no photo row.
+* **Page contents** (`TripPage.build`). Title, dates, trip description, the map image with the
+  plain-text caption "Bản đồ: <attribution>", the four stats, then every step in timeline order
+  (R2) grouped by day "Ngày N · <weekday>, d/M/yyyy" (N from the trip start, as on Trip detail):
+  number, title, time `HH:mm`, note (line breaks kept) and its photos in position order; footer
+  "Tạo bằng Lữ Trình …". A photo whose file is missing is skipped.
+* **Offline and safe.** All user text (title, description, step titles, notes) is HTML-escaped
+  (`& < > " '`); CSS is inline; images are `data:image/jpeg;base64` URIs only; no `<script>`, no
+  `<link>`, no `url(…)`; a `Content-Security-Policy` meta tag (`default-src 'none'; img-src data:;
+  style-src 'unsafe-inline'`) forbids any request. The attribution is text, never a link.
+* **Size cap** (`TripPage.buildWithinCap`, `CAP_BYTES` = 15 000 000 bytes, UTF-8). The page is
+  built at the first level that fits: photos 1280 px / JPEG q80 → 1280/q65 → 1024/q60 → 800/q50 →
+  800/q50 with at most 4, then 2, then 1, then 0 photos per step (a step's first photos are
+  kept). If even the last level is over the cap it is used anyway. Removed photos are counted:
+  the page footer and the share screen say "Đã lược bớt N ảnh …".
+* **"Ẩn ghi chú".** A switch on the page output, off by default, not stored. On: step notes are
+  left out of the page (titles, times and photos stay). The image never has notes.
+* **Privacy.** The files contain the trip's places (map and pins), step names and times, notes
+  (unless hidden) and photos. The share screen always shows "Tệp chia sẻ có bản đồ, tên và thời
+  gian các điểm dừng của bạn. Chỉ gửi cho người bạn tin." Photo files carry no metadata (re-encoded,
+  docs/06), so no EXIF GPS or device data leaves the phone; coordinates are not written as text.
+* **File names** (`TripShare.fileName`). `LuTrinh-<slug>-<start yyyyMMdd>.png|html`; slug =
+  title without Vietnamese marks (đ → d), lower case, anything else → "-", at most 40 characters,
+  empty → "chuyen-di". Example: `LuTrinh-vong-cung-ha-giang-20251020.png`.
+* **Temporary files.** Exports are written to the app cache `share/` folder, which is emptied
+  when the share screen opens; "Chia sẻ" hands the file to the system share sheet as a
+  `content://` URI (FileProvider) with a read grant (Android `ACTION_SEND`).
+* **"Lưu vào máy".** Android 10+: a copy goes to shared storage, the image to
+  `Pictures/LuTrinh`, the page to `Download/LuTrinh` (no permission needed); a name already
+  there gets a number from the system. Android 8–9: the system "save as" picker (no storage
+  permission requested). Confirmation "Đã lưu vào <folder>".
+* **No basemap.** Offline with the trip area not downloaded (or the style failing within 15 s),
+  the map is the route on the plain basemap background colour; the share screen says so. It is
+  never an error.
+
+*Tests:* `TripShareTest` (`statsCountStepsPhotosDaysAndRoundKm`,
+`openEndedTripCountsDaysUpToTheLastStep`, `imagePhotosSpreadCoversOverTheTrip`,
+`fewStepsWithPhotosFillWithTheirNextPhotos`, `fileNameIsAsciiSlugWithStartDate`,
+`pageEscapesUserTextIncludingScript`, `pageLoadsNothingFromTheNetwork`,
+`pageHasTimelineByDayAndHidesNotesOnRequest`, `capLowersQualityThenDropsPhotos`,
+`pageSizeIsCountedInUtf8Bytes`, `mapFitKeepsEveryPointInsideThePadding`,
+`mapFitFollowsTheCameraRules`); UI: `TripFlowsTest.shareTrip_fromTheTripScreen_offersImageAndPage`.
+The rendered image, the page in a browser, the share sheet, saving and airplane mode are checked
+by hand on the emulator (`img/share-trip/`).
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

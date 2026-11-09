@@ -73,7 +73,9 @@ database as the offline areas); areas the user downloads are kept until deleted 
 
 Labels: every symbol layer whose id starts with `label_`, `water_name`, `waterway_line_label`,
 `highway-name` or `airport` gets `text-field = coalesce(name:vi, name:latin, name)` (Vietnamese
-first — the tiles carry `name:vi`), text colour `#5F6661` and halo `#F7F4EE`. Roads keep
+first — the tiles carry `name:vi`), text colour `#5F6661` and halo `#F7F4EE`. The share
+snapshot cannot list a style's layers, so the same label layers are also named one by one in
+`MapConfig.LABEL_LAYER_IDS` (another style needs its own list). Roads keep
 Positron's light greys. Result: the land is quiet and the route is the darkest thing on the map.
 
 ## Map surfaces
@@ -87,6 +89,7 @@ Positron's light greys. Result: the land is quiet and the route is the darkest t
 | Location picker | full screen | pan + zoom | fixed centre pin, other steps as context pins |
 | Thêm từ ảnh review | 180 dp tall | no | numbered pins of the kept suggestions, no route (R13) |
 | Bản đồ của tôi | full screen | pan + zoom | every trip: one coloured line + stop dots per trip; tap → select, tap the card → open (R14) |
+| Share image / page (R18) | 960 × 980 px bitmap | no (a picture) | pins + legs + recorded tracks + attribution, "Static map for sharing" |
 
 ## Data prep per leg
 
@@ -234,6 +237,36 @@ the filled, numbered step pins. Drawn on the trip detail header map and the full
 (docs/03 §3c) is where the user acts. The markers follow the list (a dismissed or added
 suggestion's marker goes at once) and do not change the camera fit (the stays lie on the
 tracks, which the fit already includes). Screenshot: `img/stop-suggest/05-trip-map-markers.png`.
+
+## Static map for sharing (R18, `map/StaticTripMap.kt`, `map/MapFit.kt`)
+
+The "Ảnh tóm tắt" and "Trang tóm tắt" (04-business-rules.md R18) need the trip map as a bitmap,
+without a visible map view. Two steps:
+
+1. **Basemap** — MapLibre `MapSnapshotter` with `MapConfig.STYLE_URL`, size 960 × 980 logical
+   px × pixel ratio 2.5 (`SummaryImage.MAP_*`), logo off, the camera from `MapFit`, and the same
+   repaint as the live maps applied in `onDidFinishLoadingStyle` through `getLayer(id)`
+   (`BASEMAP_TUNING` + the Vietnamese-first labels on `LABEL_LAYER_IDS`). Tiles come from the
+   network or, offline, from MapLibre's store (an offline pack, R15, or the ambient cache). The
+   snapshot runs on the main thread and is cancelled after **15 s** (`SNAPSHOT_TIMEOUT_MS`).
+2. **Overlay** — drawn by us on a `Canvas` over the snapshot, not as runtime style layers in
+   the snapshotter's style (not tried): drawing it ourselves gives the same picture with and
+   without a basemap (the fallback below needs the drawing anyway) and reuses the pin bitmaps. Points are placed with our own
+   Web Mercator projection (`MapFit.project`: world = 512 · 2^zoom px, the MapLibre tile size),
+   which matches the snapshot. Order bottom → top: legs (ground: white casing 6.6 + green
+   `#1F5C45` 3.8 px per logical px; flight dashed, boat/walk dotted, paths from `LegGeometry`
+   like the live map), recorded tracks (white 4.6 + crimson 2.6, `TrackMath.displayLines`),
+   numbered step pins (`Pins.kt` bitmaps at the snapshot's pixel ratio; start and end on top),
+   then the attribution text in a translucent box in the bottom-right corner.
+
+**Fit** (`MapFit.fit`, pure, `TripShareTest`): every step and track point inside the map minus 70
+px padding, zoom capped at `FIT_MAX_ZOOM` (14); one point → `SINGLE_POINT_ZOOM`; none → the
+Vietnam overview (`FALLBACK_CENTER`, `OVERVIEW_ZOOM`) — the camera rules below.
+
+**No basemap.** Snapshot error or timeout (offline outside every downloaded area, style not
+cached) → the map is the overlay on the plain `MapConfig.BACKGROUND` (`#F3EFE6`), with the
+attribution still drawn; the share screen says "Không tải được nền bản đồ …". Never a crash.
+Screens: `img/share-trip/06-airplane-image.png` (offline pack), `img/share-trip/07-no-basemap.png`.
 
 ## Camera rules
 
