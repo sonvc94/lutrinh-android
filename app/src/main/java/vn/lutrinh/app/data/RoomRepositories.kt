@@ -53,13 +53,20 @@ class RoomStepRepository(private val db: AppDatabase) : StepRepository {
         return LocalDate.parse(first)..LocalDate.parse(last)
     }
 
-    override suspend fun saveStep(step: Step): List<String> = db.withTransaction {
+    override suspend fun saveStep(step: Step): List<String> = db.withTransaction { writeStep(step) }
+
+    override suspend fun saveStepAndTrip(step: Step, trip: Trip): List<String> = db.withTransaction {
+        db.tripDao().upsert(trip.toEntity())
+        writeStep(step)
+    }
+
+    private suspend fun writeStep(step: Step): List<String> {
         val before = dao.photoFiles(step.id)
         dao.upsert(step.toEntity())
         dao.deletePhotos(step.id)
         dao.insertPhotos(step.photos.map { it.copy(stepId = step.id).toEntity() })
         val after = step.photos.map { it.fileName }.toSet()
-        before.filterNot { it in after }
+        return before.filterNot { it in after }
     }
 
     override suspend fun deleteStep(id: String): List<String> = db.withTransaction {

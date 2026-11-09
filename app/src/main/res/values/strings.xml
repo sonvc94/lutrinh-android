@@ -113,6 +113,9 @@
     <string name="err_step_after_trip">Ngày đến phải trước hoặc bằng %1$s (ngày kết thúc chuyến đi)</string>
     <string name="err_step_too_many_photos">Tối đa %1$d ảnh mỗi điểm dừng</string>
     <string name="err_step_trip_missing">Chuyến đi không còn tồn tại</string>
+    <string name="extend_trip_title">Kéo dài chuyến đi?</string>
+    <string name="extend_trip_body">Ngày đến nằm ngoài chuyến đi (%1$s). Kéo dài chuyến đi đến %2$s?</string>
+    <string name="extend_trip_confirm">Kéo dài và lưu</string>
     <string name="discard_title">Bỏ các thay đổi?</string>
     <string name="discard_body">Những gì bạn vừa nhập sẽ không được lưu.</string>
     <string name="discard_confirm">Bỏ</string>

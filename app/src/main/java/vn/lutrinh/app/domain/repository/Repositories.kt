@@ -42,6 +42,9 @@ interface StepRepository {
      */
     suspend fun saveStep(step: Step): List<String>
 
+    /** Like [saveStep], and stores [trip] (its dates widened for the step, R17) in the same transaction. */
+    suspend fun saveStepAndTrip(step: Step, trip: Trip): List<String>
+
     /** Deletes the step and its photo rows. Returns the photo files that belonged to it. */
     suspend fun deleteStep(id: String): List<String>
 

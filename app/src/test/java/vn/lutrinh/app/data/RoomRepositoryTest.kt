@@ -58,6 +58,14 @@ class RoomRepositoryTest {
         assertNull(trips.getTrip("t1"))
     }
 
+    @Test fun saveStepAndTripStoresBothTogether() = runTest {
+        trips.upsertTrip(trip("t", "2026-10-20").copy(endDate = LocalDate.parse("2026-10-23")))
+        val moved = trips.getTrip("t")!!.copy(endDate = LocalDate.parse("2026-11-02"), updatedAt = 5)
+        steps.saveStepAndTrip(step("s", "t", "2026-11-02T08:00", listOf("a.jpg")), moved)
+        assertEquals(moved, trips.getTrip("t"))
+        assertEquals(listOf("a.jpg"), steps.getStep("s")!!.photos.map { it.fileName })
+    }
+
     @Test fun summariesAreOrderedAndCounted() = runTest {
         trips.upsertTrip(trip("old", "2025-06-07"))
         trips.upsertTrip(trip("new", "2025-10-20", created = 1))

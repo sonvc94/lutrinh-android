@@ -88,6 +88,8 @@ import vn.lutrinh.app.domain.usecase.SaveResult
 import vn.lutrinh.app.domain.usecase.StepError
 import vn.lutrinh.app.domain.usecase.StepInput
 import vn.lutrinh.app.domain.usecase.StopSuggestions
+import vn.lutrinh.app.domain.usecase.TripDates
+import vn.lutrinh.app.domain.usecase.TripExtension
 import vn.lutrinh.app.domain.usecase.inTimelineOrder
 import vn.lutrinh.app.map.MapMarker
 import vn.lutrinh.app.map.TripMap
@@ -97,6 +99,7 @@ import vn.lutrinh.app.ui.common.DiscardDialog
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.LocalPhoto
 import vn.lutrinh.app.ui.common.MessageState
+import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.ui.common.display
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatCoord
@@ -125,7 +128,12 @@ data class StepForm(
     val deleted: Boolean = false,
     /** Where the picker should open when no location is set yet. */
     val suggestedLocation: GeoPoint? = null,
+    /** R17: asks whether to widen the trip for a step from a stop suggestion dated outside it. */
+    val extendOffer: ExtendOffer? = null,
 )
+
+/** The trip dates now and the smallest dates that would hold the step (R17). */
+data class ExtendOffer(val current: TripDates, val widened: TripDates)
 
 class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) : ViewModel() {
     val tripId: String = checkNotNull(handle["tripId"])
@@ -220,10 +228,12 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
 
     fun makeCover(name: String) = edit { copy(photos = listOf(name) + (photos - name)) }
 
-    fun save() = viewModelScope.launch {
+    /** [extendTrip]: the user accepted widening the trip for this step (only offered from a stop suggestion). */
+    fun save(extendTrip: Boolean = false) = viewModelScope.launch {
         val f = _form.value
+        _form.update { it.copy(extendOffer = null) }
         val input = StepInput(f.title, f.note, f.location, LocalDateTime.of(f.date, f.time), f.photos, takenAtByFile.toMap())
-        when (val r = c.saveStep(tripId, stepId, input)) {
+        when (val r = c.saveStep(tripId, stepId, input, extendTrip && fromStop != null)) {
             is SaveResult.Saved -> {
                 finished = true
                 fromStop?.let { stop ->
@@ -234,9 +244,19 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                 c.photos.delete(importedThisSession - f.photos.toSet())
                 _form.update { it.copy(savedId = r.id, dirty = false) }
             }
-            is SaveResult.Invalid -> _form.update { it.copy(errors = r.errors) }
+            is SaveResult.Invalid -> {
+                // R17: only a date outside the trip, only from a suggestion; any other error is shown as usual.
+                val offer = if (fromStop != null && r.errors.all { it == StepError.BEFORE_TRIP_START || it == StepError.AFTER_TRIP_END }) {
+                    c.trips.getTrip(tripId)?.let { trip ->
+                        TripExtension.widen(trip.startDate, trip.endDate, f.date)?.let { ExtendOffer(TripDates(trip.startDate, trip.endDate), it) }
+                    }
+                } else null
+                _form.update { it.copy(errors = r.errors, extendOffer = offer) }
+            }
         }
     }
+
+    fun dismissExtendOffer() = _form.update { it.copy(extendOffer = null) }
 
     fun delete() = viewModelScope.launch {
         stepId?.let { c.deleteStep(it) }
@@ -404,6 +424,17 @@ fun StepEditScreen(
             body = stringResource(R.string.step_delete_confirm_body, f.title, f.photos.size),
             onConfirm = { confirmDelete = false; vm.delete() },
             onDismiss = { confirmDelete = false },
+        )
+    }
+    f.extendOffer?.let { offer ->
+        val openEnded = stringResource(R.string.trip_open_ended, "%s")
+        val fmt = { d: TripDates -> dateRange(d.start, d.end) { openEnded.format(it) } }
+        AlertDialog(
+            onDismissRequest = vm::dismissExtendOffer,
+            title = { Text(stringResource(R.string.extend_trip_title)) },
+            text = { Text(stringResource(R.string.extend_trip_body, fmt(offer.current), fmt(offer.widened))) },
+            confirmButton = { TextButton(onClick = { vm.save(extendTrip = true) }) { Text(stringResource(R.string.extend_trip_confirm)) } },
+            dismissButton = { TextButton(onClick = vm::dismissExtendOffer) { Text(stringResource(R.string.action_cancel)) } },
         )
     }
     if (confirmDiscard) DiscardDialog(onDiscard = { confirmDiscard = false; onBack() }, onDismiss = { confirmDiscard = false })

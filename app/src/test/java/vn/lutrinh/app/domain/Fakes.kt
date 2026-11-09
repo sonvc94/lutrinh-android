@@ -60,6 +60,11 @@ class FakeStore : TripRepository, StepRepository {
         return before.filterNot { it in after }
     }
 
+    override suspend fun saveStepAndTrip(step: Step, trip: Trip): List<String> {
+        upsertTrip(trip)
+        return saveStep(step)
+    }
+
     override suspend fun deleteStep(id: String): List<String> {
         val s = steps.value[id] ?: return emptyList()
         steps.value = steps.value - id

@@ -57,7 +57,11 @@ class DeleteTrip(
     }
 }
 
-/** Creates a step when [stepId] is null, otherwise updates it; replaces its photo list (R5, R8). */
+/**
+ * Creates a step when [stepId] is null, otherwise updates it; replaces its photo list (R5, R8).
+ * With [extendTrip] (a step from a stop suggestion, R17) an arrival outside the trip dates widens
+ * the trip by as many days as needed instead of failing R5; trip and step are stored together.
+ */
 class SaveStep(
     private val trips: TripRepository,
     private val steps: StepRepository,
@@ -65,8 +69,15 @@ class SaveStep(
     private val clock: Clock,
     private val ids: IdGenerator,
 ) {
-    suspend operator fun invoke(tripId: String, stepId: String?, input: StepInput): SaveResult<StepError> {
-        val trip: Trip = trips.getTrip(tripId) ?: return SaveResult.Invalid(setOf(StepError.TRIP_NOT_FOUND))
+    suspend operator fun invoke(tripId: String, stepId: String?,
+        input: StepInput,
+        extendTrip: Boolean = false,
+    ): SaveResult<StepError> {
+        val stored: Trip = trips.getTrip(tripId) ?: return SaveResult.Invalid(setOf(StepError.TRIP_NOT_FOUND))
+        val widened = if (extendTrip) {
+            TripExtension.widen(stored.startDate, stored.endDate, input.arrivedAt.toLocalDate())
+        } else null
+        val trip = if (widened == null) stored else stored.copy(startDate = widened.start, endDate = widened.end)
         val errors = StepValidator.validate(input, trip.startDate, trip.endDate)
         if (errors.isNotEmpty()) return SaveResult.Invalid(errors)
         val existing = stepId?.let { steps.getStep(it) }
@@ -93,7 +104,7 @@ class SaveStep(
             // Not part of the step form: the leg transport is set from the timeline/map (R12).
             arrivalTransport = existing?.arrivalTransport,
         )
-        val removed = steps.saveStep(step)
+        val removed = if (widened == null) steps.saveStep(step) else steps.saveStepAndTrip(step, trip.copy(updatedAt = now))
         files.delete(removed)
         return SaveResult.Saved(id)
     }

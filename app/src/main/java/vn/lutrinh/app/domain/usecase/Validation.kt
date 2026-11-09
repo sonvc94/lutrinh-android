@@ -91,3 +91,19 @@ object StepValidator {
         return errors
     }
 }
+
+/** Start and optional end date of a trip. */
+data class TripDates(val start: LocalDate, val end: LocalDate?)
+
+/** R17: how far a trip must grow to hold a step suggested from a recorded track. */
+object TripExtension {
+    /**
+     * The smallest dates that contain [day]: the start moves back to it, or the end moves forward
+     * to it. Null when [day] already lies inside. A trip without an end date (ongoing) never gets one.
+     */
+    fun widen(start: LocalDate, end: LocalDate?, day: LocalDate): TripDates? = when {
+        day.isBefore(start) -> TripDates(day, end)
+        end != null && day.isAfter(end) -> TripDates(start, day)
+        else -> null
+    }
+}

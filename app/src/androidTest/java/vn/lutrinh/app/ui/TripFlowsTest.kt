@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -94,6 +95,48 @@ class TripFlowsTest {
         waitForText("Gợi ý điểm dừng (2)")
         rule.waitUntil(TIMEOUT) {
             runBlocking { container().stopDecisions.observeDecisions(tripId).first() }.size == 1
+        }
+    }
+
+    /**
+     * R17: a suggestion dated after the trip's end. "Lưu" asks to extend the trip; "Hủy" saves
+     * nothing, "Kéo dài và lưu" widens the end date to that day and stores the step.
+     */
+    @Test
+    fun stopSuggestionOutsideTheTrip_offersToExtendIt() {
+        val today = LocalDate.now()
+        val tripId = runBlocking {
+            val c = container()
+            val id = (c.saveTrip(null, TripInput(title, "", today.minusDays(10), today.minusDays(8))) as SaveResult.Saved).id
+            c.saveStep(id, null, StepInput("Hà Giang", "", GeoPoint(22.8233, 104.9836), today.minusDays(9).atTime(8, 0), emptyList()))
+            SampleData.addHaGiangTrack(c, id, today)
+            id
+        }
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
+        rule.onAllNodesWithText(title).onFirst().performClick()
+
+        waitForText("Gợi ý điểm dừng (3)")
+        clickable("Thêm điểm dừng").onFirst().performClick()
+        waitForText("Điểm dừng mới")
+        clickable("Lưu").onFirst().performClick()
+
+        waitForText("Kéo dài chuyến đi")
+        clickable("Hủy").onFirst().performClick()
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText("Kéo dài chuyến đi").fetchSemanticsNodes().isEmpty() }
+        runBlocking {
+            assertEquals(today.minusDays(8), container().trips.getTrip(tripId)!!.endDate)
+            assertEquals(1, container().steps.getSteps(tripId).size)
+        }
+
+        clickable("Lưu").onFirst().performClick()
+        waitForText("Kéo dài chuyến đi")
+        clickable("Kéo dài và lưu").onFirst().performClick()
+        rule.waitUntil(TIMEOUT) { runBlocking { container().steps.getSteps(tripId).size } == 2 }
+        runBlocking {
+            val trip = container().trips.getTrip(tripId)!!
+            assertEquals(today.minusDays(10), trip.startDate)
+            assertEquals(today, trip.endDate)
+            assertEquals(1, container().stopDecisions.observeDecisions(tripId).first().size)
         }
     }
 

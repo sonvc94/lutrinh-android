@@ -1,6 +1,7 @@
 package vn.lutrinh.app.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import vn.lutrinh.app.domain.model.GeoPoint
@@ -8,7 +9,9 @@ import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.domain.usecase.StepError
 import vn.lutrinh.app.domain.usecase.StepInput
 import vn.lutrinh.app.domain.usecase.StepValidator
+import vn.lutrinh.app.domain.usecase.TripDates
 import vn.lutrinh.app.domain.usecase.TripError
+import vn.lutrinh.app.domain.usecase.TripExtension
 import vn.lutrinh.app.domain.usecase.TripInput
 import vn.lutrinh.app.domain.usecase.TripValidator
 import java.time.LocalDate
@@ -83,5 +86,23 @@ class ValidationTest {
         assertEquals(setOf(StepError.TOO_MANY_PHOTOS), StepValidator.validate(step(photos = Limits.PHOTOS_PER_STEP_MAX + 1), d1, d4))
         assertEquals(setOf(StepError.NOTE_TOO_LONG), StepValidator.validate(step(note = "n".repeat(Limits.STEP_NOTE_MAX + 1)), d1, d4))
         assertEquals(setOf(StepError.TITLE_TOO_LONG), StepValidator.validate(step(title = "t".repeat(Limits.STEP_TITLE_MAX + 1)), d1, d4))
+    }
+
+    @Test fun extensionMovesStartBackWhenDayIsBeforeIt() =
+        assertEquals(TripDates(d1.minusDays(9), d4), TripExtension.widen(d1, d4, d1.minusDays(9)))
+
+    @Test fun extensionMovesEndForwardWhenDayIsAfterIt() =
+        assertEquals(TripDates(d1, d4.plusDays(30)), TripExtension.widen(d1, d4, d4.plusDays(30)))
+
+    @Test fun extensionIsNullInsideTheDatesInclusive() {
+        assertNull(TripExtension.widen(d1, d4, d1))
+        assertNull(TripExtension.widen(d1, d4, d4))
+        assertNull(TripExtension.widen(d1, d4, d1.plusDays(1)))
+        assertNull(TripExtension.widen(d1, d1, d1))
+    }
+
+    @Test fun ongoingTripOnlyWidensItsStart() {
+        assertEquals(TripDates(d1.minusDays(1), null), TripExtension.widen(d1, null, d1.minusDays(1)))
+        assertNull(TripExtension.widen(d1, null, d4.plusYears(5)))
     }
 }

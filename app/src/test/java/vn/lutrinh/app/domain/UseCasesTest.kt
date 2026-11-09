@@ -77,6 +77,50 @@ class UseCasesTest {
         assertTrue(store.steps.value.isEmpty())
     }
 
+    @Test fun extendTripWidensTheEndAndSavesTheStep() = runTest {
+        val id = newTrip()
+        clock.millis = 7_000
+        val r = saveStep(id, null, stepInput(day = 10), extendTrip = true)
+        assertTrue(r is SaveResult.Saved)
+        val t = store.getTrip(id)!!
+        assertEquals(start, t.startDate)
+        assertEquals(start.plusDays(10), t.endDate)
+        assertEquals(7_000L, t.updatedAt)
+        assertEquals(1, store.steps.value.size)
+    }
+
+    @Test fun extendTripWidensTheStartOnly() = runTest {
+        val id = newTrip()
+        saveStep(id, null, stepInput(day = -5), extendTrip = true)
+        val t = store.getTrip(id)!!
+        assertEquals(start.minusDays(5), t.startDate)
+        assertEquals(start.plusDays(3), t.endDate)
+    }
+
+    @Test fun extendTripLeavesAnOngoingTripOpen() = runTest {
+        val id = (saveTrip(null, tripInput.copy(endDate = null)) as SaveResult.Saved).id
+        saveStep(id, null, stepInput(day = -2), extendTrip = true)
+        assertEquals(start.minusDays(2), store.getTrip(id)!!.startDate)
+        assertNull(store.getTrip(id)!!.endDate)
+    }
+
+    @Test fun extendTripChangesNothingWhenTheStepIsInside() = runTest {
+        val id = newTrip()
+        val before = store.getTrip(id)
+        clock.millis = 9_000
+        saveStep(id, null, stepInput(day = 2), extendTrip = true)
+        assertEquals(before, store.getTrip(id))
+    }
+
+    @Test fun invalidStepDoesNotWidenTheTrip() = runTest {
+        val id = newTrip()
+        val before = store.getTrip(id)
+        val r = saveStep(id, null, stepInput(day = 10, title = ""), extendTrip = true)
+        assertEquals(SaveResult.Invalid(setOf(StepError.TITLE_BLANK)), r)
+        assertEquals(before, store.getTrip(id))
+        assertTrue(store.steps.value.isEmpty())
+    }
+
     @Test fun stepForMissingTripIsRejected() = runTest {
         assertEquals(SaveResult.Invalid(setOf(StepError.TRIP_NOT_FOUND)), saveStep("nope", null, stepInput()))
     }
