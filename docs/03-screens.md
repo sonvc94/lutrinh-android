@@ -575,6 +575,7 @@ The picker returns its result to the step form through the previous screen's sav
 | ux-flows/05-from-photos-intro.png | "Thêm điểm dừng từ ảnh" intro sheet before the file picker |
 | ux-flows/06-from-photos-discard.png | "Bỏ các điểm dừng gợi ý?" after Back from the review |
 | ux-flows/07-location-picker-chips.png | location picker: "Vị trí của tôi" + the trip's steps as chips |
+| ux-flows/08-from-photos-review.png | from-photos review: names "Điểm dừng HH:mm", "gần Phố cổ Đồng Văn, 0,2 km" with coordinates below, "Đổi vị trí" |
 
 ## Accessibility and UI tests
 
