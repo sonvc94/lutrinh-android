@@ -261,9 +261,13 @@ Photos leave the app only through "Chia sẻ chuyến đi", always re-encoded fr
 
 ## Sample data (debug builds only)
 
-"Tạo dữ liệu mẫu" generates simple landscape images (sky, sun, layered green hills) in code and
-writes them through the same file store, so sample trips behave exactly like user data (delete
-removes their files). They are plain drawings, not real photos.
+"Tạo dữ liệu mẫu" copies real photos of the sample places from the debug-only assets
+`app/src/debug/assets/sample-photos/<step-key>-<n>.jpg` (Wikimedia Commons, CC0 / CC BY / CC BY-SA;
+`README.md` there lists source, author and licence per file; 1024 px long side, metadata stripped)
+and writes them through the same file store, so sample trips behave exactly like user data (delete
+removes their files). A step whose file is missing simply gets fewer photos. No picture is ever
+generated in code (docs/08 "Imagery"; `DesignGuardTest.noGeneratedSamplePictures`). Release builds
+contain neither the assets nor the button.
 
 The screenshots in `img/` used four similar generated JPEGs (`LT_TEST_*.jpg`, with a "TEST …"
 caption) pushed into the emulator gallery, so that the real Photo Picker flow could be shown.

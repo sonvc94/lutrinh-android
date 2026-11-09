@@ -12,12 +12,19 @@ from) in the same branch: rules R1–R35 in `docs/04` with their test names, scr
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
+**Every change of look follows `docs/08-design.md`** ("Sổ bản đồ": limestone paper + one chàm
+accent, one type scale, radii 4/12, hairlines not shadows, real photos only). Colours only in
+`ui/theme/` (`Palette`; map code uses `Color.rgbHex()`); `DesignGuardTest` (in
+`testDebugUnitTest`) fails on colour literals elsewhere, gradients in `ui/` and unlicensed sample
+photos. A new token or text/background pair goes into the docs/08 contrast table.
+
 ## Layout
 
 ```
 app/src/main/java/vn/lutrinh/app/
   domain/   models, repository interfaces, validation, ordering, use cases (pure Kotlin)
   data/     Room DB, repositories, PhotoStorage (import: EXIF/downscale/GPS strip), data/photo/ (pure maths), sample data
+            (photos: app/src/debug/assets/sample-photos/ + README with source/licence per file)
   map/      the map interface (R35, docs/05 "Map interface and providers"): MapController.kt +
             MapEngine.kt (engine, OfflineMapStore, MapEngines.active), MapPresenters.kt (pins/legs/
             camera rules, engine-neutral), MapViews.kt (TripMap/PickerMap/AllTripsMap), MapConfig.kt
@@ -47,10 +54,11 @@ app/src/main/java/vn/lutrinh/app/
             ui/steps/MediaStrip.kt (drag strip + camera contract); videos are `photos` rows (media_type)
   data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22;
             `map_style` = `light`|`satellite`, R32)
+  ui/theme/ design tokens (docs/08): Theme.kt (Palette, Radii, hairline), Type.kt (scale, numerals())
   ui/       screens + view models; domain/usecase/DisplayFormat.kt has the km/duration/day formatters; ui/common/Common.kt has date helpers and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
-docs/                 spec 01–07 + img/
+docs/                 spec 01–08 (08 = design) + img/
 ```
 
 ## Build and test

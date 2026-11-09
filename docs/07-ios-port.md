@@ -52,7 +52,7 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 | Photo source storage (R19) | Room v5: `photos.source_id` TEXT, `photos.source_size` INTEGER nullable; `StepInput.photoSources` → `SaveStep`; `GalleryReader.sourceOf` for picked URIs (`OpenableColumns.SIZE`, MediaStore id) | SwiftData `SchemaV5` (`.lightweight` from V4): `Photo.sourceId: String?`, `Photo.sourceSize: Int64?`. `PhotosPicker` items give `itemIdentifier` (= the asset's `localIdentifier` when the picker was created with `photoLibrary: .shared()`) → store it as `sourceId`, so iOS de-dups picker imports by id too | port `MigrationTest.version4UpgradesWithPhotoSourcesAndKeepsEverything` and `UseCasesTest.savingStepStoresPhotoSourcesAndKeepsThemOnEdit` |
 | Location picker | fixed centre pin, camera-idle listener | same with `mapView(_:regionDidChangeAnimated:)` | |
 | Strings | `res/values/strings.xml` (Vietnamese default) | `Localizable.xcstrings`, source language `vi` | copy the keys and texts; plurals not used yet |
-| Theme | `ui/theme/Theme.kt` | `Color` assets: TerraceGreen `#1F5C45` (route), Clay `#B85C2E` (end pin), RiceGold `#E0A526` (selection), Cream `#FBF8F2`, map background `#F3EFE6` | |
+| Theme | `ui/theme/Theme.kt` (`Palette`, `Radii`, `hairline`), `ui/theme/Type.kt` | `Color` assets named after the tokens of **docs/08-design.md** (Paper `#F5F7F8`, Ink `#171E23`, Cham `#2A4D80`, ChamBright `#3263C3`, MapPaper `#EDF1F2`, …); radii 4/12 pt; 1 pt hairline borders, no shadows | docs/08 is the source of truth; keep its contrast table true |
 | App icon | adaptive vector (sun, karst peaks, terraces) | re-draw the same motif as a 1024 px asset | |
 | Sample data | debug-only seeder | `#if DEBUG` seeder | same trips and coordinates |
 | Unit tests | JUnit + Robolectric (in-memory Room) | XCTest / Swift Testing; in-memory `ModelConfiguration(isStoredInMemoryOnly: true)` | port test names 1:1 |
@@ -67,7 +67,7 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 | `domain/usecase/Drafts.kt`: `List<Step>.published()`, `stepNumbers`, `TripCover.candidates / resolve / isChosen`; every published-only rule calls `published()` inside the rule (`statsOf`, `legsOf`, `routeOf`, `overallStatsOf`, `TripShare.stats / sharedSteps / imagePhotos`) | Same functions on `[Step]` in the domain module; filtering inside the rule (not in the view) keeps the share/stats/My map tests meaningful. Port `DraftsAndCoverTest` 1:1 |
 | Trip list summary: one SQL (`TripDao.observeSummaries`) with published / draft counts and `COALESCE(chosen photo of this trip, first photo)` as cover | Compute `TripSummary` in Swift from the fetched trip + steps with `TripCover.resolve` (the SQL is an Android optimisation; results must match `RoomRepositoryTest.chosenCoverWinsAndFallsBackToAutomaticWhenItsPhotoIsGone`) |
 | `PublishStep` (`setDraft(id, false, now)`), `SetTripCover` (`setCover(id, photoId?, now)`), `StepInput.draft` | Same use cases; "Lưu nháp" / "Lưu" in the step form toolbar or bottom bar, "Đăng" on step detail |
-| Draft pin `PinKind.DRAFT`: 22 dp translucent white disc, dashed route-green ring (`DashPathEffect`), no number; markers with `draft = true` are left out of start/end and legs (`MapViews.kt`) | Draw the same bitmap with `UIBezierPath` + `setLineDash`; same marker rules |
+| Draft pin `PinKind.DRAFT`: 22 dp translucent white disc, dashed route-chàm ring (`DashPathEffect`), no number; markers with `draft = true` are left out of start/end and legs (`MapViews.kt`) | Draw the same bitmap with `UIBezierPath` + `setLineDash`; same marker rules |
 | Cover sheet: `ModalBottomSheet` + 3-column grid, "Tự động" tile first | `.sheet` with `LazyVGrid` (3 columns), same order and check mark; selection trait for VoiceOver ("Ảnh của <điểm dừng>") |
 
 ## My location and the battery guide (R22)
@@ -198,4 +198,6 @@ MapLibre.
   again. Limited access shows the system "select more photos" alert on first fetch unless
   `PHPhotoLibraryPreventAutomaticLimitedAccessAlert` is set; we set it and offer "Chọn thêm ảnh".
 * Large titles exist natively (`navigationBarTitleDisplayMode(.large)`).
-* **Title font.** Android bundles Be Vietnam Pro (SIL OFL, `res/font/`, `ui/theme/Type.kt`) for the display/headline/title text styles only; on iOS add the four TTFs to the bundle (`UIAppFonts`) and use `Font.custom` for the title styles, system font for body (docs/03 "Display conventions").
+* **Fonts.** Android bundles Be Vietnam Pro (SIL OFL, `res/font/`, `ui/theme/Type.kt`) for every text style and Barlow Condensed (SIL OFL) for stand-alone numbers with tabular figures; on iOS add the TTFs to the bundle (`UIAppFonts`), use `Font.custom` with the docs/08 type scale (sizes in pt = sp, `relativeTo:` for Dynamic Type) and `.monospacedDigit()` on the numeral style.
+* **Trip without a cover photo** (`ui/common/RouteCover.kt`): draw the route with SwiftUI `Canvas`/`Path`; port `RouteFit` (equirectangular fit + graticule step) 1:1 with `RouteFitTest`.
+* **Sample photos** (debug only): bundle the same `sample-photos/` JPEGs and README in a debug-only resource; never generate pictures.

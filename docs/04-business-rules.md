@@ -198,7 +198,7 @@ screen, 2 km / same-day rule, no automatic place names (no geocoding offline).
 * Totals: số chuyến = all trips; số điểm dừng = all their steps; km = **sum over trips** of each
   trip's R10 distance (no line between the end of one trip and the start of the next).
   Provinces are not counted (needs geocoding).
-* Each trip gets a colour from an 8-colour palette by creation order (`createdAt`, then id),
+* Each trip gets a colour from an 8-colour palette (docs/08 "Trip colours") by creation order (`createdAt`, then id),
   wrapping after 8; a newly created trip never changes the colour of older trips (deleting one
   shifts the later ones).
 * Trips without steps count in "số chuyến" but draw nothing.
