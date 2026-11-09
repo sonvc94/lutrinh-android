@@ -709,16 +709,20 @@ B3, signature parts (docs/08 §5): `b3-before-*` from main at ecef295 (the B2 lo
 
 Still Material (docs/08 §10): leg-mode badge glyphs and small in-row icons; satellite label halo.
 
+Retaken in the atlas look (B4, separate AVD emulator-5594, debug sample data): 01–06, 08–21, 23–26.
+Still the old green/clay look: 07 (the system Photo Picker, no app UI), 22 and 29–30 (need pushed
+EXIF photos), 27–28 (a historical upgrade from the v1 build).
+
 | File | Shows |
 | --- | --- |
 | 01-trip-list-empty.png | first run, empty list |
 | 02-trip-create.png | create form filled in |
-| 03-trip-edit.png | edit form with changed title, delete button |
+| 03-trip-edit.png | edit form with changed title, cover row "Ảnh bìa · Tự động" |
 | 04-trip-list.png | list with the two sample trips (refreshed after the UX base batch) |
-| 05-location-picker.png | picker on the OpenFreeMap basemap, pin near Du Già |
+| 05-location-picker.png | picker on the OpenFreeMap basemap from a new Hà Giang step: search field, trip-step chips, own centre needle |
 | 06-step-create.png | the empty new-step form (name, location, date and time, note, photos) |
 | 07-photo-picker.png | Android Photo Picker with 3 selected |
-| 08-trip-detail.png | detail: header map with route, stats (điểm dừng, ảnh, km, ngày), track row, suggestions (layout before the declutter batch) |
+| 08-trip-detail.png | detail: header map with route, title plate, km readout "139 km đường chim bay" + scale bar, counts, collapsed GPS card, Ngày 1 |
 | trip-detail-declutter/trip-detail-collapsed.png | Hà Giang detail: stats with "km / đường chim bay", collapsed "Hành trình GPS · 1 hành trình · 2 gợi ý", "Ngày 1" visible, one FAB "Thêm", Be Vietnam Pro title |
 | trip-detail-declutter/gps-card-expanded.png | the card open on an ended trip: hint, "Tạo chuyến mới và ghi", track row, suggestions |
 | trip-detail-declutter/gps-card-scrolled.png | card just opened (scrolled to the top): title in the bar, FAB shrunk to "+", suggestion cards "gần TP Hà Giang, 9,7 km" with "Tạo điểm dừng ở đây" |
@@ -728,18 +732,18 @@ Still Material (docs/08 §10): leg-mode badge glyphs and small in-row icons; sat
 | 11-step-edit.png | edit step: mini map, location, date and time, note, photo with cover label |
 | 12-photo-viewer.png | full-screen viewer 2 / 3 |
 | 13-step-delete-confirm.png | delete step confirm |
-| 14-photos-after-restart.png | trip detail after force-stop + relaunch: photos still there |
+| 14-photos-after-restart.png | trip detail after force-stop + relaunch, scrolled to the timeline: photos still there |
 | 15-trip-list-sample.png | list with the debug sample trips |
 | 16-sample-hagiang-map.png | Hà Giang loop at country zoom (pins/badges shrink, short legs drop their badges) |
 | 17-trip-delete-confirm.png | delete trip confirm with counts |
 | 18-trip-list-after-delete.png | list after the trip was deleted |
 | 19-trip-validation.png | "Hãy đặt tên cho chuyến đi" on empty title |
-| 20-trip-map-pins-above-cards.png | step 3 selected: camera flew to it above the cards, larger pin with gold halo |
+| 20-trip-map-pins-above-cards.png | step 3 selected: camera flew to it above the cards, larger pin with a bright chàm halo, card 3 with a chàm edge |
 | 21-date-picker-vietnamese.png | date picker in Vietnamese on an English-language emulator |
 | 22-photo-exif-rotated-upright.png | 4800×3600 photo with EXIF orientation 6 + GPS, stored and shown upright |
-| 23-trip-map-leg-modes.png | Hà Giang trip map fitted above the cards: cased ground legs, dotted walk, dashed flight arc, badges |
-| 24-trip-map-legs-zoomed.png | zoomed to town scale: wider cased lines, dotted walk leg 4→5 |
-| 25-leg-mode-sheet.png | leg mode sheet "Từ … đến …"; the leg (gold) framed above it |
+| 23-trip-map-leg-modes.png | Hà Giang trip map fitted above the cards: cased chàm legs with mode badges (the sample is all xe máy), ink GPS track, square map buttons |
+| 24-trip-map-legs-zoomed.png | zoomed to town scale near Quản Bạ: wider cased lines, the ink track beside the route |
+| 25-leg-mode-sheet.png | leg mode sheet "Từ TP Hà Giang đến Cổng Trời Quản Bạ" over the trip detail, "Xe máy" ticked |
 | 26-my-map.png | "Bản đồ của tôi": all trips in their colours, totals, trip cards |
 | route-redraw/before-*.png, after-*.png | the same Hà Giang views on main@55b3966 (raster OSM) and after the route redraw: country, region, city, flight, selected, trip-detail, mymap (+ after-leg-selected) |
 | 27-upgrade-before-v1.png | main@b07fcf6 build (database v1) with sample data, before the upgrade |
