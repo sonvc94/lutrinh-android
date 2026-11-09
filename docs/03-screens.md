@@ -148,10 +148,21 @@ The picker returns its result to the step form through the previous screen's sav
   the stay's date/time and centre (shown on the location card; "Đổi vị trí" opens the picker there).
   Saving adds the step to the timeline as usual and the card disappears (a stored `added`
   decision); back without saving keeps the card.
+  **Outside the trip's dates:** when the suggestion's day is before the trip's start or after its
+  end, "Lưu" opens a dialog "Kéo dài chuyến đi?" — "Ngày đến nằm ngoài chuyến đi (20 thg 10 – 23
+  thg 10, 2025). Kéo dài chuyến đi đến 20 thg 10 – 27 thg 10, 2025?" — with "Hủy" (text) and
+  "Kéo dài và lưu". "Kéo dài và lưu" widens the start or end as little as needed and saves the
+  step (R17, docs/04); "Hủy" closes the dialog, the editor stays open and the red R5 line
+  ("Ngày đến phải trước hoặc bằng …") stays under the date. An ongoing trip (no end) is shown
+  "từ <date>" and only its start can move. Editing or adding a step by hand never shows this
+  dialog (R5 error only).
 * **Bỏ qua:** the card disappears at once and stays hidden after restarts (stored `dismissed`).
 * **Screens:** `img/stop-suggest/01-trip-detail-suggestions.png`,
   `img/stop-suggest/02-step-form-prefilled.png`, `img/stop-suggest/03-trip-with-new-step.png`,
-  `img/stop-suggest/04-dismissed-after-restart.png`, `img/stop-suggest/05-trip-map-markers.png`.
+  `img/stop-suggest/04-dismissed-after-restart.png`, `img/stop-suggest/05-trip-map-markers.png`,
+  `img/extend-dates/dialog-after-end.png`, `img/extend-dates/dialog-before-start.png`,
+  `img/extend-dates/after-cancel.png`, `img/extend-dates/after-extend.png`,
+  `img/extend-dates/manual-edit-keeps-error.png`.
 * **Inspired by:** polarsteps' step suggestions from location tracking (its docs describe
   suggestions after several hours of tracking). **Changed:** made from the user's own recorded
   tracks only (no background tracking), shown as a list on the trip with explicit add / dismiss,

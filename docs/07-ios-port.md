@@ -77,4 +77,9 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 * Delete confirmation on iOS is usually a `confirmationDialog` with a destructive button.
 * Date pickers: `DatePicker(.graphical)` in a sheet, forced to Vietnamese (row "Picker language");
   dates are validated on save (R5), as on Android.
+* Extend-the-trip question (R17): on a failed save of a step that carries a `StopPrefill`, when
+  the only errors are before-start / after-end, show `.alert("Kéo dài chuyến đi?", …)` with
+  buttons "Kéo dài và lưu" and `.cancel` "Hủy". Port `TripExtension.widen` 1:1 (pure) and make
+  the save one SwiftData `ModelContext` transaction (trip dates + step + photos; with GRDB one
+  `db.write`), then store the `added` decision. Do not offer it for manual steps.
 * Large titles exist natively (`navigationBarTitleDisplayMode(.large)`).

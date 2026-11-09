@@ -42,7 +42,8 @@ The **date part** of `arrivedAt` must satisfy `startDate <= date` and, if the tr
 `date <= endDate` (both inclusive). Time of day is free. Errors: `BEFORE_TRIP_START`,
 `AFTER_TRIP_END`. *Tests:* `ValidationTest.stepDateMustBeInsideTripDatesInclusive`,
 `UseCasesTest.stepOutsideTripDatesIsRejected`. The step form's date picker opens on the current value; validation happens on
-save.
+save. **One exception, a step from a stop suggestion: see R17 "Add".** A manually added or edited
+step never extends the trip: it keeps the error above.
 
 ## R6 — New-step defaults
 
@@ -377,6 +378,19 @@ Detection and filtering are pure (`StopDetection`, `StopSuggestions`).
   picker shows it as the suggested place), date/time = start (local, minute), title = "Điểm dừng
   HH:mm" of the start; note and photos empty. The usual step rules apply (R5 date inside the
   trip, R6). Existing photos are not pre-selected (the editor only adds new files).
+* **Add outside the trip's dates (extends the trip).** A suggestion can lie outside the trip's
+  dates (a track recorded on a day the trip does not cover). Only for a step from a suggestion,
+  when "Lưu" fails with nothing but `BEFORE_TRIP_START` / `AFTER_TRIP_END`, the editor asks:
+  "Ngày đến nằm ngoài chuyến đi (<current dates>). Kéo dài chuyến đi đến <new dates>?" with
+  "Kéo dài và lưu" / "Hủy". Accepting widens the trip **only as far as needed** and saves
+  trip + step in **one transaction** (`StepRepository.saveStepAndTrip`; `SaveStep(…, extendTrip =
+  true)`), then writes the `added` decision as usual: a day before the start moves `startDate` to
+  that day, a day after the end moves `endDate` to it (date only; `updatedAt` of the trip is
+  stamped). A trip without an end date (ongoing) only ever widens its start; it never gets an
+  end. "Hủy" saves nothing, the editor stays open with the R5 error shown. Any other error
+  (title blank, …) is shown as usual and no question is asked; an invalid step never changes the
+  trip. The pure computation is `TripExtension.widen(start, end, day): TripDates?` (null =
+  inside, nothing to do). Other flows (manual steps, "Thêm từ ảnh", trip edit) are unchanged.
 * **Texts.** Card: "<day> · HH:mm–HH:mm" (local), "Dừng 35 phút" / "Dừng 1 giờ" / "Dừng 2 giờ 05
   phút" (whole minutes, rounded down) · "N ảnh chụp lúc này" or "Không có ảnh chụp lúc này",
   coordinates.
@@ -390,9 +404,15 @@ place and time is not suggested`, `step arriving within an hour around the stay 
 does not`, `a recording in progress suggests nothing`, `a dismissed stay stays hidden`, `an added
 stay is hidden while its step exists`, `photo count uses capture times inside the window`,
 `suggestions of several tracks are sorted by time`, `duration reads in minutes and hours`);
-`UseCasesTest.savingStepStoresPhotoCaptureTimesAndKeepsThemOnEdit`;
+`UseCasesTest.savingStepStoresPhotoCaptureTimesAndKeepsThemOnEdit`; extending: `ValidationTest`
+(`extensionMovesStartBackWhenDayIsBeforeIt`, `extensionMovesEndForwardWhenDayIsAfterIt`,
+`extensionIsNullInsideTheDatesInclusive`, `ongoingTripOnlyWidensItsStart`), `UseCasesTest`
+(`extendTripWidensTheEndAndSavesTheStep`, `extendTripWidensTheStartOnly`,
+`extendTripLeavesAnOngoingTripOpen`, `extendTripChangesNothingWhenTheStepIsInside`,
+`invalidStepDoesNotWidenTheTrip`), `RoomRepositoryTest.saveStepAndTripStoresBothTogether`;
 `MigrationTest.version3UpgradesWithPhotoTimesAndStopDecisionsAndKeepsTracks`; UI:
-`TripFlowsTest.tripWithSampleTrack_showsStopSuggestions_andDismissHidesOne`. A real recording with
+`TripFlowsTest.tripWithSampleTrack_showsStopSuggestions_andDismissHidesOne`,
+`TripFlowsTest.stopSuggestionOutsideTheTrip_offersToExtendIt`. A real recording with
 a 20-min stay, accepting and dismissing are checked by hand on the emulator
 (`img/stop-suggest/`).
 

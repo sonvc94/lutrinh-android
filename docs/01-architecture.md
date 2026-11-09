@@ -53,7 +53,7 @@ concrete classes by hand (no DI framework), so the iOS app can use a plain `stru
 | --- | --- |
 | `domain/model` | Immutable value types |
 | `domain/repository` | Interfaces the domain needs (`TripRepository`, `StepRepository`, `TrackRepository`, `StopDecisionRepository`, `PhotoFileStore`, `Clock`, `IdGenerator`) |
-| `domain/usecase` | `Validation.kt` (limits, inputs, error enums, validators), `Ordering.kt` (comparators, route, distance, stats, new-step defaults), `UseCases.kt`; tracks (R16): `TrackLogic.kt` (`TrackRules`, `TrackFilter`, `TrackMath`, `TrackFormat`), `TrackRecorder.kt` (start/pause/resume/stop, fixes, process-death recovery); stop suggestions (R17): `StopSuggestions.kt` (`StopRules`, `StopDetection`, `StopSuggestions`, `StopFormat`) |
+| `domain/usecase` | `Validation.kt` (limits, inputs, error enums, validators, `TripExtension` for R17), `Ordering.kt` (comparators, route, distance, stats, new-step defaults), `UseCases.kt`; tracks (R16): `TrackLogic.kt` (`TrackRules`, `TrackFilter`, `TrackMath`, `TrackFormat`), `TrackRecorder.kt` (start/pause/resume/stop, fixes, process-death recovery); stop suggestions (R17): `StopSuggestions.kt` (`StopRules`, `StopDetection`, `StopSuggestions`, `StopFormat`) |
 | `data/local` | Database entities, DAOs, type converters, mappers |
 | `data` | `RoomTripRepository`, `RoomStepRepository`, `RoomTrackRepository`, `RoomStopDecisionRepository`, `PhotoStorage`, `SampleData` |
 | `tracking` | `TrackRecordingService` (foreground service type location: platform GPS → `TrackRecorder.onFix`, GPS on/off with the state) and `TrackNotifications` (channel + notification) |
