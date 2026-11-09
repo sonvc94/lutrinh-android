@@ -128,7 +128,7 @@ object TripPage {
         if (day != null) sb.append("</section>\n")
         sb.append("</main>\n<footer>")
         if (omitted > 0) sb.append("<p>Đã lược bớt ").append(omitted).append(" ảnh để trang nhẹ hơn.</p>")
-        sb.append("<p>Tạo bằng Lữ Trình — nhật ký du lịch trên điện thoại.</p></footer>\n</body>\n</html>\n")
+        sb.append("<p>Tạo bằng Lữ Trình, nhật ký du lịch trên điện thoại.</p></footer>\n</body>\n</html>\n")
         val html = sb.toString()
         return Result(html, utf8Length(html), level, included, omitted)
     }
@@ -172,33 +172,36 @@ object TripPage {
         return n
     }
 
-    /** Lữ Trình colours (docs/03 theme): cream paper, terrace green, clay accent. */
+    /**
+     * Lữ Trình tokens (docs/08-design.md): limestone paper #F5F7F8, ink #171E23, muted ink #4F565C,
+     * hairline #CFD5D9, one chàm accent #2A4D80. Hairlines instead of tinted tiles; tabular figures.
+     */
     private const val CSS = """
 *{box-sizing:border-box}
-body{margin:0;background:#FBF8F2;color:#1C2421;font:16px/1.55 -apple-system,"Segoe UI",Roboto,"Noto Sans",Arial,sans-serif}
+body{margin:0;background:#F5F7F8;color:#171E23;font:16px/1.55 "Be Vietnam Pro",-apple-system,"Segoe UI",Roboto,"Noto Sans",Arial,sans-serif}
 header,main,footer,.stats,.map{max-width:760px;margin-left:auto;margin-right:auto}
 header{padding:28px 20px 8px}
-h1{margin:0 0 4px;font-size:30px;line-height:1.2;color:#1F5C45}
-.dates{margin:0;color:#4A524E}
+h1{margin:0 0 4px;font-size:28px;line-height:1.2;font-weight:600;color:#171E23}
+.dates{margin:0;color:#4F565C}
 .desc{margin:12px 0 0}
 .map{margin:16px auto 0;padding:0 20px}
-.map img{display:block;width:100%;height:auto;border-radius:16px;border:1px solid #E9E6DE}
-.map figcaption{font-size:12px;color:#7A837E;text-align:right;margin-top:4px}
+.map img{display:block;width:100%;height:auto;border-radius:12px;border:1px solid #CFD5D9}
+.map figcaption{font-size:12px;color:#4F565C;text-align:right;margin-top:4px}
 .stats{list-style:none;display:flex;gap:8px;padding:16px 20px;margin-top:0;margin-bottom:0}
-.stats li{flex:1;background:#CDE8D9;border-radius:12px;padding:8px 10px}
-.stats b{display:block;font-size:22px;color:#0B2E21}
-.stats span{font-size:12px;color:#0B2E21}
+.stats li{flex:1;background:#FBFDFE;border:1px solid #CFD5D9;border-radius:12px;padding:8px 10px}
+.stats b{display:block;font-size:23px;font-weight:600;color:#171E23;font-variant-numeric:tabular-nums}
+.stats span{font-size:12px;color:#4F565C}
 main{padding:0 20px}
-.day h2{font-size:15px;color:#B85C2E;margin:24px 0 8px;text-transform:none}
+.day h2{font-size:14px;font-weight:600;color:#2A4D80;margin:24px 0 8px;text-transform:none;border-bottom:1px solid #CFD5D9;padding-bottom:4px}
 .step{display:flex;gap:12px;padding:6px 0 14px}
-.num{flex:none;width:30px;height:30px;border-radius:50%;background:#1F5C45;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.num{flex:none;width:30px;height:30px;border-radius:50%;background:#2A4D80;color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;font-size:14px;font-variant-numeric:tabular-nums}
 .body{flex:1;min-width:0}
-h3{margin:2px 0 0;font-size:18px}
-.time{margin:0;color:#4A524E;font-size:13px}
+h3{margin:2px 0 0;font-size:19px;font-weight:600}
+.time{margin:0;color:#4F565C;font-size:14px;font-variant-numeric:tabular-nums}
 .note{margin:6px 0 0;white-space:normal;overflow-wrap:anywhere}
 .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:10px}
-.photos img{width:100%;height:auto;border-radius:10px;display:block}
-footer{padding:24px 20px 40px;color:#7A837E;font-size:13px}
+.photos img{width:100%;height:auto;border-radius:4px;display:block}
+footer{padding:24px 20px 40px;color:#4F565C;font-size:14px}
 footer p{margin:4px 0}
 """
 }

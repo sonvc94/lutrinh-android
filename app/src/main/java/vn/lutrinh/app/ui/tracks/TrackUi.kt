@@ -65,12 +65,14 @@ import vn.lutrinh.app.domain.usecase.TrackFormat
 import vn.lutrinh.app.tracking.TrackRecordingService
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.displayDateTime
+import vn.lutrinh.app.ui.theme.Palette
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import vn.lutrinh.app.ui.theme.hairline
 
-/** Colour of recorded tracks in the UI, same as the map line (docs/05-map.md). */
-val TrackRed = Color(0xFFD7263D)
+/** Colour of recorded tracks in the UI, same as the map line: ink (docs/05, docs/08). */
+val TrackInk: Color = Palette.Track
 
 /** Wall-clock "now", ticking every second while [running]. */
 @Composable
@@ -154,12 +156,11 @@ fun RecordTrackControl(
 
     val mine = active?.takeIf { it.tripId == tripId }
     val now = rememberNow(mine?.status == TrackStatus.RECORDING)
-    val shape = RoundedCornerShape(if (compact) 28.dp else 16.dp)
+    val shape = MaterialTheme.shapes.large
     Surface(
         shape = shape,
-        color = if (compact) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = if (compact) 3.dp else 0.dp,
-        shadowElevation = if (compact) 4.dp else 0.dp,
+        color = if (compact) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.surfaceContainerLow,
+        border = if (compact) hairline else null,
         modifier = modifier,
     ) {
         when {
@@ -168,7 +169,7 @@ fun RecordTrackControl(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val recording = mine.status == TrackStatus.RECORDING
-                Box(Modifier.size(10.dp).background(if (recording) TrackRed else MaterialTheme.colorScheme.outline, CircleShape))
+                Box(Modifier.size(10.dp).background(if (recording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline, CircleShape))
                 Column(Modifier.padding(start = 10.dp).then(if (compact) Modifier else Modifier.weight(1f))) {
                     Text(
                         stringResource(if (recording) R.string.track_recording else R.string.track_paused),
@@ -208,7 +209,7 @@ fun RecordTrackControl(
                     )
                 }
                 FilledTonalButton(onClick = onNewTripAndRecord) {
-                    Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = TrackRed)
+                    Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.track_new_trip_and_record))
                 }
@@ -226,7 +227,7 @@ fun RecordTrackControl(
                     )
                 }
                 FilledTonalButton(onClick = onStart) {
-                    Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = TrackRed)
+                    Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.track_record))
                 }
@@ -237,7 +238,7 @@ fun RecordTrackControl(
     when (dialog) {
         TrackDialog.RATIONALE -> AlertDialog(
             onDismissRequest = { dialog = null },
-            icon = { Icon(Icons.Outlined.Route, null, tint = TrackRed) },
+            icon = { Icon(Icons.Outlined.Route, null, tint = TrackInk) },
             title = { Text(stringResource(R.string.track_permission_title)) },
             text = { Text(stringResource(R.string.track_permission_body)) },
             confirmButton = {
@@ -296,7 +297,7 @@ fun TrackList(tracks: List<Track>, onDelete: (String) -> Unit, modifier: Modifie
         )
         tracks.forEach { t ->
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Route, null, tint = TrackRed)
+                Icon(Icons.Outlined.Route, null, tint = TrackInk)
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(t.startedAt.localDateTime().displayDateTime(), style = MaterialTheme.typography.titleSmall)
                     Text(
@@ -309,7 +310,7 @@ fun TrackList(tracks: List<Track>, onDelete: (String) -> Unit, modifier: Modifie
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     when {
-                        t.status == TrackStatus.RECORDING -> Text(stringResource(R.string.track_recording), style = MaterialTheme.typography.labelSmall, color = TrackRed)
+                        t.status == TrackStatus.RECORDING -> Text(stringResource(R.string.track_recording), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         t.status == TrackStatus.PAUSED -> Text(stringResource(R.string.track_paused), style = MaterialTheme.typography.labelSmall)
                         t.interrupted -> Text(stringResource(R.string.track_interrupted), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                     }

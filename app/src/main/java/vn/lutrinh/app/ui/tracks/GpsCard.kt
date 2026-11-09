@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -79,7 +78,7 @@ fun GpsCard(
         ).joinToString(" · ")
     }
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -88,13 +87,13 @@ fun GpsCard(
                 Modifier.fillMaxWidth().clickable { expanded = !expanded; if (expanded) onOpened() }.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.Route, null, tint = TrackRed)
+                Icon(Icons.Outlined.Route, null, tint = TrackInk)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text(stringResource(R.string.gps_card_title), style = MaterialTheme.typography.titleSmall)
                     Text(
                         summary,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (mine != null) TrackRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (mine != null) TrackInk else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )

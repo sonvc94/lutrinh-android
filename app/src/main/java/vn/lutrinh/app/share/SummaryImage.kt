@@ -14,6 +14,8 @@ import android.text.TextPaint
 import android.text.TextUtils
 import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.ShareStats
+import androidx.compose.ui.graphics.toArgb
+import vn.lutrinh.app.ui.theme.Palette
 
 /**
  * "Ảnh tóm tắt" (R18): one portrait 1080 × 1920 PNG drawn on a Canvas (docs/03-screens.md
@@ -31,14 +33,19 @@ object SummaryImage {
     const val MAP_PIXEL_RATIO = 2.5f
     const val MAP_PADDING = 70
 
-    private const val CREAM = 0xFFFBF8F2.toInt()
-    private const val INK = 0xFF1C2421.toInt()
-    private const val MUTED = 0xFF4A524E.toInt()
-    private const val GREEN = 0xFF1F5C45.toInt()
-    private const val GREEN_LIGHT = 0xFFCDE8D9.toInt()
-    private const val GREEN_DARK = 0xFF0B2E21.toInt()
-    private const val CLAY = 0xFFB85C2E.toInt()
-    private const val LINE = 0xFFE9E6DE.toInt()
+    // docs/08-design.md tokens: limestone paper, ink text, one chàm accent, hairlines.
+    private val PAPER = Palette.Paper.toArgb()
+    private val INK = Palette.Ink.toArgb()
+    private val MUTED = Palette.InkMuted.toArgb()
+    private val CHAM = Palette.Cham.toArgb()
+    private val LINE = Palette.Hairline.toArgb()
+
+    /** Faces of the image: Be Vietnam Pro for words, Barlow Condensed for numbers (as in the app). */
+    data class Fonts(
+        val title: Typeface = Typeface.DEFAULT_BOLD,
+        val text: Typeface = Typeface.DEFAULT,
+        val numerals: Typeface = Typeface.DEFAULT_BOLD,
+    )
 
     data class Input(
         val title: String,
@@ -47,22 +54,23 @@ object SummaryImage {
         val map: Bitmap,
         /** At most four, already chosen (TripShare.imagePhotos) and decoded. */
         val photos: List<Bitmap>,
+        val fonts: Fonts = Fonts(),
     )
 
     fun render(input: Input): Bitmap {
         val out = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
         val c = Canvas(out)
-        c.drawColor(CREAM)
+        c.drawColor(PAPER)
         val contentW = WIDTH - 2 * MARGIN
         var y = 96f
 
-        val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = GREEN; textSize = 64f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+        val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 64f; typeface = input.fonts.title }
         val title = StaticLayout.Builder.obtain(input.title, 0, input.title.length, titlePaint, contentW)
             .setMaxLines(2).setEllipsize(TextUtils.TruncateAt.END).setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setLineSpacing(0f, 1.05f).build()
         c.save(); c.translate(MARGIN.toFloat(), y); title.draw(c); c.restore()
         y += title.height + 14f
-        val datePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = MUTED; textSize = 38f }
+        val datePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = MUTED; textSize = 38f; typeface = input.fonts.text }
         c.drawText(TextUtils.ellipsize(input.dates, datePaint, contentW.toFloat(), TextUtils.TruncateAt.END).toString(), MARGIN.toFloat(), y - datePaint.ascent(), datePaint)
         y += datePaint.descent() - datePaint.ascent() + 36f
 
@@ -78,18 +86,18 @@ object SummaryImage {
         c.drawRoundRect(mapRect, 36f, 36f, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2f; color = LINE })
         y = mapRect.bottom + 40f
 
-        // Stats: four tiles.
+        // Stats: four cells on hairlines (no tinted fill).
         val s = input.stats
         val tiles = listOf("${s.stepCount}" to "điểm dừng", "${s.photoCount}" to "ảnh", DisplayFormat.kmNumber(s.distanceKm.toLong()) to "km", "${s.days}" to "ngày")
         val gap = 20f
         val tileW = (contentW - gap * (tiles.size - 1)) / tiles.size
         val tileH = 160f
-        val tileBg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = GREEN_LIGHT }
-        val num = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = GREEN_DARK; textSize = 60f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
-        val lab = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = GREEN_DARK; textSize = 32f }
+        val tileLine = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2f; color = LINE }
+        val num = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 64f; typeface = input.fonts.numerals; fontFeatureSettings = "tnum" }
+        val lab = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = MUTED; textSize = 32f; typeface = input.fonts.text }
         tiles.forEachIndexed { i, (value, label) ->
             val left = MARGIN + i * (tileW + gap)
-            c.drawRoundRect(RectF(left, y, left + tileW, y + tileH), 28f, 28f, tileBg)
+            c.drawRoundRect(RectF(left + 1f, y + 1f, left + tileW - 1f, y + tileH - 1f), 12f, 12f, tileLine)
             c.drawText(TextUtils.ellipsize(value, num, tileW - 48f, TextUtils.TruncateAt.END).toString(), left + 24f, y + 24f - num.ascent(), num)
             c.drawText(label, left + 24f, y + tileH - 28f, lab)
         }
@@ -101,13 +109,13 @@ object SummaryImage {
             val rowW = input.photos.size * size + (input.photos.size - 1) * gap
             var x = MARGIN + (contentW - rowW) / 2
             input.photos.take(4).forEach { bmp ->
-                drawCropped(c, bmp, RectF(x, y, x + size, y + size), 28f)
+                drawCropped(c, bmp, RectF(x, y, x + size, y + size), 12f)
                 x += size + gap
             }
         }
 
         // Brand mark, bottom centre: a small route glyph and the app name.
-        val brand = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = GREEN; textSize = 40f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD) }
+        val brand = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 40f; typeface = input.fonts.title }
         val name = "Lữ Trình"
         val nameW = brand.measureText(name)
         val glyph = 44f
@@ -115,9 +123,9 @@ object SummaryImage {
         val bx = (WIDTH - total) / 2
         val by = HEIGHT - 110f
         val dot = Paint(Paint.ANTI_ALIAS_FLAG)
-        dot.color = GREEN; c.drawCircle(bx + 10f, by + glyph - 10f, 9f, dot)
-        dot.color = CLAY; c.drawCircle(bx + glyph - 10f, by + 10f, 9f, dot)
-        val link = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = GREEN; style = Paint.Style.STROKE; strokeWidth = 5f; strokeCap = Paint.Cap.ROUND }
+        dot.color = CHAM; c.drawCircle(bx + 10f, by + glyph - 10f, 9f, dot)
+        dot.color = INK; c.drawCircle(bx + glyph - 10f, by + 10f, 9f, dot)
+        val link = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = CHAM; style = Paint.Style.STROKE; strokeWidth = 5f; strokeCap = Paint.Cap.ROUND }
         c.drawLine(bx + 10f, by + glyph - 10f, bx + glyph - 10f, by + 10f, link)
         c.drawText(name, bx + glyph + 18f, by + glyph / 2 - (brand.ascent() + brand.descent()) / 2, brand)
         return out

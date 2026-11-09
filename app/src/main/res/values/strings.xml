@@ -21,7 +21,7 @@
     <string name="trips_title">Chuyến đi của tôi</string>
     <string name="trips_new">Chuyến đi mới</string>
     <string name="trips_empty_title">Chưa có chuyến đi nào</string>
-    <string name="trips_empty_body">Ghi lại hành trình đầu tiên — mùa lúa chín Hà Giang, sông nước Tràng An hay bất cứ nơi nào bạn đặt chân tới.</string>
+    <string name="trips_empty_body">Ghi lại hành trình đầu tiên: mùa lúa chín Hà Giang, sông nước Tràng An hay bất cứ nơi nào bạn đặt chân tới.</string>
     <string name="trips_seed">Tạo dữ liệu mẫu</string>
     <string name="trips_seeded">Đã thêm 2 chuyến đi mẫu</string>
     <string name="trip_counts">%1$d điểm dừng · %2$d ảnh</string>
@@ -59,7 +59,7 @@
     <string name="trip_fab_add">Thêm</string>
     <string name="trip_add_step">Thêm điểm dừng</string>
     <string name="trip_no_steps_title">Chưa có điểm dừng</string>
-    <string name="trip_no_steps_body">Thêm nơi bạn đã ghé — chọn vị trí trên bản đồ, ghi chú và đính kèm ảnh.</string>
+    <string name="trip_no_steps_body">Thêm nơi bạn đã ghé: chọn vị trí trên bản đồ, ghi chú và đính kèm ảnh.</string>
     <string name="stat_steps">điểm dừng</string>
     <string name="stat_photos">ảnh</string>
     <string name="stat_km">km</string>
@@ -237,7 +237,7 @@
     <string name="offline_delete_title">Xóa bản đồ offline “%1$s”?</string>
     <string name="offline_delete_body">Giải phóng tới %1$s (phần dùng chung với vùng khác được giữ lại). Khi mất sóng, vùng này sẽ không còn bản đồ. Có thể tải lại bất cứ lúc nào.</string>
     <string name="offline_store">Bộ nhớ bản đồ đang dùng: %1$s (gồm cả bộ đệm khi xem online) · Còn trống: %2$s</string>
-    <string name="offline_offline_now">Đang không có mạng — chỉ xem được các vùng đã tải.</string>
+    <string name="offline_offline_now">Đang không có mạng. Chỉ xem được các vùng đã tải.</string>
     <string name="offline_indicator">Ngoại tuyến · %1$s</string>
     <string name="offline_no_network">Không có mạng</string>
     <string name="offline_not_downloaded">Vùng này chưa tải bản đồ offline.</string>
@@ -300,7 +300,7 @@
     <string name="stop_photos_denied">Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh/video” ở mục Ảnh &amp; video phía trên.</string>
     <string name="stop_photos_none">Không có ảnh nào trong máy chụp trong khoảng này.</string>
     <string name="stop_photos_added">Đã thêm %1$d/%2$d ảnh vào mục Ảnh ở trên; ảnh được sao chép khi bạn bấm Lưu.</string>
-    <string name="stop_photos_unticked">Chưa thêm — chạm để thêm lại:</string>
+    <string name="stop_photos_unticked">Chưa thêm, chạm để thêm lại:</string>
     <string name="step_photo_from_gallery">Từ thư viện</string>
     <string name="stop_photos_partial">Bạn chỉ cho phép xem một số ảnh.</string>
     <string name="stop_photos_pick_more">Chọn thêm ảnh</string>

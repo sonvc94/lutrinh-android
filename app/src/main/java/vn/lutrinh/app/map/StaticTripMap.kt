@@ -16,6 +16,8 @@ import vn.lutrinh.app.domain.usecase.LegGeometry
 import vn.lutrinh.app.domain.usecase.Polyline
 import vn.lutrinh.app.map.basemap.BasemapProvider
 import vn.lutrinh.app.map.basemap.Basemaps
+import vn.lutrinh.app.ui.theme.Palette
+import androidx.compose.ui.graphics.toArgb
 
 /**
  * Static trip map for share exports (R18, docs/05-map.md "Static map for sharing"): the basemap
@@ -37,9 +39,9 @@ object StaticTripMap {
     /** [attribution] = the credit drawn on the image, for the share page too (R34). */
     data class Output(val bitmap: Bitmap, val withBasemap: Boolean, val attribution: String)
 
-    private const val ROUTE = 0xFF1F5C45.toInt()
-    private const val END = 0xFFB85C2E.toInt()
-    private const val ACCENT = 0xFFE0A526.toInt()
+    private val ROUTE = Palette.Cham.toArgb()
+    private val END = Palette.Ink.toArgb()
+    private val ACCENT = Palette.ChamBright.toArgb()
     private val TRACK = Color.parseColor(TRACK_COLOR)
 
     /**
@@ -137,7 +139,7 @@ object StaticTripMap {
 
     /** The basemap's required credit (R34), bottom right on a translucent white label. */
     private fun drawAttribution(c: Canvas, attribution: String, width: Int, height: Int, r: Float) {
-        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF4A524E.toInt(); textSize = 8.5f * r }
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Palette.MapCredit.toArgb(); textSize = 8.5f * r }
         val label = "© " + attribution.replace(" © ", " · ").replace("©", "").trim()
         val w = text.measureText(label)
         val pad = 3f * r

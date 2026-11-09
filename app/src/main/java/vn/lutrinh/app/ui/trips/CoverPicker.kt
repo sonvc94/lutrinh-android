@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.AutoAwesome
@@ -102,7 +101,7 @@ private fun CoverTile(
     photo: Photo?, selected: Boolean, label: String?, hint: String?, wide: Boolean, onClick: () -> Unit,
     desc: String = label ?: stringResource(R.string.trip_cover),
 ) {
-    val shape = RoundedCornerShape(10.dp)
+    val shape = MaterialTheme.shapes.small
     val ring = if (selected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, shape) else Modifier
     Box(
         Modifier.fillMaxWidth().aspectRatio(if (wide) 3f else 1f).clip(shape).then(ring).clickable(onClick = onClick)

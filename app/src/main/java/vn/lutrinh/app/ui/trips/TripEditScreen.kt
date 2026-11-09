@@ -63,7 +63,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -189,7 +188,7 @@ fun TripEditScreen(
     ) { padding ->
         when {
             f.loading -> LoadingState(Modifier.padding(padding))
-            f.missing -> MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
+            f.missing -> MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
             else -> Column(
                 Modifier.padding(padding).fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -296,7 +295,7 @@ fun TripEditScreen(
 private fun CoverRow(f: TripForm, onChange: () -> Unit) {
     val cover = TripCover.resolve(f.coverPhotoId, f.steps)
     OutlinedButton(onClick = onChange, modifier = Modifier.fillMaxWidth().height(72.dp), contentPadding = PaddingValues(8.dp)) {
-        Box(Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surfaceVariant), Alignment.Center) {
+        Box(Modifier.size(56.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant), Alignment.Center) {
             if (cover != null) LocalPhoto(cover.fileName, Modifier.fillMaxSize())
             else Icon(Icons.Outlined.Image, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }

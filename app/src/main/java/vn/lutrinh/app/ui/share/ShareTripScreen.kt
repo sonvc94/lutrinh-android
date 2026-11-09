@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Article
@@ -121,7 +120,7 @@ fun ShareTripScreen(
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         if (missing) {
-            MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
+            MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
             return@Scaffold
         }
         Column(Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp)) {
@@ -143,7 +142,7 @@ fun ShareTripScreen(
             )
             Box(
                 Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp)
-                    .clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainer),
+                    .clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.surfaceContainer),
                 Alignment.Center,
             ) {
                 when (val s = current) {
@@ -152,7 +151,7 @@ fun ShareTripScreen(
                         Spacer(Modifier.height(8.dp))
                         Text(stringResource(R.string.share_preparing), style = MaterialTheme.typography.bodyMedium)
                     }
-                    is ExportState.Failed -> MessageState(Icons.Outlined.ErrorOutline, stringResource(R.string.share_failed, s.message), "")
+                    is ExportState.Failed -> MessageState(stringResource(R.string.share_failed, s.message), "")
                     is ExportState.Ready -> if (kind == ShareKind.IMAGE) {
                         s.preview?.let { bmp ->
                             Image(

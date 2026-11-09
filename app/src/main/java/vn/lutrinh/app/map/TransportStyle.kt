@@ -28,9 +28,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.TransportMode
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.rgbHex
 
 /**
- * How a leg line is drawn (docs/05-map.md "Legs"): every line is the route green; the kind only
+ * How a leg line is drawn (docs/05-map.md "Legs"): every line is the route chàm; the kind only
  * changes the stroke. GROUND = solid with white casing + soft shadow, FLIGHT = dashed lifted
  * great-circle arc, BOAT = dotted, WALK = thin dotted. [code] is the map feature property value.
  */
@@ -38,8 +40,8 @@ enum class LegLine(val code: String) { GROUND("ground"), FLIGHT("flight"), BOAT(
 
 /**
  * Look of each transport mode: one table used by the map, the timeline and the mode sheet.
- * [color] tints the mode's icon (map badge, timeline chip, sheet); colours stay apart from each
- * other and from the route green.
+ * [color] tints the mode's icon (map badge, timeline chip, sheet): one colour for all modes, the
+ * route chàm (docs/08 "one accent"); modes differ by icon and by the line kind, not by hue.
  */
 data class TransportStyle(
     val color: Color,
@@ -51,19 +53,22 @@ data class TransportStyle(
 
     companion object {
         fun of(mode: TransportMode): TransportStyle = when (mode) {
-            TransportMode.WALK -> TransportStyle(Color(0xFF6D4C41), LegLine.WALK, Icons.AutoMirrored.Filled.DirectionsWalk, R.string.transport_walk)
-            TransportMode.MOTORBIKE -> TransportStyle(Color(0xFFE65100), LegLine.GROUND, Icons.Filled.TwoWheeler, R.string.transport_motorbike)
-            TransportMode.CAR -> TransportStyle(Color(0xFF3949AB), LegLine.GROUND, Icons.Filled.DirectionsCar, R.string.transport_car)
-            TransportMode.BUS -> TransportStyle(Color(0xFF8E24AA), LegLine.GROUND, Icons.Filled.DirectionsBus, R.string.transport_bus)
-            TransportMode.TRAIN -> TransportStyle(Color(0xFF455A64), LegLine.GROUND, Icons.Filled.Train, R.string.transport_train)
-            TransportMode.PLANE -> TransportStyle(Color(0xFF039BE5), LegLine.FLIGHT, Icons.Filled.Flight, R.string.transport_plane)
-            TransportMode.BOAT -> TransportStyle(Color(0xFF00897B), LegLine.BOAT, Icons.Filled.DirectionsBoat, R.string.transport_boat)
+            TransportMode.WALK -> TransportStyle(MODE_TINT, LegLine.WALK, Icons.AutoMirrored.Filled.DirectionsWalk, R.string.transport_walk)
+            TransportMode.MOTORBIKE -> TransportStyle(MODE_TINT, LegLine.GROUND, Icons.Filled.TwoWheeler, R.string.transport_motorbike)
+            TransportMode.CAR -> TransportStyle(MODE_TINT, LegLine.GROUND, Icons.Filled.DirectionsCar, R.string.transport_car)
+            TransportMode.BUS -> TransportStyle(MODE_TINT, LegLine.GROUND, Icons.Filled.DirectionsBus, R.string.transport_bus)
+            TransportMode.TRAIN -> TransportStyle(MODE_TINT, LegLine.GROUND, Icons.Filled.Train, R.string.transport_train)
+            TransportMode.PLANE -> TransportStyle(MODE_TINT, LegLine.FLIGHT, Icons.Filled.Flight, R.string.transport_plane)
+            TransportMode.BOAT -> TransportStyle(MODE_TINT, LegLine.BOAT, Icons.Filled.DirectionsBoat, R.string.transport_boat)
         }
     }
 }
 
+/** The one tint of every transport mode (docs/08). */
+private val MODE_TINT: Color = Palette.Cham
+
 /** "#RRGGBB" for MapLibre style expressions. */
-internal fun Color.hex(): String = String.format("#%06X", toArgb() and 0xFFFFFF)
+internal fun Color.hex(): String = rgbHex()
 
 /** Line kind of a leg; a leg without a mode is a plain ground leg. */
 internal fun TransportMode?.legLine(): LegLine = this?.let { TransportStyle.of(it).line } ?: LegLine.GROUND

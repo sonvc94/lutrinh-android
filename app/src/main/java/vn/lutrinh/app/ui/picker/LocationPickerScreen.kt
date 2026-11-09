@@ -84,6 +84,7 @@ import vn.lutrinh.app.map.PickerMap
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatCoord
 import vn.lutrinh.app.ui.steps.contextMarkers
+import vn.lutrinh.app.ui.theme.hairline
 
 /** A shortcut chip: a step of this trip (D4). Place search (R23) sits above the chips. */
 data class PlaceChip(val label: String, val point: GeoPoint)
@@ -246,8 +247,8 @@ fun LocationPickerScreen(
             }
             }
             Surface(
-                tonalElevation = 3.dp,
-                shadowElevation = 6.dp,
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                border = hairline,
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(12.dp).padding(bottom = 16.dp),
             ) {

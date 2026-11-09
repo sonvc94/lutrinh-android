@@ -58,6 +58,7 @@ import vn.lutrinh.app.map.OfflineProblem
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatBytes
+import vn.lutrinh.app.ui.theme.hairline
 
 /** "Tải vùng của chuyến đi này": the trip's area, or why there is none. */
 data class TripOffline(val title: String, val state: OfflineAreaState?, val tooBig: Boolean)
@@ -237,7 +238,10 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
     val done = s.phase == OfflinePhase.COMPLETE
     Card(
         Modifier.fillMaxWidth(),
-        colors = if (done) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else CardDefaults.cardColors(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (done) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest,
+        ),
+        border = hairline,
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.OfflinePin
@@ -25,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.ui.theme.hairline
 
 /**
  * Offline indicator drawn over every map (R15). Nothing while online. Offline, a small chip
@@ -42,9 +42,9 @@ internal fun OfflineIndicator(center: GeoPoint?, modifier: Modifier = Modifier) 
     if (area != null) {
         Surface(
             modifier = modifier.padding(8.dp),
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
-            shadowElevation = 2.dp,
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.94f),
+            border = hairline,
         ) {
             Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.OfflinePin, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
@@ -54,10 +54,9 @@ internal fun OfflineIndicator(center: GeoPoint?, modifier: Modifier = Modifier) 
     } else {
         Surface(
             modifier = modifier.padding(8.dp).widthIn(max = 320.dp),
-            shape = RoundedCornerShape(12.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            shadowElevation = 2.dp,
         ) {
             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.CloudOff, null, Modifier.size(20.dp))

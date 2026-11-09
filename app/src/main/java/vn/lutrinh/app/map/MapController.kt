@@ -3,6 +3,8 @@ package vn.lutrinh.app.map
 import android.graphics.Bitmap
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.map.basemap.BasemapStyle
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.rgbHex
 
 /*
  * The app's map interface (docs/05-map.md "Map interface", R35). Screens, view models and the
@@ -126,4 +128,4 @@ data class MyLocationFix(val point: GeoPoint, val accuracyM: Float)
  * Colour of a recorded track (R16): crimson, a hue no planned route uses (route green, selected
  * gold, the "Bản đồ của tôi" trip palette), so "where I really went" never reads as a planned leg.
  */
-internal const val TRACK_COLOR = "#D7263D"
+internal val TRACK_COLOR: String = Palette.Track.rgbHex()

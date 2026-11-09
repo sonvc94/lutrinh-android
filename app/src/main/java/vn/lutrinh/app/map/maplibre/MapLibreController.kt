@@ -29,6 +29,8 @@ import vn.lutrinh.app.map.RouteColors
 import vn.lutrinh.app.map.StopMarker
 import vn.lutrinh.app.map.TrackLine
 import vn.lutrinh.app.map.basemap.BasemapStyle
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.rgbHex
 
 /**
  * [MapController] on one MapLibre map view. Keeps the last value of every overlay and draws it
@@ -45,7 +47,7 @@ internal class MapLibreController(
     private var style: Style? = null
     private var listener: MapListener? = null
 
-    private var routeColors = RouteColors("#1F5C45", "#E0A526")
+    private var routeColors = RouteColors(Palette.Cham.rgbHex(), Palette.ChamBright.rgbHex())
     private var pins = emptyList<MapPin>()
     private var legs = emptyList<MapLeg>()
     private var badges = emptyList<MapBadge>()

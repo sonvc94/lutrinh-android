@@ -6,7 +6,6 @@ import android.content.res.Resources
 import android.os.LocaleList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -20,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BrokenImage
@@ -152,7 +152,7 @@ fun VideoBadge(durationMs: Long, modifier: Modifier = Modifier) {
     val label = stringResource(R.string.video_badge, DisplayFormat.clock(durationMs))
     Row(
         modifier
-            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+            .background(Color.Black.copy(alpha = 0.6f), MaterialTheme.shapes.small)
             .padding(start = 2.dp, end = 5.dp, top = 1.dp, bottom = 1.dp)
             .semantics(mergeDescendants = true) { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
@@ -167,9 +167,12 @@ fun LoadingState(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
 }
 
+/**
+ * Empty and error states (docs/08-design.md): type only, left-aligned, no icon disc. The title says
+ * what is missing, the body says what to do, the button does it.
+ */
 @Composable
 fun MessageState(
-    icon: ImageVector,
     title: String,
     body: String,
     modifier: Modifier = Modifier,
@@ -177,27 +180,19 @@ fun MessageState(
     onAction: (() -> Unit)? = null,
 ) {
     Column(
-        modifier.fillMaxSize().padding(32.dp),
+        modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 32.dp),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
     ) {
-        Box(
-            Modifier.size(96.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-            Alignment.Center,
-        ) {
-            Icon(icon, null, Modifier.size(44.dp), tint = MaterialTheme.colorScheme.primary)
+        Box(Modifier.width(32.dp).height(2.dp).background(MaterialTheme.colorScheme.primary))
+        Spacer(Modifier.height(16.dp))
+        Text(title, style = MaterialTheme.typography.headlineSmall)
+        if (body.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(body, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Spacer(Modifier.height(20.dp))
-        Text(title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(8.dp))
-        Text(
-            body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
         if (actionLabel != null && onAction != null) {
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(24.dp))
             Button(onClick = onAction) { Text(actionLabel) }
         }
     }

@@ -1,5 +1,6 @@
 package vn.lutrinh.app.ui.trips
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -46,7 +45,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -87,12 +85,11 @@ import vn.lutrinh.app.ui.common.MyLocationButton
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.rememberMyLocation
 import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.hairline
+import vn.lutrinh.app.ui.theme.numerals
 
-/** Trip colours on "Bản đồ của tôi" (R14): theme colours first, then distinct extras. */
-private val TripPalette = listOf(
-    Palette.TerraceGreen, Palette.Clay, Color(0xFF1565C0), Color(0xFF8E24AA),
-    Color(0xFFC79100), Color(0xFF00897B), Color(0xFFC2185B), Color(0xFF5D4037),
-)
+/** Trip colours on "Bản đồ của tôi" (R14): the 8 data colours of docs/08, chàm first. */
+private val TripPalette = Palette.TripColors
 
 data class MyMapTrip(val summary: TripSummary, val color: Color, val steps: List<Step>, val distanceKm: Double) {
     val id: String get() = summary.trip.id
@@ -163,7 +160,7 @@ fun MyMapScreen(
     ) { padding ->
         val s = state
         if (s is Loadable.Failed) {
-            MessageState(Icons.Outlined.ErrorOutline, stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
+            MessageState(stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
             return@Scaffold
         }
         if (data == null) {
@@ -185,9 +182,9 @@ fun MyMapScreen(
                 myLocationSignal = me.signal,
             )
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                tonalElevation = 2.dp,
-                shadowElevation = 3.dp,
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                border = hairline,
                 modifier = Modifier.align(Alignment.TopCenter).padding(12.dp).fillMaxWidth()
                     .onSizeChanged { statsDp = with(density) { it.height.toDp().value.toInt() } },
             ) {
@@ -199,9 +196,10 @@ fun MyMapScreen(
             }
             if (data.trips.isEmpty()) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.large,
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                    tonalElevation = 2.dp,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    border = hairline,
                 ) { Text(stringResource(R.string.my_map_empty), Modifier.padding(16.dp)) }
             }
             BasemapFallbackNotice(snackbar)
@@ -230,37 +228,47 @@ fun MyMapScreen(
 @Composable
 private fun Total(value: String, label: String, modifier: Modifier) {
     Column(modifier.padding(horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text(value, style = MaterialTheme.typography.headlineSmall.numerals(), color = MaterialTheme.colorScheme.onSurface)
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
+/**
+ * A trip on "Bản đồ của tôi": white card on a hairline; the trip's colour is a short line sample
+ * beside the title, the same stroke as on the map (a legend key, not a coloured edge). Selected =
+ * a 2 dp chàm border.
+ */
 @Composable
 private fun TripMapCard(t: MyMapTrip, selected: Boolean, onClick: () -> Unit) {
     Card(
         modifier = Modifier.width(250.dp).clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else hairline,
     ) {
-        Row(Modifier.height(76.dp)) {
-            Box(Modifier.width(8.dp).fillMaxHeight().background(t.color))
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Text(t.summary.trip.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val openEnded = stringResource(R.string.trip_open_ended, "%s")
+        Column(Modifier.height(76.dp).padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.width(16.dp).height(3.dp).background(t.color, MaterialTheme.shapes.small))
                 Text(
-                    dateRange(t.summary.trip.startDate, t.summary.trip.endDate) { openEnded.format(it) },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    t.summary.trip.title,
+                    style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
-                )
-                Text(
-                    stringResource(R.string.my_map_trip_line, t.summary.stepCount, DisplayFormat.kmNumber(t.distanceKm)),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 8.dp),
                 )
             }
+            val openEnded = stringResource(R.string.trip_open_ended, "%s")
+            Text(
+                dateRange(t.summary.trip.startDate, t.summary.trip.endDate) { openEnded.format(it) },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+            Text(
+                stringResource(R.string.my_map_trip_line, t.summary.stepCount, DisplayFormat.kmNumber(t.distanceKm)),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }

@@ -1,6 +1,8 @@
 package vn.lutrinh.app.map
 
 import vn.lutrinh.app.BuildConfig
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.rgbHex
 
 /**
  * Engine- and provider-neutral map constants (docs/05-map.md): zoom limits, camera rules, the
@@ -12,7 +14,7 @@ object MapConfig {
     const val MAX_ZOOM = 19.0
 
     /** Painted while the style/tiles load (and if they fail), so the map is never black. */
-    const val BACKGROUND = "#F3EFE6"
+    val BACKGROUND: String = Palette.MapPaper.rgbHex()
 
     /** Identifies the app to the tile servers (no personal data). */
     val USER_AGENT = "LuTrinh/${BuildConfig.VERSION_NAME} (Android; ${BuildConfig.APPLICATION_ID})"

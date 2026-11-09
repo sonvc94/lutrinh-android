@@ -23,6 +23,8 @@ import vn.lutrinh.app.map.RouteColors
 import vn.lutrinh.app.map.StopMarker
 import vn.lutrinh.app.map.TRACK_COLOR
 import vn.lutrinh.app.map.TrackLine
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.rgbHex
 
 /*
  * The app's overlay layer stack on a MapLibre style (docs/05-map.md "Layers"), bottom to top:
@@ -202,6 +204,9 @@ internal fun isSelected(): Expression = Expression.eq(Expression.get("selected")
 
 private fun kindIs(kind: LegLine): Expression = Expression.eq(Expression.get("kind"), Expression.literal(kind.code))
 
+/** The soft halo under route lines: ink (docs/08), kept faint so the stroke, not a shadow, carries the line. */
+private val LINE_SHADOW: String = Palette.Ink.rgbHex()
+
 /** Pins and badges shrink a little at country zoom so a long trip does not turn into a blob. */
 internal val SYMBOL_SIZE_BY_ZOOM: Expression get() = byZoom(4f to 0.75f, 8f to 0.9f, 10f to 1f)
 
@@ -209,7 +214,7 @@ internal val SYMBOL_SIZE_BY_ZOOM: Expression get() = byZoom(4f to 0.75f, 8f to 0
 private fun Style.addTripLayers(source: String) {
     addLayer(
         LineLayer(Overlay.TRIPS_SHADOW, source).withProperties(
-            PropertyFactory.lineColor("#0E2A20"),
+            PropertyFactory.lineColor(LINE_SHADOW),
             PropertyFactory.lineWidth(byZoom(4f to 4f, 9f to 8f, 13f to 16f)),
             PropertyFactory.lineBlur(byZoom(4f to 3f, 13f to 8f)),
             PropertyFactory.lineOpacity(byZoom(4f to 0.25f, 13f to 0.15f)),
@@ -252,7 +257,7 @@ private fun Style.addRouteLayers(source: String) {
     // 1. Soft wide shadow under ground legs: lifts the line off the basemap, widest at street zoom.
     addLayer(
         LineLayer(RouteLayerIds.SHADOW, source).withProperties(
-            PropertyFactory.lineColor("#0E2A20"),
+            PropertyFactory.lineColor(LINE_SHADOW),
             PropertyFactory.lineWidth(byZoom(5f to 5f, 9f to 8f, 13f to 16f)),
             PropertyFactory.lineBlur(byZoom(5f to 3f, 13f to 8f)),
             PropertyFactory.lineOpacity(byZoom(5f to 0.28f, 13f to 0.16f)),

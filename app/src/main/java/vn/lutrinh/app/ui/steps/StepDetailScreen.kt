@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -81,6 +80,7 @@ import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.common.rememberGazetteer
 import vn.lutrinh.app.ui.trips.toMarkers
+import vn.lutrinh.app.ui.theme.hairline
 
 /** [number] = timeline number (null for a draft, R20); [index] = position in [tripSteps] (drafts included). */
 data class StepDetail(val step: Step, val number: Int?, val index: Int, val tripSteps: List<Step>)
@@ -145,8 +145,8 @@ fun StepDetailScreen(
     ) { padding ->
         when (val s = state) {
             Loadable.Loading -> LoadingState(Modifier.padding(padding))
-            Loadable.Missing -> MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
-            is Loadable.Failed -> MessageState(Icons.Outlined.ErrorOutline, stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
+            Loadable.Missing -> MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
+            is Loadable.Failed -> MessageState(stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
             is Loadable.Ready -> {
                 val step = s.value.step
                 Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -172,7 +172,7 @@ fun StepDetailScreen(
                             color = if (step.note.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(200.dp).clip(RoundedCornerShape(16.dp))) {
+                    Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(200.dp).clip(MaterialTheme.shapes.large)) {
                         TripMap(
                             markers = s.value.tripSteps.toMarkers(step.id),
                             interactive = true,
@@ -193,7 +193,7 @@ fun StepDetailScreen(
                             modifier = Modifier.padding(horizontal = 16.dp),
                         ) {
                             step.photos.forEachIndexed { i, p ->
-                                LocalMedia(p, Modifier.size(cell).clip(RoundedCornerShape(10.dp)).clickable { onOpenPhoto(i) })
+                                LocalMedia(p, Modifier.size(cell).clip(MaterialTheme.shapes.small).clickable { onOpenPhoto(i) })
                             }
                         }
                     }
@@ -220,7 +220,7 @@ private fun StepNeighbours(d: StepDetail, onOpenStep: (String) -> Unit) {
     val prev = d.tripSteps.getOrNull(i - 1)
     val next = d.tripSteps.getOrNull(i + 1)
     if (prev == null && next == null) return
-    Surface(tonalElevation = 3.dp) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLowest, border = hairline) {
         Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f), Alignment.CenterStart) {
                 if (prev != null) TextButton(onClick = { onOpenStep(prev.id) }) {
@@ -241,7 +241,7 @@ private fun StepNeighbours(d: StepDetail, onOpenStep: (String) -> Unit) {
 /** R20: what a draft is, and "Đăng" to publish it. */
 @Composable
 private fun DraftCard(onPublish: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f), shape = RoundedCornerShape(12.dp)) {
+    Surface(color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f), shape = MaterialTheme.shapes.large) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 DraftBadge()

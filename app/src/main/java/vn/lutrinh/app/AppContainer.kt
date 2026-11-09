@@ -53,6 +53,8 @@ class AppContainer(context: Context) {
     val trips = RoomTripRepository(db)
     val steps = RoomStepRepository(db)
     val photos = PhotoStorage(context)
+    /** App assets (debug builds also carry the sample photos, data/SampleData.kt). */
+    val assets: android.content.res.AssetManager = context.applicationContext.assets
     val photoMeta = PhotoMetaReader(context)
     /** System-camera capture files (R28 photo, R29 video). */
     val capture = MediaCapture(context)

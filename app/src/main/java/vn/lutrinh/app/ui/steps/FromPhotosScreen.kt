@@ -26,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
@@ -106,6 +105,7 @@ import vn.lutrinh.app.ui.common.DiscardDialog
 import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.common.rememberGazetteer
 import java.time.LocalDateTime
+import vn.lutrinh.app.ui.theme.hairline
 
 /** "Thêm từ ảnh" flow state (docs/03-screens.md S9). */
 data class FromPhotosState(
@@ -283,7 +283,7 @@ fun FromPhotosScreen(
         },
         bottomBar = {
             if (s.phase == FromPhotosState.Phase.REVIEW || s.phase == FromPhotosState.Phase.SAVING) {
-                Surface(tonalElevation = 3.dp) {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainerLowest, border = hairline) {
                     Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
                         if (s.phase == FromPhotosState.Phase.SAVING) {
                             LinearProgressIndicator(Modifier.fillMaxWidth().padding(bottom = 12.dp))
@@ -301,7 +301,6 @@ fun FromPhotosScreen(
         when (s.phase) {
             FromPhotosState.Phase.PICKING, FromPhotosState.Phase.DONE ->
                 MessageState(
-                    Icons.Outlined.AddPhotoAlternate,
                     stringResource(R.string.from_photos_title),
                     stringResource(R.string.from_photos_pick_hint),
                     Modifier.padding(padding),
@@ -310,7 +309,7 @@ fun FromPhotosScreen(
                 )
             FromPhotosState.Phase.READING -> LoadingState(Modifier.padding(padding))
             FromPhotosState.Phase.MISSING ->
-                MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
+                MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
             FromPhotosState.Phase.REVIEW, FromPhotosState.Phase.SAVING ->
                 Review(s, padding, vm, onPickLocation = { i, at ->
                     vm.startPlacing(i)
@@ -484,7 +483,7 @@ private fun SuggestionCard(
                         model = Uri.parse(p.key),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp))
+                        modifier = Modifier.size(64.dp).clip(MaterialTheme.shapes.small)
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                     )
                 }

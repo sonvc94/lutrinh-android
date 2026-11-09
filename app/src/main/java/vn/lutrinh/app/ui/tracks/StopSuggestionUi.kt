@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PinDrop
 import androidx.compose.material3.FilledTonalButton
@@ -72,13 +71,13 @@ private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, steps: List<St
     val end = s.dwell.endAt.localDateTime()
     val defaultTitle = DisplayFormat.defaultStepTitle(start)
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.large,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(start = 12.dp, end = 8.dp, top = 10.dp, bottom = 4.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                Icon(Icons.Outlined.PinDrop, null, tint = TrackRed, modifier = Modifier.padding(top = 2.dp))
+                Icon(Icons.Outlined.PinDrop, null, tint = TrackInk, modifier = Modifier.padding(top = 2.dp))
                 Column(Modifier.padding(start = 10.dp).weight(1f)) {
                     Text(
                         "${start.toLocalDate().displayDay()} · ${start.displayTime()}–${end.displayTime()}",

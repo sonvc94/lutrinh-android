@@ -26,8 +26,8 @@ object OpenFreeMap : BasemapProvider {
         labelLayerPrefixes = Positron.LABEL_LAYER_PREFIXES,
         labelLayerIds = Positron.LABEL_LAYER_IDS,
         labelField = Positron.LABEL_FIELD,
-        labelColor = "#5F6661",
-        labelHalo = "#F7F4EE",
+        labelColor = "#555C61",
+        labelHalo = "#F5F7F8",
         repaint = Positron.REPAINT,
     )
 }
@@ -44,19 +44,20 @@ object Positron {
     const val BACKGROUND_LAYER = "background"
 
     /**
-     * Basemap repaint: layer id -> (paint property -> colour). Warm cream land, sage green
-     * parks/woods, soft blue-grey water; borders and roads stay Positron's light greys.
+     * Basemap repaint (docs/08 "Map"): layer id -> (paint property -> colour). Cool limestone
+     * land and buildings, sage green parks/woods, soft blue-grey water, slate borders; roads stay
+     * Positron's light greys. Labels ink-grey on a paper halo.
      */
     val REPAINT: Map<String, Map<String, String>> = mapOf(
         "background" to mapOf("background-color" to MapConfig.BACKGROUND),
         "park" to mapOf("fill-color" to "#E4E9DC"),
         "landcover_wood" to mapOf("fill-color" to "#DFE6D7"),
-        "landuse_residential" to mapOf("fill-color" to "#EDE8DD"),
+        "landuse_residential" to mapOf("fill-color" to "#E6EAEC"),
         "water" to mapOf("fill-color" to "#BFD4DC"),
         "waterway" to mapOf("line-color" to "#B3CBD4"),
-        "building" to mapOf("fill-color" to "#EAE5DA", "fill-outline-color" to "#DDD7CB"),
-        "boundary_2" to mapOf("line-color" to "#B9B2A6"),
-        "boundary_3" to mapOf("line-color" to "#CFC8BC"),
+        "building" to mapOf("fill-color" to "#E2E7E9", "fill-outline-color" to "#D5DBDE"),
+        "boundary_2" to mapOf("line-color" to "#A8AFB4"),
+        "boundary_3" to mapOf("line-color" to "#C5CBCF"),
     )
 
     /** Label layers (place, road, water, airport names): Vietnamese-first text + the R30 filter. */

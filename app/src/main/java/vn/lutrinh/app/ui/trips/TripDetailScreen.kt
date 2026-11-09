@@ -40,7 +40,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -138,6 +137,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material.icons.outlined.Route
 import java.time.temporal.ChronoUnit
+import vn.lutrinh.app.ui.theme.hairline
+import vn.lutrinh.app.ui.theme.numerals
 
 /** LazyColumn item indexes of [TripDetailContent]: map, header, GPS card, then the timeline. */
 private const val ITEM_HEADER = 1
@@ -382,8 +383,8 @@ fun TripDetailScreen(
     ) { padding ->
         when (val s = state) {
             Loadable.Loading -> LoadingState(Modifier.padding(padding))
-            Loadable.Missing -> MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
-            is Loadable.Failed -> MessageState(Icons.Outlined.ErrorOutline, stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
+            Loadable.Missing -> MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
+            is Loadable.Failed -> MessageState(stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
             is Loadable.Ready -> TripDetailContent(
                 s.value, padding, listState, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it },
                 gpsCard = {
@@ -459,7 +460,6 @@ private fun TripDetailContent(
         if (d.steps.isEmpty()) {
             item {
                 MessageState(
-                    icon = Icons.Outlined.Route,
                     title = stringResource(R.string.trip_no_steps_title),
                     body = stringResource(R.string.trip_no_steps_body),
                     actionLabel = stringResource(R.string.trip_add_step),
@@ -517,13 +517,18 @@ private fun TripHeader(d: TripDetail) {
 
 @Composable
 private fun Stat(value: String, label: String, modifier: Modifier, note: String? = null) {
-    Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(12.dp), modifier = modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        border = hairline,
+        shape = MaterialTheme.shapes.large,
+        modifier = modifier,
+    ) {
         Column(Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-            val on = MaterialTheme.colorScheme.onPrimaryContainer
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = on)
+            val muted = MaterialTheme.colorScheme.onSurfaceVariant
+            Text(value, style = MaterialTheme.typography.headlineSmall.numerals(), color = MaterialTheme.colorScheme.onSurface)
             // Labels wrap (1.3× font) instead of ending in "…"; a note sits on its own second line.
-            Text(label, style = MaterialTheme.typography.labelSmall, color = on)
-            if (note != null) Text(note, style = MaterialTheme.typography.labelSmall, color = on.copy(alpha = 0.75f))
+            Text(label, style = MaterialTheme.typography.labelSmall, color = muted)
+            if (note != null) Text(note, style = MaterialTheme.typography.labelSmall, color = muted)
         }
     }
 }
@@ -575,11 +580,11 @@ private fun StepRow(number: Int?, step: Step, isLast: Boolean, onClick: () -> Un
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.height(64.dp)) {
                     step.photos.take(4).forEach { p ->
-                        LocalMedia(p, Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)))
+                        LocalMedia(p, Modifier.size(64.dp).clip(MaterialTheme.shapes.small))
                     }
                     if (step.photos.size > 4) {
                         Box(
-                            Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant).fillMaxHeight(),
+                            Modifier.size(64.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant).fillMaxHeight(),
                             Alignment.Center,
                         ) { Text("+${step.photos.size - 4}") }
                     }

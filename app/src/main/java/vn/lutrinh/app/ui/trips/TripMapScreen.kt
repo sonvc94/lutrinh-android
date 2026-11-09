@@ -1,5 +1,6 @@
 package vn.lutrinh.app.ui.trips
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.DownloadForOffline
@@ -71,6 +71,7 @@ import vn.lutrinh.app.ui.common.MapStyleButton
 import vn.lutrinh.app.ui.common.MyLocationButton
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.rememberMyLocation
+import vn.lutrinh.app.ui.theme.hairline
 
 private const val CARD_WIDTH_DP = 260
 
@@ -167,9 +168,10 @@ fun TripMapScreen(
             )
             if (detail.steps.isEmpty()) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.large,
                     modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
-                    tonalElevation = 2.dp,
+                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    border = hairline,
                 ) { Text(stringResource(R.string.trip_map_empty), Modifier.padding(12.dp)) }
             }
             // "Vị trí của tôi" above "Xem toàn bộ hành trình" (clears the selection, flies back to the whole route).
@@ -205,16 +207,15 @@ fun TripMapScreen(
                         modifier = Modifier.width(CARD_WIDTH_DP.dp).clickable {
                             if (isSel) onOpenStep(step.id) else selected = step.id
                         },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSel) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest,
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = if (isSel) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else hairline,
                     ) {
                         Column(Modifier.padding(10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 val cover = step.photos.firstOrNull()
                                 if (cover != null) {
-                                    LocalPhoto(cover.fileName, Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)))
+                                    LocalPhoto(cover.fileName, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
                                 } else {
                                     Box(Modifier.size(56.dp), Alignment.Center) { Icon(Icons.Outlined.Image, null) }
                                 }

@@ -15,16 +15,17 @@ internal data class PinColors(val route: Int, val end: Int, val accent: Int, val
 /** Map image id of a pin; one bitmap per label × kind × selection, drawn once per style. */
 internal fun pinImageId(label: String, kind: PinKind, selected: Boolean) = "pin-$label-${kind.name}-$selected"
 
-private const val SHADOW = 0x50102A20
+/** Faint ink shadow under a pin (31 % ink, docs/08), so a pin still reads on satellite imagery. */
+private const val SHADOW = 0x50171E23
 
 /**
  * Numbered pin drawn in code (no image assets), with a soft drop shadow:
- * * STEP: route-green disc (24 dp), 2 dp white ring, white number.
- * * START: white disc (28 dp), 3 dp route-green ring, green number — reads as "set off here".
- * * END: clay disc (28 dp), 2.5 dp white ring, white number.
- * * CONTEXT (picker): small clay disc (22 dp), white ring.
- * * DRAFT (R20): hollow pin (22 dp): translucent white disc, dashed route-green ring, no number.
- * * selected: the same pin 1.3× larger, rice-gold ring, on a translucent gold halo (54 dp).
+ * * STEP: route chàm disc (24 dp), 2 dp white ring, white number.
+ * * START: white disc (28 dp), 3 dp chàm ring, chàm number: reads as "set off here".
+ * * END: ink disc (28 dp), 2.5 dp white ring, white number.
+ * * CONTEXT (picker): small ink disc (22 dp), white ring.
+ * * DRAFT (R20): hollow pin (22 dp): translucent white disc, dashed chàm ring, no number.
+ * * selected: the same pin 1.3× larger, bright chàm ring, on a translucent bright chàm halo (54 dp).
  */
 internal fun pinBitmap(
     context: Context, label: String, kind: PinKind, selected: Boolean, colors: PinColors,

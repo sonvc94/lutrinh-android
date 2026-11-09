@@ -27,6 +27,7 @@ import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.map.basemap.BasemapProvider
 import vn.lutrinh.app.map.basemap.Basemaps
+import vn.lutrinh.app.ui.theme.Palette
 
 /*
  * The map composables of the app (docs/05-map.md). They draw through the map interface only
@@ -55,7 +56,7 @@ fun MapAttribution(basemap: BasemapProvider, modifier: Modifier = Modifier) {
         text = basemap.attribution,
         // Fixed 9 dp (not sp): the credit must not grow with the font scale and cover a small map (F25).
         fontSize = with(LocalDensity.current) { 9.dp.toSp() },
-        color = Color(0xFF4A524E),
+        color = Palette.MapCredit,
         modifier = modifier
             .background(Color.White.copy(alpha = 0.75f))
             .padding(horizontal = 4.dp, vertical = 1.dp),
@@ -67,7 +68,7 @@ fun MapAttribution(basemap: BasemapProvider, modifier: Modifier = Modifier) {
 internal fun rememberMapIcons(): MapIcons {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
-    val pinColors = PinColors(scheme.primary.toArgb(), scheme.secondary.toArgb(), scheme.tertiary.toArgb(), scheme.secondary.toArgb())
+    val pinColors = PinColors(scheme.primary.toArgb(), Palette.Ink.toArgb(), Palette.ChamBright.toArgb(), Palette.Ink.toArgb())
     val badges = rememberTransportBadges()
     return remember(pinColors, badges) {
         MapIcons(
@@ -155,7 +156,7 @@ fun TripMap(
     myLocationSignal: Int = 0,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val routeColors = RouteColors(scheme.primary.hex(), scheme.tertiary.hex())
+    val routeColors = RouteColors(scheme.primary.hex(), Palette.ChamBright.hex())
     val icons = rememberMapIcons()
     val presenter = remember { TripMapPresenter(icons) }
     val markerClick = rememberUpdatedState(onMarkerClick)

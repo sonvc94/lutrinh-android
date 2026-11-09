@@ -1,7 +1,6 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -21,8 +19,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.Landscape
-import androidx.compose.material.icons.outlined.Luggage
 import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -53,7 +49,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -75,7 +70,11 @@ import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.BuildConfig
 import vn.lutrinh.app.R
 import vn.lutrinh.app.data.SampleData
+import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.TripSummary
+import vn.lutrinh.app.domain.usecase.routeOf
+import vn.lutrinh.app.ui.common.RouteCover
+import vn.lutrinh.app.ui.theme.hairline
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
@@ -90,6 +89,12 @@ class TripListViewModel(private val c: AppContainer) : ViewModel() {
         .map<List<TripSummary>, Loadable<List<TripSummary>>> { Loadable.Ready(it) }
         .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
+
+    /** Each trip's published steps in timeline order: the cover of a trip without photos (docs/08). */
+    val routes: StateFlow<Map<String, List<GeoPoint>>> = c.steps.observeAllSteps()
+        .map { steps -> steps.groupBy { it.tripId }.mapValues { (_, own) -> routeOf(own) } }
+        .catch { emit(emptyMap()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     fun delete(id: String) = viewModelScope.launch { c.deleteTrip(id) }
 
@@ -109,6 +114,7 @@ fun TripListScreen(
     vm: TripListViewModel = viewModel(factory = factory { c, _ -> TripListViewModel(c) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val routes by vm.routes.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -184,13 +190,12 @@ fun TripListScreen(
         when (val s = state) {
             Loadable.Loading -> LoadingState(Modifier.padding(padding))
             is Loadable.Failed -> MessageState(
-                Icons.Outlined.ErrorOutline, stringResource(R.string.state_error, s.message), "",
+                stringResource(R.string.state_error, s.message), "",
                 Modifier.padding(padding),
             )
             Loadable.Missing -> Unit
             is Loadable.Ready -> if (s.value.isEmpty()) {
                 MessageState(
-                    icon = Icons.Outlined.Luggage,
                     title = stringResource(R.string.trips_empty_title),
                     body = stringResource(R.string.trips_empty_body),
                     modifier = Modifier.padding(padding),
@@ -204,7 +209,7 @@ fun TripListScreen(
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(s.value, key = { it.trip.id }) { summary ->
-                        TripCard(summary, onOpen = { onOpen(summary.trip.id) }, onEdit = { onEdit(summary.trip.id) }, onShare = { onShare(summary.trip.id) }, onExportGpx = { transfer.exportGpx(summary.trip.id) }, onDelete = { toDelete = summary })
+                        TripCard(summary, routes[summary.trip.id].orEmpty(), onOpen = { onOpen(summary.trip.id) }, onEdit = { onEdit(summary.trip.id) }, onShare = { onShare(summary.trip.id) }, onExportGpx = { transfer.exportGpx(summary.trip.id) }, onDelete = { toDelete = summary })
                     }
                 }
             }
@@ -224,28 +229,20 @@ fun TripListScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Unit, onShare: () -> Unit, onExportGpx: () -> Unit, onDelete: () -> Unit) {
+private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> Unit, onEdit: () -> Unit, onShare: () -> Unit, onExportGpx: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = { menu = true }),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = hairline,
     ) {
         Box(Modifier.fillMaxWidth().height(150.dp)) {
             val cover = summary.coverPhotoFile
             if (cover != null) {
                 LocalPhoto(cover, Modifier.fillMaxSize())
             } else {
-                Box(
-                    Modifier.fillMaxSize().background(
-                        Brush.linearGradient(
-                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary),
-                        ),
-                    ),
-                    Alignment.Center,
-                ) {
-                    Icon(Icons.Outlined.Landscape, null, Modifier.size(56.dp), tint = MaterialTheme.colorScheme.onPrimary)
-                }
+                RouteCover(route, Modifier.fillMaxSize())
             }
         }
         Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -253,7 +250,6 @@ private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Uni
                 Text(
                     summary.trip.title,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

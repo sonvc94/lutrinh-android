@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -145,7 +144,7 @@ private fun GalleryTile(p: GalleryPhoto, selected: Boolean, onToggle: () -> Unit
     Box(
         modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(10.dp))
+            .clip(MaterialTheme.shapes.small)
             .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onToggle() })
             .semantics { contentDescription = label },
     ) {

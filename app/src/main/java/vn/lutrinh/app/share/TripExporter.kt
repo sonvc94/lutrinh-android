@@ -7,12 +7,14 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import androidx.core.content.FileProvider
+import androidx.core.content.res.ResourcesCompat
 import androidx.exifinterface.media.ExifInterface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,11 +58,19 @@ class TripExporter(
         context, input, SummaryImage.MAP_WIDTH, SummaryImage.MAP_HEIGHT, SummaryImage.MAP_PIXEL_RATIO, SummaryImage.MAP_PADDING, engine, basemap,
     )
 
+    private val fonts: SummaryImage.Fonts by lazy {
+        SummaryImage.Fonts(
+            title = ResourcesCompat.getFont(this.context, R.font.be_vietnam_pro_semibold) ?: Typeface.DEFAULT_BOLD,
+            text = ResourcesCompat.getFont(this.context, R.font.be_vietnam_pro_regular) ?: Typeface.DEFAULT,
+            numerals = ResourcesCompat.getFont(this.context, R.font.barlow_condensed_semibold) ?: Typeface.DEFAULT_BOLD,
+        )
+    }
+
     /** Renders the summary image with [chosen] photos (TripShare.imagePhotos). */
     suspend fun summaryImage(base: SummaryImage.Input, chosen: List<Photo>): Bitmap = withContext(Dispatchers.Default) {
         val bitmaps = chosen.mapNotNull { bitmapOf(it, IMAGE_PHOTO_PX) }
         try {
-            SummaryImage.render(base.copy(photos = bitmaps))
+            SummaryImage.render(base.copy(photos = bitmaps, fonts = fonts))
         } finally {
             bitmaps.forEach { it.recycle() }
         }

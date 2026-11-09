@@ -1,7 +1,6 @@
 package vn.lutrinh.app.ui.common
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -17,7 +16,7 @@ fun DraftBadge(modifier: Modifier = Modifier) {
     Surface(
         color = MaterialTheme.colorScheme.tertiaryContainer,
         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-        shape = RoundedCornerShape(6.dp),
+        shape = MaterialTheme.shapes.small,
         modifier = modifier,
     ) {
         Text(

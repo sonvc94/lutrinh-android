@@ -41,7 +41,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -617,7 +616,7 @@ fun StepEditScreen(
     ) { padding ->
         when {
             f.loading -> LoadingState(Modifier.padding(padding))
-            f.missing -> MessageState(Icons.Outlined.SearchOff, stringResource(R.string.not_found), "", Modifier.padding(padding))
+            f.missing -> MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
             else -> Column(
                 Modifier.padding(padding).fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -874,7 +873,7 @@ private fun PhotoTile(
     picture: @Composable () -> Unit,
 ) {
     Box(
-        Modifier.size(104.dp).clip(RoundedCornerShape(12.dp))
+        Modifier.size(104.dp).clip(MaterialTheme.shapes.large)
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .let { if (moveActions.isNotEmpty()) it.semantics { customActions = moveActions } else it },
     ) {

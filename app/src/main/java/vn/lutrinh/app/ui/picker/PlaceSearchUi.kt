@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -32,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.usecase.PlaceHit
 import vn.lutrinh.app.domain.usecase.PlaceKind
+import vn.lutrinh.app.ui.theme.hairline
 
 /** R23: the search field at the top of "Chọn vị trí". */
 @Composable
@@ -51,7 +51,7 @@ fun PlaceSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifie
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         // the keyboard's search key only hides the keyboard: results are already listed as you type
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-        shape = RoundedCornerShape(28.dp),
+        shape = MaterialTheme.shapes.large,
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -63,7 +63,7 @@ fun PlaceSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifie
 /** R23: the ranked results; a tap moves the pin there. */
 @Composable
 fun PlaceResults(results: List<PlaceHit>, loading: Boolean, tooShort: Boolean, onPick: (PlaceHit) -> Unit, modifier: Modifier = Modifier) {
-    Surface(shape = MaterialTheme.shapes.large, tonalElevation = 3.dp, shadowElevation = 6.dp, modifier = modifier) {
+    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLowest, border = hairline, modifier = modifier) {
         Column {
             when {
                 tooShort -> {}

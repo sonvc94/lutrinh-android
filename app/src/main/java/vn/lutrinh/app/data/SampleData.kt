@@ -1,17 +1,10 @@
 package vn.lutrinh.app.data
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.LinearGradient
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.Shader
-import java.io.ByteArrayOutputStream
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
 import kotlin.math.sin
 import kotlin.random.Random
+import java.time.LocalDateTime
+import java.time.ZoneId
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Track
@@ -25,14 +18,18 @@ import vn.lutrinh.app.domain.usecase.TripInput
 
 /**
  * Debug-only sample content (menu "Tạo dữ liệu mẫu" in debug builds) so screenshots show
- * real places. Photos are generated landscape drawings, not real pictures.
+ * real places. Photos are real pictures of those places from Wikimedia Commons, in the debug
+ * assets (`app/src/debug/assets/sample-photos/`, source + author + licence per file in its
+ * README): `<photo key>-<n>.jpg`. No generated pictures (docs/08-design.md "Imagery"); a build
+ * without the assets (release) seeds the steps without photos.
  */
 object SampleData {
+    /** [key] = file prefix of the step's sample photos in assets/sample-photos ([photos] files). */
     /** [by] = transport of the leg that ends at this step (R12); null on the first step. */
     /** [photoMinutes] = capture time of each photo, minutes after [at] (R17 photos.takenAt); default 15 min apart. */
     private data class S(
         val title: String, val lat: Double, val lng: Double, val at: String, val note: String, val photos: Int,
-        val by: TransportMode? = null, val photoMinutes: List<Int>? = null,
+        val by: TransportMode? = null, val photoMinutes: List<Int>? = null, val key: String = "",
     )
 
     suspend fun seed(c: AppContainer) {
@@ -45,19 +42,19 @@ object SampleData {
             ),
             listOf(
                 // Photo times line up with the sample track's stays (R17): one at Bắc Sum, one at Tam Sơn.
-                S("TP Hà Giang", 22.8233, 104.9836, "$year-10-20T08:00", "Thuê xe máy, nhận giấy phép, ăn phở chua.", 1, photoMinutes = listOf(80)),
+                S("TP Hà Giang", 22.8233, 104.9836, "$year-10-20T08:00", "Thuê xe máy, nhận giấy phép, ăn phở chua.", 1, photoMinutes = listOf(80), key = "ha-giang-city"),
                 S(
                     "Cổng Trời Quản Bạ", 23.0688, 104.9930, "$year-10-20T11:30", "Núi đôi Cô Tiên nhìn từ trên đèo.", 2,
-                    TransportMode.MOTORBIKE, photoMinutes = listOf(5, 55),
+                    TransportMode.MOTORBIKE, photoMinutes = listOf(5, 55), key = "quan-ba",
                 ),
                 S("Yên Minh", 23.1203, 105.1406, "$year-10-20T16:00", "Rừng thông Yên Minh, nghỉ đêm ở homestay.", 0, TransportMode.MOTORBIKE),
-                S("Cột cờ Lũng Cú", 23.3638, 105.3164, "$year-10-21T09:00", "Điểm cực Bắc, leo 389 bậc.", 2, TransportMode.MOTORBIKE),
-                S("Làng Lô Lô Chải", 23.3557, 105.3266, "$year-10-21T11:00", "Đi bộ xuống làng, nhà trình tường vàng.", 1, TransportMode.WALK),
-                S("Phố cổ Đồng Văn", 23.2786, 105.3621, "$year-10-21T17:00", "Cà phê phố cổ, chợ phiên sáng Chủ nhật.", 1, TransportMode.MOTORBIKE),
-                S("Đèo Mã Pí Lèng", 23.2397, 105.4096, "$year-10-22T08:30", "Sông Nho Quế xanh ngọc dưới vực.", 3, TransportMode.MOTORBIKE),
-                S("Hẻm Tu Sản", 23.2128, 105.4366, "$year-10-22T10:30", "Đi thuyền trên sông Nho Quế qua hẻm vực.", 1, TransportMode.BOAT),
+                S("Cột cờ Lũng Cú", 23.3638, 105.3164, "$year-10-21T09:00", "Điểm cực Bắc, leo 389 bậc.", 2, TransportMode.MOTORBIKE, key = "lung-cu"),
+                S("Làng Lô Lô Chải", 23.3557, 105.3266, "$year-10-21T11:00", "Đi bộ xuống làng, nhà trình tường vàng.", 1, TransportMode.WALK, key = "lo-lo-chai"),
+                S("Phố cổ Đồng Văn", 23.2786, 105.3621, "$year-10-21T17:00", "Cà phê phố cổ, chợ phiên sáng Chủ nhật.", 1, TransportMode.MOTORBIKE, key = "dong-van"),
+                S("Đèo Mã Pí Lèng", 23.2397, 105.4096, "$year-10-22T08:30", "Sông Nho Quế xanh ngọc dưới vực.", 3, TransportMode.MOTORBIKE, key = "ma-pi-leng"),
+                S("Hẻm Tu Sản", 23.2128, 105.4366, "$year-10-22T10:30", "Đi thuyền trên sông Nho Quế qua hẻm vực.", 1, TransportMode.BOAT, key = "tu-san"),
                 S("Mèo Vạc", 23.1597, 105.4086, "$year-10-22T14:00", "", 0, TransportMode.CAR),
-                S("Du Già", 22.9333, 105.1667, "$year-10-23T10:00", "Thác Du Già, quay về TP Hà Giang chiều tối.", 1, TransportMode.MOTORBIKE),
+                S("Du Già", 22.9333, 105.1667, "$year-10-23T10:00", "Thác Du Già, quay về TP Hà Giang chiều tối.", 1, TransportMode.MOTORBIKE, key = "du-gia"),
             ),
         )
         haGiang?.let { addHaGiangTrack(c, it, LocalDate.of(year, 10, 20)) }
@@ -65,9 +62,9 @@ object SampleData {
             c,
             TripInput("Ninh Bình thơ mộng", "Cuối tuần chèo đò Tràng An, leo Hang Múa.", LocalDate.of(year, 6, 7), LocalDate.of(year, 6, 8)),
             listOf(
-                S("Cố đô Hoa Lư", 20.2862, 105.9063, "$year-06-07T09:00", "Đền vua Đinh, vua Lê.", 1),
-                S("Tràng An", 20.2546, 105.8954, "$year-06-07T13:00", "Chèo đò 3 tiếng qua 9 hang.", 2, TransportMode.CAR),
-                S("Hang Múa", 20.2299, 105.9327, "$year-06-08T06:00", "Ngắm bình minh trên đỉnh, 500 bậc đá.", 1, TransportMode.MOTORBIKE),
+                S("Cố đô Hoa Lư", 20.2862, 105.9063, "$year-06-07T09:00", "Đền vua Đinh, vua Lê.", 1, key = "hoa-lu"),
+                S("Tràng An", 20.2546, 105.8954, "$year-06-07T13:00", "Chèo đò 3 tiếng qua 9 hang.", 2, TransportMode.CAR, key = "trang-an"),
+                S("Hang Múa", 20.2299, 105.9327, "$year-06-08T06:00", "Ngắm bình minh trên đỉnh, 500 bậc đá.", 1, TransportMode.MOTORBIKE, key = "hang-mua"),
                 S("Tam Cốc", 20.2163, 105.9370, "$year-06-08T10:00", "Lúa chín vàng hai bên sông Ngô Đồng.", 0, TransportMode.WALK),
             ),
         )
@@ -75,8 +72,8 @@ object SampleData {
 
     private suspend fun createTrip(c: AppContainer, trip: TripInput, steps: List<S>): String? {
         val tripId = (c.saveTrip(null, trip) as? SaveResult.Saved)?.id ?: return null
-        steps.forEachIndexed { i, s ->
-            val photos = (0 until s.photos).map { k -> c.photos.write(landscape(seed = s.title.hashCode() + k * 31 + i)) }
+        steps.forEach { s ->
+            val photos = (1..s.photos).mapNotNull { n -> samplePhoto(c, "${s.key}-$n") }.map { c.photos.write(it) }
             val arrival = LocalDateTime.parse(s.at)
             val takenAt = photos.mapIndexed { k, f -> f to arrival.plusMinutes((s.photoMinutes?.getOrNull(k) ?: (k * 15)).toLong()) }.toMap()
             val saved = c.saveStep(
@@ -88,6 +85,10 @@ object SampleData {
         }
         return tripId
     }
+
+    /** Bytes of a debug asset photo, or null when the build has none (release). */
+    private fun samplePhoto(c: AppContainer, name: String): ByteArray? =
+        runCatching { c.assets.open("sample-photos/$name.jpg").use { it.readBytes() } }.getOrNull()
 
     /** A place the sample track goes to; it stays [stayMin] minutes ([pause] = recording paused meanwhile). */
     private data class W(val lat: Double, val lng: Double, val at: String, val stayMin: Int = 0, val pause: Boolean = false)
@@ -159,43 +160,5 @@ object SampleData {
         )
         c.tracks.insertTrack(track)
         points.forEach { c.tracks.addPoint(track, it) }
-    }
-
-    /** Simple generated landscape: sky gradient, sun, three layers of karst hills. */
-    private fun landscape(seed: Int, w: Int = 1200, h: Int = 900): ByteArray {
-        val rnd = Random(seed)
-        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        val c = Canvas(bmp)
-        val skies = listOf(0xFF9FD3E8 to 0xFFFCE7C4, 0xFFF7B267 to 0xFFFDE2C8, 0xFF8EC5D6 to 0xFFE8F4EA)
-        val (top, bottom) = skies[rnd.nextInt(skies.size)]
-        val p = Paint(Paint.ANTI_ALIAS_FLAG)
-        p.shader = LinearGradient(0f, 0f, 0f, h.toFloat(), top.toInt(), bottom.toInt(), Shader.TileMode.CLAMP)
-        c.drawRect(0f, 0f, w.toFloat(), h.toFloat(), p)
-        p.shader = null
-        p.color = 0xFFFFF1B8.toInt()
-        c.drawCircle(w * (0.2f + rnd.nextFloat() * 0.6f), h * 0.25f, 60f, p)
-        val greens = listOf(0xFF9DBFA8, 0xFF5E8F6E, 0xFF1F5C45)
-        greens.forEachIndexed { layer, color ->
-            p.color = color.toInt()
-            val base = h * (0.55f + layer * 0.15f)
-            val path = Path().apply {
-                moveTo(0f, h.toFloat())
-                lineTo(0f, base)
-                var x = 0f
-                while (x < w) {
-                    val peak = base - (80 + rnd.nextInt(200)) / (layer + 1f)
-                    val width = 120f + rnd.nextInt(160)
-                    quadTo(x + width / 2, peak - 60, x + width, base - rnd.nextInt(40))
-                    x += width
-                }
-                lineTo(w.toFloat(), h.toFloat())
-                close()
-            }
-            c.drawPath(path, p)
-        }
-        val out = ByteArrayOutputStream()
-        bmp.compress(Bitmap.CompressFormat.JPEG, 85, out)
-        bmp.recycle()
-        return out.toByteArray()
     }
 }
