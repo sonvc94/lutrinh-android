@@ -80,6 +80,9 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   Fix time is the wall clock (no fake time source), so a ≥ 20-min stay for stop suggestions (R17)
   needs ~21 real minutes of fixes; alternate two points ~25 m apart every 60 s (a fix < 10 m from
   the last is dropped). The "Thêm điểm dừng" FAB and the suggestion button share their text.
+  Shortcut for a suggestion on any date: `adb push` an SQL file of `insert into tracks …` + 27
+  `track_points` rows (60 s apart, two points ~25 m apart) to `/data/local/tmp`, then
+  `run-as vn.lutrinh.app sh -c 'sqlite3 databases/lutrinh.db < /data/local/tmp/seed.sql'` (R17 extend-dates check).
 * A Compose `Dialog` re-provides `LocalConfiguration`/`LocalContext`: locale overrides must go
   **inside** dialog content (see `VietnameseLocale`). Don't wrap the whole app: MapLibre's
   `MapView` needs the real Activity context.
