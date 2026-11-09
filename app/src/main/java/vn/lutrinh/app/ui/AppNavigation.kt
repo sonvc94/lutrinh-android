@@ -38,6 +38,7 @@ import vn.lutrinh.app.ui.share.ShareTripScreen
 import vn.lutrinh.app.ui.steps.FromPhotosScreen
 import vn.lutrinh.app.ui.steps.StepDetailScreen
 import vn.lutrinh.app.ui.steps.StepEditScreen
+import vn.lutrinh.app.ui.tracks.BatteryGuideScreen
 import vn.lutrinh.app.ui.trips.TripDetailScreen
 import vn.lutrinh.app.ui.trips.TripEditScreen
 import vn.lutrinh.app.ui.trips.TripListScreen
@@ -60,6 +61,7 @@ object Routes {
     const val FROM_PHOTOS = "trip/{tripId}/fromPhotos"
     const val OFFLINE = "offline?tripId={tripId}"
     const val SHARE = "trip/{tripId}/share"
+    const val BATTERY_GUIDE = "batteryGuide"
 
     fun tripEdit(tripId: String? = null) = if (tripId == null) "tripEdit" else "tripEdit?tripId=$tripId"
 
@@ -162,6 +164,7 @@ private fun NavGraph(nav: NavHostController) {
                 onAddFromPhotos = { nav.navigate(Routes.fromPhotos(tripId)) },
                 onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
                 onNewTripAndRecord = { nav.navigate(Routes.tripEditAndRecord()) },
+                onOpenBatteryGuide = { nav.navigate(Routes.BATTERY_GUIDE) },
                 autoRecord = entry.arguments?.getString("record") == "true",
             )
         }
@@ -175,8 +178,10 @@ private fun NavGraph(nav: NavHostController) {
                 onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
                 onOpenOffline = { nav.navigate(Routes.offline(tripId)) },
                 onNewTripAndRecord = { nav.navigate(Routes.tripEditAndRecord()) },
+                onOpenBatteryGuide = { nav.navigate(Routes.BATTERY_GUIDE) },
             )
         }
+        composable(Routes.BATTERY_GUIDE) { BatteryGuideScreen(onBack = { nav.popBackStack() }) }
         composable(
             Routes.STEP_EDIT,
             arguments = listOf(required("tripId"), optional("stepId")) +

@@ -252,6 +252,7 @@ fun TripDetailScreen(
     onOpenStep: (String) -> Unit,
     /** "Tạo chuyến mới và ghi" (R16, ended trips): the new-trip form, then recording on the new trip. */
     onNewTripAndRecord: () -> Unit = {},
+    onOpenBatteryGuide: () -> Unit = {},
     /** Opened by "Tạo chuyến mới và ghi": start recording on arrival. */
     autoRecord: Boolean = false,
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
@@ -355,6 +356,7 @@ fun TripDetailScreen(
                         ended = !s.value.canRecord, autoStart = autoRecord,
                         onPause = { vm.pauseRecording() }, onResume = { vm.resumeRecording() }, onStop = { vm.stopRecording() },
                         onNewTripAndRecord = onNewTripAndRecord,
+                        onOpenBatteryGuide = onOpenBatteryGuide,
                         onDeleteTrack = { vm.deleteTrack(it) },
                         onAddFromStop = { sg, title -> onAddFromStop(sg.dwell, title) },
                         onDismissStop = { vm.dismissStop(it) },

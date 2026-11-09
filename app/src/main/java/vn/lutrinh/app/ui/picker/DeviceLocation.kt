@@ -10,8 +10,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.util.Consumer
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.map.MyLocationFix
 
-/** One-shot device position for "Vị trí của tôi" in the location picker (no tracking, nothing stored). */
+/** One-shot device position for "Vị trí của tôi" (picker chip, map buttons): no tracking, nothing stored. */
 internal object DeviceLocation {
     val PERMISSIONS = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
 
@@ -28,8 +29,12 @@ internal object DeviceLocation {
      * falls back to the last known position; [onResult] gets null when nothing is available.
      * Needs [hasPermission]. Cancel with the returned signal (leaving the screen).
      */
+    fun request(context: Context, onResult: (GeoPoint?) -> Unit): CancellationSignal =
+        requestFix(context) { onResult(it?.point) }
+
+    /** Like [request], with the fix's accuracy (metres) for the map's accuracy circle. */
     @Suppress("MissingPermission")
-    fun request(context: Context, onResult: (GeoPoint?) -> Unit): CancellationSignal {
+    fun requestFix(context: Context, onResult: (MyLocationFix?) -> Unit): CancellationSignal {
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val providers = buildList {
@@ -38,7 +43,7 @@ internal object DeviceLocation {
         }
         val signal = CancellationSignal()
         fun lastKnown(): Location? = providers.firstNotNullOfOrNull { runCatching { lm.getLastKnownLocation(it) }.getOrNull() }
-        fun done(l: Location?) = onResult((l ?: lastKnown())?.let { GeoPoint(it.latitude, it.longitude) })
+        fun done(l: Location?) = onResult((l ?: lastKnown())?.let { MyLocationFix(GeoPoint(it.latitude, it.longitude), if (it.hasAccuracy()) it.accuracy else 0f) })
         val first = providers.firstOrNull()
         if (first == null) {
             done(null)

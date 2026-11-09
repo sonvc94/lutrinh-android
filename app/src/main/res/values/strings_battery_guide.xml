@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- "Ghi hành trình ổn định" (R22): keep the phone from stopping a recording in the background -->
+    <string name="battery_guide_link">Ghi hành trình ổn định</string>
+    <string name="battery_guide_title">Ghi hành trình ổn định</string>
+    <string name="battery_guide_intro">Khi màn hình tắt, một số điện thoại tự dừng ứng dụng chạy nền để tiết kiệm pin, nên hành trình có thể bị đứt giữa chừng. Làm vài bước dưới đây một lần là đủ.</string>
+    <string name="battery_guide_note">Tên mục có thể khác đôi chút tùy đời máy và phiên bản Android.</string>
+    <string name="battery_guide_open_settings">Mở cài đặt pin của Lữ Trình</string>
+    <string name="battery_guide_done">Đã hiểu</string>
+    <string name="battery_guide_your_device">Máy của bạn: %1$s</string>
+    <string name="battery_guide_general_title">Các bước chung cho Android</string>
+    <string name="battery_guide_general_1">Mở Cài đặt › Ứng dụng › Lữ Trình › Pin, chọn “Không hạn chế” (hoặc “Không tối ưu hóa”). Nút bên dưới mở thẳng danh sách này.</string>
+    <string name="battery_guide_general_2">Ở Cài đặt › Ứng dụng › Lữ Trình › Quyền › Vị trí, chọn “Chỉ khi dùng ứng dụng” và bật “Dùng vị trí chính xác”. Lữ Trình không cần quyền vị trí “Luôn cho phép”.</string>
+    <string name="battery_guide_general_3">Khi đang ghi, đừng vuốt tắt Lữ Trình khỏi danh sách ứng dụng gần đây; hãy bấm nút Home để thoát ra.</string>
+    <string name="battery_guide_general_4">Tắt “Tiết kiệm pin” của máy trong lúc ghi, vì chế độ này thường tắt hết ứng dụng nền.</string>
+    <string name="battery_guide_xiaomi_title">Xiaomi, Redmi, POCO</string>
+    <string name="battery_guide_xiaomi_1">Cài đặt › Ứng dụng › Quản lý ứng dụng › Lữ Trình › Tiết kiệm pin, chọn “Không hạn chế”.</string>
+    <string name="battery_guide_xiaomi_2">Cùng màn hình đó, bật “Tự khởi chạy”.</string>
+    <string name="battery_guide_xiaomi_3">Mở danh sách ứng dụng gần đây, giữ thẻ Lữ Trình rồi chạm biểu tượng ổ khóa để khóa ứng dụng, tránh bị dọn bộ nhớ.</string>
+    <string name="battery_guide_oppo_title">Oppo, Realme, OnePlus</string>
+    <string name="battery_guide_oppo_1">Cài đặt › Pin (hoặc Quản lý pin) › Lữ Trình, bật “Cho phép hoạt động nền”.</string>
+    <string name="battery_guide_oppo_2">Cài đặt › Ứng dụng › Quản lý ứng dụng › Lữ Trình › Mức dùng pin, bật “Cho phép tự khởi chạy” và “Cho phép hoạt động nền”.</string>
+    <string name="battery_guide_oppo_3">Ở danh sách ứng dụng gần đây, chạm biểu tượng ba chấm trên thẻ Lữ Trình rồi chọn “Khóa”.</string>
+    <string name="battery_guide_samsung_title">Samsung</string>
+    <string name="battery_guide_samsung_1">Cài đặt › Pin › Giới hạn dùng pin nền: tắt “Đưa ứng dụng không dùng vào chế độ ngủ”, và gỡ Lữ Trình khỏi “Ứng dụng ngủ” và “Ứng dụng ngủ sâu”.</string>
+    <string name="battery_guide_samsung_2">Cài đặt › Ứng dụng › Lữ Trình › Pin, chọn “Không hạn chế”.</string>
+    <string name="battery_guide_samsung_3">Ở danh sách ứng dụng gần đây, chạm biểu tượng Lữ Trình ở đầu thẻ rồi chọn “Luôn mở”.</string>
+    <string name="battery_guide_vivo_title">Vivo, iQOO</string>
+    <string name="battery_guide_vivo_1">Cài đặt › Pin › Tiêu thụ pin nền (hoặc Quản lý chạy nền) › Lữ Trình, chọn “Cho phép chạy nền” hoặc “Không hạn chế”.</string>
+    <string name="battery_guide_vivo_2">Trong i Manager (hoặc Cài đặt) › Quản lý ứng dụng › Tự khởi động, bật Lữ Trình.</string>
+    <string name="battery_guide_vivo_3">Ở danh sách ứng dụng gần đây, kéo thẻ Lữ Trình xuống để khóa lại.</string>
+</resources>

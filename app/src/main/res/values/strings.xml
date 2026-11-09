@@ -143,6 +143,12 @@
     <string name="picker_permission_body">Lữ Trình chỉ lấy vị trí một lần để đặt ghim ở chỗ bạn đang đứng. Vị trí không được ghi lại và không gửi đi đâu.</string>
     <string name="picker_permission_continue">Tiếp tục</string>
 
+    <!-- "Vị trí của tôi" button on the maps (R22) -->
+    <string name="my_location">Vị trí của tôi</string>
+    <string name="my_location_permission_body">Lữ Trình chỉ lấy vị trí khi bạn bấm nút này, để hiện chấm xanh chỗ bạn đang đứng trên bản đồ. Vị trí không được ghi lại và không gửi đi đâu.</string>
+    <string name="my_location_denied">Chưa được phép dùng vị trí của máy.</string>
+    <string name="my_location_off">Vị trí của máy đang tắt.</string>
+
     <!-- Step detail / photos -->
     <string name="step_detail_photos">Ảnh (%1$d)</string>
     <string name="step_detail_prev">Trước: %1$s</string>

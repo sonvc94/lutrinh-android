@@ -56,6 +56,7 @@ private const val SRC_STEPS = "steps-src"
 private const val SRC_ROUTE = "route-src"
 private const val SRC_TRACKS = "tracks-src"
 private const val SRC_STOPS = "stop-suggest-src"
+private const val SRC_ME = "my-location-src"
 private const val LAYER_STEPS = "steps-layer"
 private const val SRC_LEG_BADGES = "leg-badges-src"
 private const val LAYER_LEG_BADGES = "leg-badges-layer"
@@ -158,6 +159,9 @@ fun TripMap(
     stopSuggestions: List<StopMarker> = emptyList(),
     /** Each change flies the camera back to the whole route ("Xem toàn bộ hành trình"). */
     fitAllSignal: Int = 0,
+    /** "Vị trí của tôi": the fix to draw (null = none) and a counter whose change flies the camera to it. */
+    myLocation: MyLocationFix? = null,
+    myLocationSignal: Int = 0,
 ) {
     val context = LocalContext.current
     val mapView = rememberMapView()
@@ -186,6 +190,7 @@ fun TripMap(
                         style.addRouteLayers(SRC_ROUTE, routeColors)
                         style.addTrackLayers(SRC_TRACKS)
                         style.addStopSuggestionLayers(SRC_STOPS)
+                        style.addMyLocationLayers(SRC_ME)
                         // Badges give way to pins and to each other (short legs lose theirs).
                         style.addLayer(
                             SymbolLayer(LAYER_LEG_BADGES, SRC_LEG_BADGES).withProperties(
@@ -243,6 +248,8 @@ fun TripMap(
                 state.showRoute = showRoute
                 state.selectedLegTo = selectedLegTo
                 state.fitAllSignal = fitAllSignal
+                state.myLocation = myLocation
+                state.myLocationSignal = myLocationSignal
                 state.render(context, mapView, fitPaddingDp, fitExtraBottomDp, interactive)
             },
         )
@@ -262,6 +269,9 @@ private class TripMapState {
     var selectedLegTo: String? = null
     var fitAllSignal: Int = 0
     private var fittedAllSignal: Int = 0
+    var myLocation: MyLocationFix? = null
+    var myLocationSignal: Int = 0
+    private var shownMyLocationSignal: Int = 0
     var pinColors = PinColors(0, 0, 0, 0)
     private var fittedKey: Pair<List<GeoPoint>, Int>? = null
     private var padding = intArrayOf(0, 0, 0, 0)
@@ -326,7 +336,13 @@ private class TripMapState {
         style.getSourceAs<GeoJsonSource>(SRC_TRACKS)?.setGeoJson(tracks.toFeatureCollection())
         style.getSourceAs<GeoJsonSource>(SRC_STOPS)?.setGeoJson(stops.toStopFeatureCollection())
 
+        style.showMyLocation(SRC_ME, myLocation)
         val density = context.resources.displayMetrics.density
+        // "Vị trí của tôi": fly to the fix once per tap; the carousel resize must not re-fit afterwards.
+        if (myLocationSignal != shownMyLocationSignal) {
+            shownMyLocationSignal = myLocationSignal
+            myLocation?.let { userFocused = true; flyToMyLocation(map, it, padding) }
+        }
         // Re-fit when the route changes or when the bottom overlay is first measured / resized.
         // Finished tracks count in the fit; the live one does not (a new fix every few seconds
         // must not move the camera under the user's finger).

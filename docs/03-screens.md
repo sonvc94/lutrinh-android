@@ -68,13 +68,15 @@ Step form ── "Thêm ảnh" ──▶ system Photo Picker ─▶ back with UR
 Step detail ── pencil ─▶ Step form (edit) │ bin ─▶ confirm ─▶ back │ tap photo ─▶ Photo viewer
 Trip map ── tap card ─▶ Step detail │ tap leg chip on a card / mode badge on the map ─▶ Leg mode sheet
 Trip map ── top-bar icon "Bản đồ offline" ─▶ Offline maps (with this trip's area first)
+Trip map / My map ── "Vị trí của tôi" ─▶ (rationale ─▶ system prompt) ─▶ blue dot, camera flies there (R22)
+GPS card ── "Ghi hành trình ổn định" ─▶ Battery guide │ first recording ever starts ─▶ Battery guide (once)
 Share trip ── "Chia sẻ" ─▶ system share sheet │ "Lưu vào máy" ─▶ snackbar "Đã lưu vào …"
 ```
 
 Route strings (Android, kept for deep links later): `trips`, `tripEdit?tripId=&record=` (`record=true` after "Tạo chuyến mới và ghi": the saved trip opens and starts recording), `trip/{tripId}?record=`,
 `trip/{tripId}/map`, `trip/{tripId}/stepEdit?stepId=&stopTrack=&stopStart=&stopEnd=&lat=&lng=&title=` (the stop-suggestion arguments are optional, R17), `trip/{tripId}/step/{stepId}`,
 `trip/{tripId}/pick?stepId=&lat=&lng=`, `trip/{tripId}/step/{stepId}/photos?index=`, `myMap`,
-`trip/{tripId}/fromPhotos`, `offline?tripId=`, `trip/{tripId}/share`. The leg mode sheet is a bottom sheet, not a route.
+`trip/{tripId}/fromPhotos`, `offline?tripId=`, `trip/{tripId}/share`, `batteryGuide`. The leg mode sheet is a bottom sheet, not a route.
 The picker returns its result to the step form through the previous screen's saved state
 (`picked_location` = `"lat,lng"`); on iOS use a binding or a callback closure.
 
@@ -180,6 +182,9 @@ The picker returns its result to the step form through the previous screen's sav
   with a ticking chronometer and "<distance> · <trip>", actions "Tạm dừng" and "Dừng"; paused:
   "Đã tạm dừng ghi hành trình", "<duration> · <distance> · <trip>", actions "Tiếp tục" and
   "Dừng". Tap → opens the app.
+* **Stable recording (R22):** under the record control of the card, the text button **"Ghi hành
+  trình ổn định"** (battery icon) opens §3f. The same screen opens by itself, once per install,
+  right after the first recording ever starts (the recording keeps running behind it).
 * **Track list** "Hành trình đã ghi (N)" in the same section, newest first: one row per track with
   start date and time ("09/11/2026 14:05"), distance · duration · "N điểm GPS", and its state
   ("Đang ghi" / "Tạm dừng" in red, "Dừng do ứng dụng bị đóng khi đang ghi" for an interrupted
@@ -278,6 +283,29 @@ The picker returns its result to the step form through the previous screen's sav
   printed travel book). **Changed:** no account, link or server — the app makes files (an image
   and an offline page) and hands them to the system share sheet; nothing is published by us.
 
+## 3f. Battery guide — "Ghi hành trình ổn định" (R22)
+
+* **Opened from:** the link under the record control in the GPS card (§3b), and by itself once,
+  right after the first recording starts (dismissable: Back or "Đã hiểu"). Opening it either way
+  uses up the automatic showing (kept in `LocalPrefs`, key `battery_guide_seen`).
+* **Content:** top bar "Ghi hành trình ổn định" with Back; one paragraph saying why (some phones
+  stop background apps when the screen is off, so the track can break); a card **"Máy của bạn:
+  <hãng>"** (highlighted) when the maker is Xiaomi/Redmi/POCO, Oppo/Realme/OnePlus, Samsung or
+  Vivo/iQOO, with 3 steps in Vietnamese (battery mode "Không hạn chế"/background activity,
+  auto-start, lock the app in recents); a card **"Các bước chung cho Android"** with 4 steps
+  (battery "Không hạn chế", location "Chỉ khi dùng ứng dụng" + precise, do not swipe the app away
+  while recording, switch the phone's battery saver off); the note that menu names vary; the
+  button **"Mở cài đặt pin của Lữ Trình"** (system battery-optimisation list; the app's details
+  page when a phone has no such screen) and **"Đã hiểu"**. Other makers see the general card only.
+* **No exemption request:** the app never asks for `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`; it
+  only opens the settings page.
+* **Screens:** `img/my-location/06-gps-card-guide-link.png`,
+  `img/my-location/07-guide-auto-first-recording.png`, `img/my-location/08-system-battery-settings.png`
+  (the button's target on the emulator).
+* **Inspired by:** Polarsteps' battery-optimisation guidance for phones that kill background
+  tracking (docs/22 §2.5). **Changed:** own wording for Vietnam's common phones, one screen with
+  the device's section first, shown once, no permission requested.
+
 ## 4. Trip map — full screen
 
 * **Content:** map (muted OpenFreeMap vector basemap, Vietnamese labels) with all pins + legs
@@ -287,8 +315,15 @@ The picker returns its result to the step form through the previous screen's sav
   route (camera rules) in the area above the card carousel, so no pin hides under a card; first
   pin white with a green ring (start), last pin clay (end); a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
   date · time; from card 2 on, the chip of the leg that arrives at this step, on card 1 the text "Điểm xuất phát"
-  — every card has the same height); a small round "Xem toàn bộ hành trình" button (fit icon) above the carousel's
-  right end.
+  — every card has the same height); two small round buttons stacked above the carousel's right end:
+  **"Vị trí của tôi"** (crosshair, R22) over "Xem toàn bộ hành trình" (fit icon).
+* **"Vị trí của tôi" (R22):** tap → (first time: dialog "Dùng vị trí của bạn?" explaining that the
+  position is taken only on tap, not recorded or sent; "Tiếp tục" → system prompt) → one fix: a blue dot
+  with a pale accuracy circle appears and the camera flies there (zoom ≥ 15, above the carousel).
+  Tap again → a fresh fix and the camera re-centres. Refused → snackbar "Chưa được phép dùng vị trí của
+  máy." with "Mở cài đặt" (app details); device location off → "Vị trí của máy đang tắt." with "Mở cài
+  đặt" (location settings); no fix → "Chưa xác định được vị trí của bạn…". The dot is that tap's fix (not
+  tracked), so it stays where it was while the user moves; it goes when the screen closes.
 * **Behaviour:** tapping a pin selects it (larger, gold ring + halo) and scrolls the carousel to
   its card; the carousel **snaps** so one card is centred (the first and last can reach the centre), and
   when a swipe settles the centred card's step becomes the selected one (pin highlighted, camera flies to it);
@@ -299,7 +334,8 @@ The picker returns its result to the step form through the previous screen's sav
   trip: message "Chuyến đi chưa có điểm dừng nào để hiển thị."
 * **Screens:** `img/09-trip-map-route.png`, `img/16-sample-hagiang-map.png`,
   `img/20-trip-map-pins-above-cards.png`, `img/23-trip-map-leg-modes.png`,
-  `img/24-trip-map-legs-zoomed.png`; before/after the route redraw: `img/route-redraw/`; the snapping,
+  `img/24-trip-map-legs-zoomed.png`; "Vị trí của tôi": `img/my-location/01-trip-map-my-location.png`,
+  `img/my-location/04-permission-explanation.png`, `img/my-location/05-permission-denied-snackbar.png`; before/after the route redraw: `img/route-redraw/`; the snapping,
   selecting carousel with the fit-all button: `img/ux-flows/01-trip-map-selected.png`. Pins 4 and 5 of the
   sample trip lie a few hundred metres apart, so they touch at the overview zoom; the selected pin is drawn on top
   and the carousel/pin tap zooms in (no pin clustering).
@@ -333,6 +369,9 @@ The picker returns its result to the step form through the previous screen's sav
 * **Behaviour:** tap a trip's line or dots → that trip is selected (wider line, on top, card
   scrolled into view and highlighted); tap a card → Trip detail. No trips: "Chưa có chuyến đi nào để
   hiện trên bản đồ."
+* **"Vị trí của tôi" (R22):** the same round button at the bottom right above the carousel, same
+  flow and messages as §4; the camera flies to the device (zoom ≥ 15) and the blue dot is drawn above the
+  trip lines. Screen: `img/my-location/02-my-map-my-location.png`.
 * **Screen:** `img/26-my-map.png`.
 * **Inspired by:** polarsteps' world map of all trips (docs/22). **Changed:** totals limited to
   what works offline — no countries/provinces (needs geocoding), no world-percentage.
@@ -583,6 +622,14 @@ The picker returns its result to the step form through the previous screen's sav
 | ux-flows/05-from-photos-intro.png | "Thêm điểm dừng từ ảnh" intro sheet before the file picker |
 | ux-flows/06-from-photos-discard.png | "Bỏ các điểm dừng gợi ý?" after Back from the review |
 | ux-flows/07-location-picker-chips.png | location picker: "Vị trí của tôi" + the trip's steps as chips |
+| my-location/01-trip-map-my-location.png | trip map after "Vị trí của tôi" with `geo fix 105.85 21.03`: blue dot, camera on Hà Nội, the two stacked buttons |
+| my-location/02-my-map-my-location.png | Bản đồ của tôi, same fix |
+| my-location/03-accuracy-circle-80m.png | same, from a temporary build forcing accuracy = 80 m (the emulator's fixes carry none) to check the accuracy circle's size |
+| my-location/04-permission-explanation.png | permission revoked: "Dùng vị trí của bạn?" |
+| my-location/05-permission-denied-snackbar.png | "Don’t allow" in the system prompt: snackbar "Chưa được phép dùng vị trí của máy." + "Mở cài đặt" |
+| my-location/06-gps-card-guide-link.png | opened GPS card: record button and the "Ghi hành trình ổn định" link |
+| my-location/07-guide-auto-first-recording.png | the guide opened by itself at the first recording (Google emulator = general steps only) |
+| my-location/08-system-battery-settings.png | "Mở cài đặt pin của Lữ Trình" → system "App battery usage" |
 | ux-flows/08-from-photos-review.png | from-photos review: names "Điểm dừng HH:mm", "gần Phố cổ Đồng Văn, 0,2 km" with coordinates below, "Đổi vị trí" |
 
 ## Accessibility and UI tests

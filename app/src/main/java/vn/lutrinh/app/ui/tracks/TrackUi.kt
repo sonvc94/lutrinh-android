@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
 import kotlinx.coroutines.delay
+import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackStatus
@@ -112,14 +113,20 @@ fun RecordTrackControl(
     onNewTripAndRecord: () -> Unit = {},
     /** Start the recording as soon as the control is shown (once): "Tạo chuyến mới và ghi". */
     autoStart: Boolean = false,
+    /** R22: opens "Ghi hành trình ổn định"; called once, right after the very first recording starts. */
+    onOpenBatteryGuide: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val guideOnce = (context.applicationContext as LuTrinhApp).container.prefs.batteryGuideOnce
     var dialog by remember { mutableStateOf<TrackDialog?>(null) }
 
     fun startNow() {
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (!LocationManagerCompat.isLocationEnabled(lm)) dialog = TrackDialog.LOCATION_OFF
-        else TrackRecordingService.start(context, tripId)
+        else {
+            TrackRecordingService.start(context, tripId)
+            if (guideOnce.consume()) onOpenBatteryGuide()
+        }
     }
     // Notifications are asked once after location; recording also works when they are refused.
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { startNow() }

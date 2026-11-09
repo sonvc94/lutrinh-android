@@ -36,6 +36,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -63,7 +65,9 @@ import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.LocalPhoto
 import vn.lutrinh.app.ui.common.displayDateTime
+import vn.lutrinh.app.ui.common.MyLocationButton
 import vn.lutrinh.app.ui.common.factory
+import vn.lutrinh.app.ui.common.rememberMyLocation
 
 private const val CARD_WIDTH_DP = 260
 
@@ -76,6 +80,7 @@ fun TripMapScreen(
     onOpenOffline: () -> Unit,
     /** "Tạo chuyến mới và ghi" (R16, ended trips). */
     onNewTripAndRecord: () -> Unit = {},
+    onOpenBatteryGuide: () -> Unit = {},
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -88,6 +93,8 @@ fun TripMapScreen(
     var carouselDp by remember { mutableIntStateOf(0) }
 
     var fitAll by remember { mutableIntStateOf(0) }
+    val snackbar = remember { SnackbarHostState() }
+    val me = rememberMyLocation(snackbar)
 
     // A pin tap (or a settle below) selects a step: its card is centred.
     LaunchedEffect(selected, detail) {
@@ -110,6 +117,7 @@ fun TripMapScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(detail?.trip?.title ?: stringResource(R.string.trip_map_title), maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -141,6 +149,8 @@ fun TripMapScreen(
                 tracks = detail.trackLines,
                 stopSuggestions = detail.stopMarkers(),
                 fitAllSignal = fitAll,
+                myLocation = me.fix,
+                myLocationSignal = me.signal,
             )
             // "Ghi hành trình" (R16) floats top-right; the offline indicator sits top-left.
             RecordTrackControl(
@@ -149,6 +159,7 @@ fun TripMapScreen(
                 modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
                 compact = true,
                 ended = !detail.canRecord, onNewTripAndRecord = onNewTripAndRecord,
+                onOpenBatteryGuide = onOpenBatteryGuide,
             )
             if (detail.steps.isEmpty()) {
                 Surface(
@@ -157,13 +168,18 @@ fun TripMapScreen(
                     tonalElevation = 2.dp,
                 ) { Text(stringResource(R.string.trip_map_empty), Modifier.padding(12.dp)) }
             }
-            // "Xem toàn bộ hành trình": clears the selection and flies back to the whole route.
-            if (detail.steps.size > 1 || selected != null) {
-                SmallFloatingActionButton(
-                    onClick = { selected = null; fitAll++ },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = carouselDp.dp + 12.dp),
-                ) { Icon(Icons.Outlined.FitScreen, stringResource(R.string.trip_map_fit)) }
+            // "Vị trí của tôi" above "Xem toàn bộ hành trình" (clears the selection, flies back to the whole route).
+            Column(
+                Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = carouselDp.dp + 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MyLocationButton(me)
+                if (detail.steps.size > 1 || selected != null) {
+                    SmallFloatingActionButton(
+                        onClick = { selected = null; fitAll++ },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ) { Icon(Icons.Outlined.FitScreen, stringResource(R.string.trip_map_fit)) }
+                }
             }
             // One card is centred and snapped to; the padding lets the first and last one reach the centre.
             val sidePadding = ((LocalConfiguration.current.screenWidthDp - CARD_WIDTH_DP) / 2).coerceAtLeast(16).dp

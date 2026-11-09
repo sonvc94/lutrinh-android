@@ -238,6 +238,20 @@ the filled, numbered step pins. Drawn on the trip detail header map and the full
 suggestion's marker goes at once) and do not change the camera fit (the stays lie on the
 tracks, which the fit already includes). Screenshot: `img/stop-suggest/05-trip-map-markers.png`.
 
+### My location (R22, `map/MyLocationLayer.kt`)
+
+One GeoJSON source `my-location-src` (a single Point with property `r20`) and two circle layers,
+added by `TripMap` and `AllTripsMap` right above the tracks / stop suggestions and below the leg
+badges and step pins: `my-location-src-accuracy` (blue `#1A73E8`, opacity 0.16, 1 dp stroke at
+0.35; radius in dp = `accuracy / 0.07464 / cos(lat)` at zoom 20, interpolated with base 2 between
+zoom 0 → 0 and zoom 20) and `my-location-src-dot` (radius 8 dp, white 3 dp stroke). The source is
+the one fix of the last tap (`DeviceLocation.requestFix`: GPS with fine permission, else network,
+else last known); the MapLibre location component is **not** used (it keeps a provider running while
+the map is open, and a fix per tap is enough and light on battery). A new fix flies the camera to it
+(`MapConfig.MY_LOCATION_ZOOM` = 15, never zooming out; padding keeps it above the carousel) and, on
+the trip map, counts as the user's own move: the carousel re-measure does not re-fit afterwards.
+Android 12+ with only "approximate" location still gives a fix, with a larger accuracy circle.
+
 ## Static map for sharing (R18, `map/StaticTripMap.kt`, `map/MapFit.kt`)
 
 The "Ảnh dọc cho mạng xã hội" and "Trang xem offline" (04-business-rules.md R18) need the trip map as a bitmap,
@@ -280,6 +294,7 @@ Screens: `img/share-trip/06-airplane-image.png` (offline pack), `img/share-trip/
 | Picker opening | target point at zoom 13 (see R6 for which point); overview at zoom 5 when none |
 | Picker chip ("Vị trí của tôi" or one of the trip's steps) | fly to that point (`focusZoom`, ≥ 11) |
 | "Xem toàn bộ hành trình" (trip map) | clear the selection, fit all pins above the cards, zoom ≤ `FIT_MAX_ZOOM` (14) |
+| "Vị trí của tôi" (trip map, My map) | animate to the fix at zoom `max(current, 15)` (≤ 19), carousel padding kept |
 | Carousel swipe settles on a card | that card's step is selected and flown to like a pin tap |
 
 Animation length (`CameraMath.flyDurationMs`, tested in `CameraMathTest`):

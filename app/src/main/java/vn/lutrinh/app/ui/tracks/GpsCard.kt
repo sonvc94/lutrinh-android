@@ -3,17 +3,22 @@ package vn.lutrinh.app.ui.tracks
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material.icons.outlined.Route
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,6 +61,8 @@ fun GpsCard(
     onDismissStop: (StopSuggestion) -> Unit,
     /** Called when the card has just been opened by the user (the screen scrolls it to the top). */
     onOpened: () -> Unit = {},
+    /** R22: "Ghi hành trình ổn định" (link under the record control, and once after the first recording starts). */
+    onOpenBatteryGuide: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // Opened by "Tạo chuyến mới và ghi" so the permission dialogs of the control exist.
@@ -104,7 +111,13 @@ fun GpsCard(
                         onPause = onPause, onResume = onResume, onStop = onStop,
                         modifier = Modifier.fillMaxWidth(),
                         ended = ended, onNewTripAndRecord = onNewTripAndRecord, autoStart = autoStart,
+                        onOpenBatteryGuide = onOpenBatteryGuide,
                     )
+                    TextButton(onClick = onOpenBatteryGuide) {
+                        Icon(Icons.Outlined.BatteryChargingFull, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.battery_guide_link))
+                    }
                     TrackList(tracks, onDelete = onDeleteTrack)
                     StopSuggestionSection(
                         suggestions, steps = steps, galleryCounts = galleryCounts,

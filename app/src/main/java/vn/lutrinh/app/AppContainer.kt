@@ -2,6 +2,7 @@ package vn.lutrinh.app
 
 import android.content.Context
 import vn.lutrinh.app.data.GalleryReader
+import vn.lutrinh.app.data.LocalPrefs
 import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
 import vn.lutrinh.app.data.RoomStepRepository
@@ -56,6 +57,9 @@ class AppContainer(context: Context) {
     val deleteStep = DeleteStep(steps, photos)
     val setLegTransport = SetLegTransport(steps, clock)
     val deleteTrack = DeleteTrack(tracks, recorder)
+
+    /** On-device flags, e.g. whether the battery guide has been shown (R22). */
+    val prefs = LocalPrefs(context)
 
     val network = NetworkMonitor(context)
     val offlineMaps = OfflineMaps(context, network)

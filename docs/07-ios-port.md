@@ -59,6 +59,15 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 | UI tests | Compose `createAndroidComposeRule<MainActivity>` (`TripFlowsTest`: create/edit/delete trip, add step via a trip-step chip of the location picker, set a leg's mode from the timeline, open "Bản đồ của tôi"), finds nodes by Vietnamese text / content description | XCUITest with the same twelve flows (incl. the two "Bản đồ offline" ones, the "Ghi hành trình" button, "Gợi ý điểm dừng" on a trip with the sample track, extending the trip from a suggestion outside it and "Chia sẻ chuyến đi" showing both outputs); find by accessibility label (`app.buttons["Chuyến đi mới"]`, `"Bản đồ của tôi"`, `"Thêm từ ảnh"`) | give the FAB-equivalent buttons the same labels |
 | Picker language | `VietnameseLocale { … }` provides a `vi-VN` `LocalConfiguration` + resources **inside** the dialog content (a dialog window re-provides the device config) | `.environment(\.locale, Locale(identifier: "vi_VN"))` on the `DatePicker` (and the time picker); set `.environment(\.calendar, …)` with `firstWeekday = 2` for Monday-first weeks | device language must not change the picker |
 
+## My location and the battery guide (R22)
+
+| Android | iOS |
+| --- | --- |
+| "Vị trí của tôi" button: `DeviceLocation.requestFix` (one fix per tap) + two circle layers | `CLLocationManager.requestLocation()` once per tap with `requestWhenInUseAuthorization()`; draw the same two layers in MapLibre iOS (or `MLNUserLocation` with `showsUserLocation` only while the map is visible). Denied → the same snackbar-like banner with a button to `UIApplication.openSettingsURLString`; Location Services off (`CLLocationManager.locationServicesEnabled()` false) → same message |
+| Permission rationale dialog before the system prompt | Same text in an alert before the first `requestWhenInUseAuthorization()`; `NSLocationWhenInUseUsageDescription` carries the same sentence |
+| Guide "Ghi hành trình ổn định": manufacturer sections + "Mở cài đặt pin" | iOS has no OEM kill lists: show one screen of **Background App Refresh** (Settings › General › Background App Refresh) and **Low Power Mode** (Settings › Battery) guidance plus "Always"/"While Using" location notes when a recording needs the background; the button opens `UIApplication.openSettingsURLString` (there is no deep link to the battery page). `BatteryGuide.makerOf` is not needed; keep `ShowOnce` |
+| Shown once after the first recording starts (`LocalPrefs.battery_guide_seen`) | `UserDefaults` key `battery_guide_seen`, same `ShowOnce` rule: `consume()` is true once, opening the screen by hand also marks it seen |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;

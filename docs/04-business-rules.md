@@ -577,6 +577,49 @@ changes nothing`); `UseCasesTest.savingStepStoresPhotoSourcesAndKeepsThemOnEdit`
 access, denial, import and de-dup are checked by hand on the emulator with photos pushed into
 the gallery (`img/stop-photos/`, AGENTS.md "Test JPEGs").
 
+## R22 — My location on the maps and the battery guide ("Vị trí của tôi", "Ghi hành trình ổn định")
+
+Code: `ui/common/MyLocation.kt` (state + button + rationale), `ui/picker/DeviceLocation.kt`
+(`requestFix`), `map/MyLocationLayer.kt` (docs/05), `ui/tracks/BatteryGuideScreen.kt`,
+`domain/usecase/BatteryGuide.kt` (`BatteryGuide.makerOf`, `ShowOnce`), `data/LocalPrefs.kt`.
+
+**My location (trip map, My map)**
+
+* **One fix per tap.** Nothing is tracked while the screen is open and nothing is stored or sent;
+  the blue dot is the fix of the last tap and goes with the screen.
+* **Flow.** Tap → location permission granted (fine or coarse)? No: the explanation dialog "Dùng vị
+  trí của bạn?" (Hủy / Tiếp tục) → system prompt. Granted → location switched on in the system?
+  No: snackbar "Vị trí của máy đang tắt." + "Mở cài đặt" (location settings). Yes → one fix
+  (GPS if fine permission and enabled, else network, else last known); the dot + accuracy circle are
+  drawn and the camera flies there (zoom ≥ 15, never zooming out).
+* **Refused.** After the system prompt, still no permission: snackbar "Chưa được phép dùng vị trí
+  của máy." + "Mở cài đặt" (the app's details page). No fix: "Chưa xác định được vị trí của bạn…".
+* **Tap again** = a new fix and the camera re-centres. A tap while a fix is pending is ignored.
+* Never asks for background location (the manifest still removes it).
+
+**Battery guide**
+
+* **Section by maker** (`BatteryGuide.makerOf(Build.MANUFACTURER, Build.BRAND)`, case-insensitive,
+  trimmed): xiaomi/redmi/poco → Xiaomi; oppo/realme/oneplus → Oppo; samsung → Samsung;
+  vivo/iqoo → Vivo; anything else (or blank) → general steps only. The manufacturer is tried first,
+  then the brand (a Redmi reports manufacturer "Xiaomi"; some resellers set only the brand).
+* **Show once.** `ShowOnce.consume()` is true exactly once: the first time a recording actually
+  starts (permissions granted, location on) the guide screen opens by itself; `markSeen()` (the
+  guide opened from the GPS card) also uses it up. A recording that fails to start (location off,
+  permission refused) does not use it up. The flag lives in on-device preferences and is never
+  sent anywhere.
+* **Button.** "Mở cài đặt pin của Lữ Trình" opens the system battery-optimisation list
+  (`ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`), the app's details page if that fails. The
+  app never requests `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
+
+*Tests:* `BatteryGuideTest` (`xiaomi_family_shares_a_section`, `oppo_family_shares_a_section`,
+`samsung_and_vivo`, `others_and_blank_get_the_general_steps_only`,
+`matching_ignores_case_and_spaces`, `guide_opens_by_itself_only_the_first_time`,
+`opening_the_guide_by_hand_uses_up_the_automatic_one`,
+`a_flag_remembered_from_an_earlier_run_is_respected`). The location button, the permission
+dialog, the denied snackbar, the guide on the first and second recording and the settings button
+are checked by hand on the emulator (`img/my-location/`, `adb emu geo fix 105.85 21.03`).
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

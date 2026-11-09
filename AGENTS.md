@@ -8,7 +8,7 @@ No server, login or API in this phase.
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R19 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R19 and R22 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -27,6 +27,7 @@ app/src/main/java/vn/lutrinh/app/
             gallery photos of a stop = domain/usecase/StopPhotos.kt + data/GalleryReader.kt (R19)
   share/    TripExporter (files, FileProvider, ACTION_SEND, MediaStore) + SummaryImage (R18);
             rules in domain/usecase/TripShare.kt + TripPage.kt, map in map/StaticTripMap.kt
+  data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22)
   ui/       screens + view models; domain/usecase/DisplayFormat.kt has the km/duration/day formatters; ui/common/Common.kt has date helpers and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
@@ -127,3 +128,10 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   `/sdcard/Download/LuTrinh/*.html` (`adb pull`). The snapshotter cannot list style layers, so
   label ids for it are in `MapConfig.LABEL_LAYER_IDS` (change them with the style).
 * Polarsteps analysis docs (`/Volumes/wdblack/workspace/vietmap/vietmap/polarsteps/docs`) are reference only; write our own code and copy.
+* My location + battery guide (R22): `adb emu geo fix <lng> <lat>` then tap "Vị trí của tôi"; the fix
+  takes 3–8 s to arrive (screencap after a sleep). Emulator fixes carry no accuracy, so no accuracy
+  circle is drawn. The location permission on the AVD may be a "Only this time" grant (`ONE_TIME` in
+  `dumpsys package`): `pm grant` does not set it; to restore it revoke, tap the button and choose "Only
+  this time". `dumpsys activity activities` has no `mResumedActivity` on Android 16: grep
+  `topResumedActivity`. To re-test the one-time guide: `am force-stop`, then
+  `run-as vn.lutrinh.app rm shared_prefs/lutrinh_prefs.xml`.

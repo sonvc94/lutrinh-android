@@ -78,4 +78,7 @@ object MapConfig {
 
     /** Selecting a leg (its mode sheet opens) fits the leg, zoomed in at most this far. */
     const val LEG_FOCUS_MAX_ZOOM = 13.0
+
+    /** "Vị trí của tôi": the camera flies to the fix at this zoom at least (street scale), never zooming out. */
+    const val MY_LOCATION_ZOOM = 15.0
 }

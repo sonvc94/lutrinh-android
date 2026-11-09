@@ -28,6 +28,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -78,7 +80,9 @@ import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.dateRange
+import vn.lutrinh.app.ui.common.MyLocationButton
 import vn.lutrinh.app.ui.common.factory
+import vn.lutrinh.app.ui.common.rememberMyLocation
 import vn.lutrinh.app.ui.theme.Palette
 
 /** Trip colours on "Bản đồ của tôi" (R14): theme colours first, then distinct extras. */
@@ -135,6 +139,8 @@ fun MyMapScreen(
     var cardsDp by remember { mutableIntStateOf(0) }
     var statsDp by remember { mutableIntStateOf(0) }
     val data = (state as? Loadable.Ready)?.value
+    val snackbar = remember { SnackbarHostState() }
+    val me = rememberMyLocation(snackbar)
 
     LaunchedEffect(selected, data) {
         val idx = data?.trips?.indexOfFirst { it.id == selected } ?: -1
@@ -142,6 +148,7 @@ fun MyMapScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.my_map_title)) },
@@ -171,6 +178,8 @@ fun MyMapScreen(
                 fitExtraTopDp = statsDp,
                 fitExtraBottomDp = cardsDp,
                 tracks = data.tracks,
+                myLocation = me.fix,
+                myLocationSignal = me.signal,
             )
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -192,6 +201,7 @@ fun MyMapScreen(
                     tonalElevation = 2.dp,
                 ) { Text(stringResource(R.string.my_map_empty), Modifier.padding(16.dp)) }
             }
+            MyLocationButton(me, Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = cardsDp.dp + 12.dp))
             LazyRow(
                 state = listState,
                 contentPadding = PaddingValues(horizontal = 16.dp),

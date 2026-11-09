@@ -43,6 +43,7 @@ data class MapTrip(
 private const val SRC_TRIPS = "trips-src"
 private const val SRC_TRIP_STOPS = "trip-stops-src"
 private const val SRC_TRACKS = "all-tracks-src"
+private const val SRC_ME = "my-location-src"
 private const val LAYER_TRIPS_SHADOW = "trips-shadow-layer"
 private const val LAYER_TRIPS_CASING = "trips-casing-layer"
 private const val LAYER_TRIPS = "trips-layer"
@@ -63,6 +64,9 @@ fun AllTripsMap(
     fitExtraTopDp: Int = 0,
     /** Every recorded GPS track (R16), drawn above the trip lines and below the step dots. */
     tracks: List<TrackLine> = emptyList(),
+    /** "Vị trí của tôi": the fix to draw (null = none) and a counter whose change flies the camera to it. */
+    myLocation: MyLocationFix? = null,
+    myLocationSignal: Int = 0,
 ) {
     val context = LocalContext.current
     val mapView = rememberMapView()
@@ -110,6 +114,7 @@ fun AllTripsMap(
                             ),
                         )
                         style.addTrackLayers(SRC_TRACKS)
+                        style.addMyLocationLayers(SRC_ME)
                         style.addLayer(
                             CircleLayer(LAYER_TRIP_STOPS, SRC_TRIP_STOPS).withProperties(
                                 PropertyFactory.circleColor(Expression.toColor(Expression.get("color"))),
@@ -141,6 +146,8 @@ fun AllTripsMap(
                 state.trips = trips
                 state.tracks = tracks
                 state.selectedId = selectedId
+                state.myLocation = myLocation
+                state.myLocationSignal = myLocationSignal
                 val p = (fitPaddingDp * density).toInt()
                 state.padding = intArrayOf(p, p + (fitExtraTopDp * density).toInt(), p, p + (fitExtraBottomDp * density).toInt())
                 state.render(mapView)
@@ -158,6 +165,9 @@ private class AllTripsState {
     var trips: List<MapTrip> = emptyList()
     var tracks: List<TrackLine> = emptyList()
     var selectedId: String? = null
+    var myLocation: MyLocationFix? = null
+    var myLocationSignal: Int = 0
+    private var shownMyLocationSignal: Int = 0
     var padding: IntArray = intArrayOf(0, 0, 0, 0)
     private var fittedKey: Pair<List<GeoPoint>, List<Int>>? = null
 
@@ -193,6 +203,11 @@ private class AllTripsState {
         style.getSourceAs<GeoJsonSource>(SRC_TRIP_STOPS)?.setGeoJson(FeatureCollection.fromFeatures(stops))
         // Tracks are drawn but not fitted: the camera frames the trips (R14).
         style.getSourceAs<GeoJsonSource>(SRC_TRACKS)?.setGeoJson(tracks.toFeatureCollection())
+        style.showMyLocation(SRC_ME, myLocation)
+        if (myLocationSignal != shownMyLocationSignal) {
+            shownMyLocationSignal = myLocationSignal
+            myLocation?.let { flyToMyLocation(map, it, padding) }
+        }
         // Fit the whole drawn route (flight arcs included), not only the steps.
         val points = trips.flatMap { t ->
             if (t.points.size < 2) t.points
