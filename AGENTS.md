@@ -22,7 +22,8 @@ app/src/main/java/vn/lutrinh/app/
             OfflineConfig.kt (the ONLY place for offline areas/zooms/limits), OfflineMaps.kt,
             RouteLayers.kt (route + recorded-track layer stack), Pins.kt, MapLibre views
   tracking/ TrackRecordingService (location foreground service + notification); the logic is
-            domain/usecase/TrackLogic.kt + TrackRecorder.kt (R16, pure, unit-tested)
+            domain/usecase/TrackLogic.kt + TrackRecorder.kt (R16, pure, unit-tested);
+            stop suggestions from tracks = domain/usecase/StopSuggestions.kt (R17)
   ui/       screens + view models; ui/common/Common.kt has formatters and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
@@ -76,6 +77,9 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   `input keyevent 26`; back: `keyevent 224` + `wm dismiss-keyguard`. Process death:
   `am force-stop vn.lutrinh.app` (`am kill` does not kill a foreground service); the next start
   ends the track as interrupted. Notification shade: `cmd statusbar expand-notifications`.
+  Fix time is the wall clock (no fake time source), so a ≥ 20-min stay for stop suggestions (R17)
+  needs ~21 real minutes of fixes; alternate two points ~25 m apart every 60 s (a fix < 10 m from
+  the last is dropped). The "Thêm điểm dừng" FAB and the suggestion button share their text.
 * A Compose `Dialog` re-provides `LocalConfiguration`/`LocalContext`: locale overrides must go
   **inside** dialog content (see `VietnameseLocale`). Don't wrap the whole app: MapLibre's
   `MapView` needs the real Activity context.

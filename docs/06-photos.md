@@ -34,8 +34,8 @@ So "Thêm từ ảnh" (and only it — the step form keeps the Photo Picker):
    up in the "Ảnh không có vị trí" group that the user places on the map or skips (dates still
    work).
 3. Reads date + GPS of every photo (`data/PhotoMetaReader`, `ExifInterface` on the stream)
-   **before** import — the stored copy has its GPS stripped (R11). The values are only used for
-   grouping (R13) and never stored.
+   **before** import — the stored copy has its GPS stripped (R11). GPS is only used for
+   grouping (R13) and never stored; the date is stored as the photo's `takenAt` (below).
 4. On confirm, imports the kept photos exactly like the step form (below); unticked groups are
    never copied. The URIs are only used during this screen (no persisted permission).
 
@@ -110,6 +110,18 @@ with GPS was kept at 1200×900 with its EXIF minus the 4 GPS tags.
 *Inspired by* polarsteps docs/16 U5 (EXIF orientation → mirror/rotate matrix, re-encoding drops
 EXIF). *Changed:* own size limit (2560 px) and quality (85), one stored copy instead of
 thumbnails + original, small upright images are not re-encoded, GPS is removed explicitly.
+
+## Capture time (`photos.taken_at`, DB v4, R17)
+
+* Both import paths (step form "Thêm ảnh" and "Thêm từ ảnh") read the EXIF date of each picked
+  file with `PhotoMetaReader` **before** `PhotoStorage.import` — the stored copy may have no EXIF
+  (re-encoded, R11). Order of tags: `DateTimeOriginal`, then `DateTimeDigitized`, then `DateTime`;
+  the value is the camera's local wall-clock time, stored at minute precision. No date → null.
+  The Photo Picker URI still returns the date (only GPS is hidden), so no extra permission.
+* The time is attached to the photo row on save (R8) and kept when the step is edited. Photos
+  added before v4 keep null (their stored copies may carry no EXIF to read it back from).
+* Used only to count "N ảnh chụp lúc này" on a stop suggestion (R17); not shown elsewhere.
+* Sample data sets it from the step's arrival time plus a few minutes per photo.
 
 ## Lifecycle of a photo file
 

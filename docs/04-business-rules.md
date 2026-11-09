@@ -64,7 +64,7 @@ trip is in progress.
 ## R7 — Delete cascade
 
 * Deleting a **trip** deletes its steps, their photo rows **and the photo files**, and its
-  recorded tracks with their points (R16); a recording of that trip is stopped first.
+  recorded tracks with their points (R16) and stop decisions (R17); a recording of that trip is stopped first.
 * Deleting a **step** deletes its photo rows and files; other steps are untouched.
 * Order: the database transaction runs first and returns the file names that were attached;
   the files are deleted afterwards. A crash between the two leaves orphan files (harmless, can be
@@ -80,13 +80,15 @@ trip is in progress.
 The step form edits a list of file names; on save:
 
 * Duplicates are removed (first occurrence wins); positions are renumbered 0..n-1 in list order.
-* A photo already attached to the step keeps its `id` and `createdAt` (matched by file name).
+* A photo already attached to the step keeps its `id`, `createdAt` and `takenAt` (matched by file
+  name); a new photo gets `takenAt` from its EXIF date read before import (R17, docs/06).
 * Photos removed from the list lose their row **and file** after the save commits.
 * Position 0 is the step cover; tapping a thumbnail moves it to position 0.
 * At most 30 photos per step (`TOO_MANY_PHOTOS`).
 
 *Tests:* `UseCasesTest.savingStepNumbersPhotosAndKeepsIdsOfExistingOnes`,
-`RoomRepositoryTest.savingStepReplacesPhotosAndReportsRemovedFiles`.
+`RoomRepositoryTest.savingStepReplacesPhotosAndReportsRemovedFiles`,
+`UseCasesTest.savingStepStoresPhotoCaptureTimesAndKeepsThemOnEdit`.
 
 ## R9 — Unsaved imports
 
@@ -252,7 +254,8 @@ Constants live in `domain/usecase/TrackLogic.kt` (`TrackRules`); the iOS port co
 
 * **What.** A track is the real path of the traveller, recorded by GPS on demand and attached to
   a whole trip (data in docs/02 "Track"). It is separate from the planned route (R3): steps are
-  never created or moved from a track, and a track is never snapped to roads.
+  never created or moved by a track on their own (a user can add a step from a stop suggestion,
+  R17), and a track is never snapped to roads.
 * **Start.** Only from the UI, by "Ghi hành trình" on the trip detail or the trip map, for that
   trip. **One recording in the whole app**: while a track is open (recording or paused) other
   trips show "Đang ghi hành trình cho chuyến đi khác" instead of the button; a deleted trip
@@ -328,6 +331,70 @@ recording`, `a track deleted under the recorder ends the recording instead of cr
 `TripFlowsTest.tripDetail_showsTheRecordTrackControl`. Recording with simulated GPS, screen off,
 force-stop and offline drawing are checked by hand on the emulator (AGENTS.md "GPS on the
 emulator").
+
+## R17 — Stop suggestions ("Gợi ý điểm dừng")
+
+Constants live in `domain/usecase/StopSuggestions.kt` (`StopRules`); the iOS port copies them.
+Detection and filtering are pure (`StopDetection`, `StopSuggestions`).
+
+* **What.** Places where a finished track stayed a while are offered as steps the user may add.
+  Nothing is created without the user tapping "Thêm điểm dừng". Suggestions are derived, never
+  stored (docs/02 "Stop suggestions").
+* **Which tracks.** Only **ended** tracks of the trip (a recording or paused track suggests
+  nothing until it is stopped). Each track is scanned on its own.
+* **Stay** (`StopDetection.detect`). Points are ordered by (segment, time). From each point
+  (the anchor) the following points are taken while every one is within **150 m**
+  (`RADIUS_M`) of the anchor; if the last one is **≥ 20 min** (`MIN_DWELL_MS`) after the anchor,
+  those points are a stay and the scan continues after them, else the scan moves to the next
+  point. The time between the first and last point counts, not the number of points: the
+  recorder drops fixes closer than 10 m, so standing still stores one point and the next one is
+  the first fix after leaving.
+* **Pause gap.** Segments follow each other in time, so a pause between segments is a stay when
+  the last point before it and the first point after it are within 150 m and ≥ 20 min apart
+  (the same rule, no special case).
+* **Merge.** Two consecutive stays whose centres are ≤ 150 m apart with ≤ **10 min**
+  (`MERGE_MAX_GAP_MS`) between the end of one and the start of the next are one stay (a short
+  walk around the same place).
+* **Stay values.** Start/end = times of its first/last point; centre = mean of its points;
+  duration = end − start.
+* **Already a step** (`StopSuggestions.matchesStep`). A stay is not suggested when a step of the
+  trip is within **300 m** (`STEP_MATCH_RADIUS_M`) of its centre **and** that step's arrival
+  (local time, converted with the device zone) is between start − **60 min** and end + 60 min
+  (`STEP_MATCH_TIME_MS`).
+* **Decisions** (`StopSuggestions.isHidden`, stored in `stop_decisions`). "Bỏ qua" stores
+  `dismissed`: hidden for good (survives restarts). Saving the step editor opened by "Thêm điểm
+  dừng" stores `added` with the new step's id: hidden while that step exists, even if the user
+  moved it or changed its time; deleting that step brings the suggestion back. A decision hides a
+  stay of the same track whose window overlaps the decided window. Leaving the editor without
+  saving stores nothing. Deleting a track deletes its decisions.
+* **Recompute.** The list is recomputed whenever the trip's tracks, track points, steps or
+  decisions change: a track that ends (stop, or ended as interrupted at the next start) brings
+  its stays, a deleted track removes them, a saved/deleted step or a decision updates the list.
+* **Order and photos.** Oldest first (by start). Photo count = photos of any step of the trip
+  whose `takenAt` (minute precision) is between start and end, both truncated to the minute,
+  inclusive; photos without `takenAt` (added before DB v4) are not counted.
+* **Add** ("Thêm điểm dừng"). Opens the step editor (new step) prefilled: place = centre (the
+  picker shows it as the suggested place), date/time = start (local, minute), title = "Điểm dừng
+  HH:mm" of the start; note and photos empty. The usual step rules apply (R5 date inside the
+  trip, R6). Existing photos are not pre-selected (the editor only adds new files).
+* **Texts.** Card: "<day> · HH:mm–HH:mm" (local), "Dừng 35 phút" / "Dừng 1 giờ" / "Dừng 2 giờ 05
+  phút" (whole minutes, rounded down) · "N ảnh chụp lúc này" or "Không có ảnh chụp lúc này",
+  coordinates.
+
+*Tests:* `StopDetectionTest` (`standing still for 20 min or more is one stop`, `exactly 20 min is
+a stop, under 20 min is none`, `GPS jitter within the radius stays one stop`, `steady movement is
+never a stop`, `a pause between segments at the same place counts as a stop`, `a pause between
+far-apart positions is not a stop`, `two stays at the same place a few minutes apart merge into
+one`, `points are ordered by segment and time before detection`, `a stay near an existing step in
+place and time is not suggested`, `step arriving within an hour around the stay matches, later
+does not`, `a recording in progress suggests nothing`, `a dismissed stay stays hidden`, `an added
+stay is hidden while its step exists`, `photo count uses capture times inside the window`,
+`suggestions of several tracks are sorted by time`, `duration reads in minutes and hours`);
+`UseCasesTest.savingStepStoresPhotoCaptureTimesAndKeepsThemOnEdit`;
+`MigrationTest.version3UpgradesWithPhotoTimesAndStopDecisionsAndKeepsTracks`; UI:
+`TripFlowsTest.tripWithSampleTrack_showsStopSuggestions_andDismissHidesOne`. A real recording with
+a 20-min stay, accepting and dismissing are checked by hand on the emulator
+(`img/stop-suggest/`).
 
 ## Text rules
 

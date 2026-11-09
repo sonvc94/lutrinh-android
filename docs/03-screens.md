@@ -26,6 +26,7 @@ Trip list ──FAB "Chuyến đi mới"─────────────�
    ├─ ⋮ "Bản đồ offline" ─▶ Offline maps         │  tap leg chip ─▶ Leg mode sheet
    └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │
                                                  │  tap step ─▶ Step detail
+                                                 │  suggestion "Thêm điểm dừng" ─▶ Step form (create, prefilled)
 From photos ── file picker ─▶ review ── "Chọn trên bản đồ" ─▶ Location picker ─▶ back with point
 From photos ── "Tạo N điểm dừng" ─▶ back to Trip detail (toast "Đã tạo N điểm dừng từ ảnh")
 Step form ── "Chọn trên bản đồ"/"Đổi vị trí" ──▶ Location picker ── "Dùng vị trí này" ─▶ back with point
@@ -36,7 +37,7 @@ Trip map ── top-bar icon "Bản đồ offline" ─▶ Offline maps (with thi
 ```
 
 Route strings (Android, kept for deep links later): `trips`, `tripEdit?tripId=`, `trip/{tripId}`,
-`trip/{tripId}/map`, `trip/{tripId}/stepEdit?stepId=`, `trip/{tripId}/step/{stepId}`,
+`trip/{tripId}/map`, `trip/{tripId}/stepEdit?stepId=&stopTrack=&stopStart=&stopEnd=&lat=&lng=&title=` (the stop-suggestion arguments are optional, R17), `trip/{tripId}/step/{stepId}`,
 `trip/{tripId}/pick?stepId=&lat=&lng=`, `trip/{tripId}/step/{stepId}/photos?index=`, `myMap`,
 `trip/{tripId}/fromPhotos`, `offline?tripId=`. The leg mode sheet is a bottom sheet, not a route.
 The picker returns its result to the step form through the previous screen's saved state
@@ -51,7 +52,10 @@ The picker returns its result to the step form through the previous screen's sav
   in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Thêm tùy chọn") →
   "Bản đồ offline" (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
 * **Empty:** suitcase icon, "Chưa có chuyến đi nào" + invitation text; in debug builds a
-  "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip.
+  "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip; the
+  Hà Giang trip also gets an ended sample track on day 1 (08:10–15:50) with three stays — at Dốc
+  Bắc Sum, at Cổng Trời (matches that step, so not suggested) and a paused stay at Tam Sơn — so
+  "Gợi ý điểm dừng" shows two suggestions (R17).
 * **Screens:** `img/01-trip-list-empty.png`, `img/04-trip-list.png`, `img/15-trip-list-sample.png`,
   `img/17-trip-delete-confirm.png`, `img/18-trip-list-after-delete.png`.
 * **Inspired by:** polarsteps docs/22 §1.1 (Me tab trip cards, long-press sheet for trip settings).
@@ -129,11 +133,35 @@ The picker returns its result to the step form through the previous screen's sav
   (start / pause / stop, always with a notification), stored per trip as separate tracks, drawn
   apart from the planned route; no background-location permission, no automatic steps.
 
+## 3c. Stop suggestions — "Gợi ý điểm dừng" (R17)
+
+* **Where:** Trip detail, in the "Ghi hành trình" section right under the track list ("Hành trình
+  đã ghi"); hidden when there is nothing to suggest. On the Trip detail header map and the Trip
+  map each suggestion is also a marker: a white dot with a crimson ring on a soft crimson halo
+  (track colour, so it reads as "from the track", distinct from the numbered step pins;
+  05-map.md). Markers are not tappable.
+* **Content:** "Gợi ý điểm dừng (N)", the hint "Nơi hành trình đã dừng từ 20 phút trở lên mà
+  chưa có điểm dừng.", then one card per suggestion, oldest first: pin icon,
+  "<day> · HH:mm–HH:mm", "Dừng 35 phút · 2 ảnh chụp lúc này" (or "Không có ảnh chụp lúc này"),
+  the coordinates; buttons "Bỏ qua" (text) and "Thêm điểm dừng" (tonal).
+* **Thêm điểm dừng:** opens the Step form (§5) as a new step prefilled with "Điểm dừng HH:mm",
+  the stay's date/time and centre (shown on the location card; "Đổi vị trí" opens the picker there).
+  Saving adds the step to the timeline as usual and the card disappears (a stored `added`
+  decision); back without saving keeps the card.
+* **Bỏ qua:** the card disappears at once and stays hidden after restarts (stored `dismissed`).
+* **Screens:** `img/stop-suggest/01-trip-detail-suggestions.png`,
+  `img/stop-suggest/02-step-form-prefilled.png`, `img/stop-suggest/03-trip-with-new-step.png`,
+  `img/stop-suggest/04-dismissed-after-restart.png`, `img/stop-suggest/05-trip-map-markers.png`.
+* **Inspired by:** polarsteps' step suggestions from location tracking (its docs describe
+  suggestions after several hours of tracking). **Changed:** made from the user's own recorded
+  tracks only (no background tracking), shown as a list on the trip with explicit add / dismiss,
+  no place names (offline, no geocoding), our own thresholds (150 m, 20 min).
+
 ## 4. Trip map — full screen
 
 * **Content:** map (muted OpenFreeMap vector basemap, Vietnamese labels) with all pins + legs
   styled per stroke kind with a mode badge at each leg's middle (05-map.md), the recorded tracks
-  (crimson, under the badges and pins), the compact "Ghi hành trình" control at the top right
+  (crimson, under the badges and pins), stop-suggestion markers (§3c), the compact "Ghi hành trình" control at the top right
   (§3b), fitted to the whole
   route (camera rules) in the area above the card carousel, so no pin hides under a card; first
   pin white with a green ring (start), last pin clay (end); a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
@@ -186,7 +214,10 @@ The picker returns its result to the step form through the previous screen's sav
   đồ" / "Đổi vị trí"), Ngày đến + Giờ đến (Material pickers, Vietnamese), Ghi chú (multi-line), Ảnh (n) with
   "Thêm ảnh", thumbnails with a remove (×) button, first photo marked "Ảnh bìa"; tapping a photo
   makes it the cover.
-* **Defaults (new step):** R6 — date/time and the point where the picker opens.
+* **Defaults (new step):** R6 — date/time and the point where the picker opens. From a stop
+  suggestion (§3c, R17): name "Điểm dừng HH:mm", the stay's date/time and centre.
+* **Photo times:** each added photo's EXIF capture time is read before import and saved with the
+  photo (`takenAt`, docs/06); nothing is shown for it on this screen.
 * **Save:** top-bar "Lưu" and bottom button; errors per field. Edit mode also has delete.
 * **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`.
 * **Inspired by:** docs/22 §1.3 (New/Edit Step: map header with edit pencil, name, arrival date +
@@ -337,6 +368,11 @@ The picker returns its result to the step form through the previous screen's sav
 | gps-track/04-airplane-trip-map-track.png | airplane mode, app restarted: basemap from the offline pack + the track |
 | gps-track/05-track-list-interrupted.png | after a force-stop while recording: the track ended, "Dừng do ứng dụng bị đóng khi đang ghi" |
 | gps-track/06-my-map-track.png | "Bản đồ của tôi" zoomed to TP Hà Giang: the recorded track over the trip line |
+| stop-suggest/01-trip-detail-suggestions.png | a track recorded with `emu geo fix` (drive, then 22 min at one spot) ended: "Gợi ý điểm dừng" on the trip detail |
+| stop-suggest/02-step-form-prefilled.png | "Thêm điểm dừng" from a suggestion: step form with "Điểm dừng HH:mm", date/time and place prefilled |
+| stop-suggest/03-trip-with-new-step.png | after saving: the new step in the timeline, that suggestion gone |
+| stop-suggest/04-dismissed-after-restart.png | after "Bỏ qua" and a force-stop + restart: the dismissed suggestion still hidden |
+| stop-suggest/05-trip-map-markers.png | sample Hà Giang track on the trip map: suggestion markers (white dot, crimson ring and halo) |
 
 ## Accessibility and UI tests
 
@@ -347,8 +383,9 @@ The picker returns its result to the step form through the previous screen's sav
   on a device: create trip, edit trip, delete trip, add a step with the "Mã Pí Lèng" quick-place
   chip, set a leg's mode to "Xe máy" from the timeline (checked in the database), open "Bản đồ
   của tôi" from the list, open "Bản đồ offline" from the list menu (ready-made regions listed) and
-  from a trip map ("Tải vùng của chuyến đi này"), and check that a trip shows the "Ghi hành
-  trình" button (not tapped: it would raise the system location prompt). They find nodes by the Vietnamese texts/labels above (changing a string means updating the
+  from a trip map ("Tải vùng của chuyến đi này"), check that a trip shows the "Ghi hành
+  trình" button (not tapped: it would raise the system location prompt), and open a trip with the
+  sample track: "Gợi ý điểm dừng (3)", "Bỏ qua" one → "(2)" and a stored decision. They find nodes by the Vietnamese texts/labels above (changing a string means updating the
   test) and delete every trip whose title starts with `UITEST` afterwards. Run with
   `./gradlew connectedDebugAndroidTest` (needs network for tiles only cosmetically; the picker
   centre updates without tiles).

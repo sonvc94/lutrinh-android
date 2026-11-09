@@ -133,7 +133,8 @@ selected leg rice gold `#E0A526`. Selected features have `line-sort-key` 2 (draw
 | 63 | `steps-layer` | | symbol, step pins; `icon-allow-overlap` on (no pin ever hides), `symbol-sort-key` puts the selected pin, then start/end, on top |
 
 Recorded tracks (R16) sit between the route and the badges: `track-casing` and `track-line`
-(see "Recorded tracks" below), so pins and badges stay on top of them.
+(see "Recorded tracks" below), then the stop-suggestion markers (R17) `stop-suggest-halo` and
+`stop-suggest-dot` (see "Stop suggestions" below), so pins and badges stay on top of them.
 
 Pins and badges scale with zoom: `icon-size` 0.75 at z4, 0.9 at z8, 1 from z10.
 MapLibre's `line-dasharray` is **not** data-driven, so each stroke kind is its own layer
@@ -214,6 +215,25 @@ are not tappable. The step map and location picker draw no tracks.
   including a downloaded offline area (R15) with no network (`img/gps-track/04-airplane-trip-map-track.png`).
 * Screenshots: `img/gps-track/03-trip-map-track.png`, `img/gps-track/06-my-map-track.png`,
   `img/gps-track/02-trip-detail-recording.png`.
+
+### Stop suggestions (R17)
+
+`RouteLayers.kt` `addStopSuggestionLayers` + `List<StopMarker>.toStopFeatureCollection`: one
+GeoJSON source `stop-suggest-src` with one Point per current suggestion (its centre), property
+`key` (`<trackId>@<startAt>`). Two circle layers right above `track-line`, below the leg badges
+and step pins:
+
+| Layer id | Paint (radius dp at z5 / z10 / z14) |
+| --- | --- |
+| `stop-suggest-halo` | crimson `#D7263D` fill, opacity 0.16, radius 7 / 11 / 18, 1 dp crimson stroke at opacity 0.5 |
+| `stop-suggest-dot` | white fill, radius 3.5 / 5 / 6, 2.5 dp crimson stroke |
+
+Track colour on a soft halo says "found on your track"; a hollow white dot cannot be mistaken for
+the filled, numbered step pins. Drawn on the trip detail header map and the full trip map only
+(not on Bản đồ của tôi, the step map or the picker). Not tappable; the list on the trip detail
+(docs/03 §3c) is where the user acts. The markers follow the list (a dismissed or added
+suggestion's marker goes at once) and do not change the camera fit (the stays lie on the
+tracks, which the fit already includes). Screenshot: `img/stop-suggest/05-trip-map-markers.png`.
 
 ## Camera rules
 
