@@ -6,6 +6,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.PhotoSource
 import vn.lutrinh.app.domain.usecase.DeleteStep
 import vn.lutrinh.app.domain.usecase.DeleteTrip
 import vn.lutrinh.app.domain.usecase.SaveResult
@@ -147,6 +148,15 @@ class UseCasesTest {
         assertEquals(listOf(taken, null), store.getStep(id)!!.photos.map { it.takenAt })
         saveStep(tripId, id, stepInput(photos = listOf("b.jpg", "a.jpg", "c.jpg")))
         assertEquals(listOf(null, taken, null), store.getStep(id)!!.photos.map { it.takenAt })
+    }
+
+    @Test fun savingStepStoresPhotoSourcesAndKeepsThemOnEdit() = runTest {
+        val tripId = newTrip()
+        val source = PhotoSource("1234", 2_048_000)
+        val id = (saveStep(tripId, null, stepInput(photos = listOf("a.jpg", "b.jpg")).copy(photoSources = mapOf("a.jpg" to source))) as SaveResult.Saved).id
+        assertEquals(listOf("1234" to 2_048_000L, null to null), store.getStep(id)!!.photos.map { it.sourceId to it.sourceSize })
+        saveStep(tripId, id, stepInput(photos = listOf("b.jpg", "a.jpg")))
+        assertEquals(listOf(null to null, "1234" to 2_048_000L), store.getStep(id)!!.photos.map { it.sourceId to it.sourceSize })
     }
 
     @Test fun deleteStepRemovesItsPhotoFilesOnly() = runTest {

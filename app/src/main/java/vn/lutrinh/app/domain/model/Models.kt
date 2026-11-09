@@ -87,4 +87,15 @@ data class Photo(
      * DB version 4). Used to count photos in a stop suggestion's window (R17).
      */
     val takenAt: LocalDateTime? = null,
+    /**
+     * Where the file was copied from, to avoid offering the same gallery photo twice (R19, DB
+     * version 5): the gallery's id of the original (Android MediaStore `_ID`, iOS PHAsset
+     * `localIdentifier`), or null when unknown (Photo Picker, older photos).
+     */
+    val sourceId: String? = null,
+    /** Byte size of the original file, or null when unknown (R19, DB version 5). */
+    val sourceSize: Long? = null,
 )
+
+/** Origin of a newly imported photo file (R19): gallery id and original byte size, each may be unknown. */
+data class PhotoSource(val id: String? = null, val sizeBytes: Long? = null)

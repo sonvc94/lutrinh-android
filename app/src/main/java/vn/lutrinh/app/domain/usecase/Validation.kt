@@ -1,6 +1,7 @@
 package vn.lutrinh.app.domain.usecase
 
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.PhotoSource
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -38,6 +39,8 @@ data class StepInput(
     val photoFiles: List<String>,
     /** EXIF capture time of newly imported files (R17); files not in the map keep what they had. */
     val photoTakenAt: Map<String, LocalDateTime> = emptyMap(),
+    /** Origin of newly imported files (R19 de-duplication); files not in the map keep what they had. */
+    val photoSources: Map<String, PhotoSource> = emptyMap(),
 )
 
 enum class StepError {

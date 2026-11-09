@@ -89,6 +89,8 @@ class SaveStep(
                 ?: Photo(
                     id = ids.newId(), stepId = id, fileName = file, position = index, createdAt = now,
                     takenAt = input.photoTakenAt[file],
+                    sourceId = input.photoSources[file]?.id,
+                    sourceSize = input.photoSources[file]?.sizeBytes,
                 )
         }
         val step = Step(

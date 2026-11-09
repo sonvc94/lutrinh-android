@@ -1,6 +1,7 @@
 package vn.lutrinh.app
 
 import android.content.Context
+import vn.lutrinh.app.data.GalleryReader
 import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
 import vn.lutrinh.app.data.RoomStepRepository
@@ -40,6 +41,8 @@ class AppContainer(context: Context) {
     val steps = RoomStepRepository(db)
     val photos = PhotoStorage(context)
     val photoMeta = PhotoMetaReader(context)
+    /** Gallery photos of a stop (R19); read-only. */
+    val gallery = GalleryReader(context)
     val tracks = RoomTrackRepository(db)
     val stopDecisions = RoomStopDecisionRepository(db)
 

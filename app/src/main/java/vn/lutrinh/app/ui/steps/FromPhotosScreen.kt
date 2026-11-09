@@ -188,14 +188,17 @@ class FromPhotosViewModel(private val c: AppContainer, handle: SavedStateHandle)
             for (sg in s.toCreate) {
                 val files = mutableListOf<String>()
                 val takenAt = mutableMapOf<String, java.time.LocalDateTime>()
+                val sources = mutableMapOf<String, vn.lutrinh.app.domain.model.PhotoSource>()
                 for (p in sg.photos) {
-                    val name = c.photos.import(Uri.parse(p.key))
+                    val uri = Uri.parse(p.key)
+                    val name = c.photos.import(uri)
                     if (name == null) failedPhotos++ else {
                         files += name
                         p.takenAt?.let { takenAt[name] = it } // R17: the stored copy has no EXIF
+                        sources[name] = c.gallery.sourceOf(uri) // R19: not offered again from the gallery
                     }
                 }
-                val input = StepInput(sg.title, "", sg.location, sg.arrivedAt, files, takenAt)
+                val input = StepInput(sg.title, "", sg.location, sg.arrivedAt, files, takenAt, sources)
                 when (c.saveStep(tripId, null, input)) {
                     is SaveResult.Saved -> saved++
                     is SaveResult.Invalid -> { failedSteps++; c.photos.delete(files) }

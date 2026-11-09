@@ -6,8 +6,14 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Offline maps (R15): know when the device is offline to show the offline indicator. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- No storage/media read permission: step photos come from the system Photo Picker.
-         "Thêm từ ảnh" (R13) opens the system file picker and needs this permission to read the
+    <!-- Step photos come from the system Photo Picker (no permission).
+         "Ảnh chụp trong lúc dừng" (R19) reads the gallery for photos taken during a stop
+         suggestion: asked only from that section, after an explanation; Android 14+ partial
+         access (selected photos) is accepted. Nothing is copied until the step is saved. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <!-- "Thêm từ ảnh" (R13) opens the system file picker and needs this permission to read the
          GPS position in the photos' EXIF (Android 10+ redacts it otherwise). The stored copies
          are still saved without location (R11). -->
     <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />

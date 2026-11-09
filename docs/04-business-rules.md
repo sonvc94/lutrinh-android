@@ -377,7 +377,8 @@ Detection and filtering are pure (`StopDetection`, `StopSuggestions`).
 * **Add** ("Thêm điểm dừng"). Opens the step editor (new step) prefilled: place = centre (the
   picker shows it as the suggested place), date/time = start (local, minute), title = "Điểm dừng
   HH:mm" of the start; note and photos empty. The usual step rules apply (R5 date inside the
-  trip, R6). Existing photos are not pre-selected (the editor only adds new files).
+  trip, R6). Photos already in the trip are never moved into it; photos in the phone's gallery
+  taken during the stop are offered, ticked, in "Ảnh chụp trong lúc dừng" (R19).
 * **Add outside the trip's dates (extends the trip).** A suggestion can lie outside the trip's
   dates (a track recorded on a day the trip does not cover). Only for a step from a suggestion,
   when "Lưu" fails with nothing but `BEFORE_TRIP_START` / `AFTER_TRIP_END`, the editor asks:
@@ -481,6 +482,67 @@ and `map/StaticTripMap.kt` (docs/05 "Static map for sharing", docs/06 "Export").
 `mapFitFollowsTheCameraRules`); UI: `TripFlowsTest.shareTrip_fromTheTripScreen_offersImageAndPage`.
 The rendered image, the page in a browser, the share sheet, saving and airplane mode are checked
 by hand on the emulator (`img/share-trip/`).
+
+## R19 — Gallery photos of a stop ("Ảnh chụp trong lúc dừng")
+
+Code: `domain/usecase/StopPhotos.kt` (pure: window, de-dup, offer, `GallerySelection`),
+`data/GalleryReader.kt` (MediaStore, permissions), `ui/steps/StopPhotosUi.kt` + `StepEditViewModel`.
+
+* **Where.** Only in the step editor opened with "Thêm điểm dừng" from a stop suggestion (R17).
+  Manual new steps, step edits and "Thêm từ ảnh" have no such section.
+* **Window.** From the stay's start − 10 min to its end + 10 min, both converted to the device's
+  local time and truncated to the minute; inclusive at both ends (a photo at 09:50:59 is inside a
+  window ending 09:50). Times are compared as local wall clock, like `takenAt` (docs/06).
+* **Capture time of a gallery photo.** Read like at import: EXIF `DateTimeOriginal`, else
+  `DateTimeDigitized`, else `DateTime` (local wall clock, to the minute); else the gallery's own
+  date taken (Android `DATE_TAKEN`, iOS `creationDate`) in the device zone. No date → never
+  offered.
+* **Already in the trip (never offered twice).** A gallery photo is skipped when a photo of any
+  step of this trip has the same `sourceId` (gallery id), or the same `takenAt` minute **and** the
+  same `sourceSize` (original byte size; both must be known on both sides). The second test covers
+  photos added with the Photo Picker, which gives no gallery id. Photos imported before DB v5
+  have neither and so cannot be recognised (they may be offered once more).
+* **Offer.** Inside the window, not already in the trip, each gallery id once; oldest first (ties
+  by id). Video and cloud-only items are not read.
+* **Selection.** Every offered photo starts ticked; a tap unticks / reticks. Only the unticks are
+  remembered, so a refresh (screen resumed, more access granted) keeps them and newly visible
+  photos arrive ticked; unticks of photos no longer offered are forgotten.
+* **Import on save.** "Lưu" first copies the ticked photos exactly like picked photos (R11: copy
+  into app storage, re-encoded, EXIF/GPS stripped; `takenAt` = their capture time;
+  `sourceId` = gallery id; `sourceSize` = gallery size), appended after the step's "Ảnh (n)"
+  photos, then saves the step (R8). The 30-photo limit counts both (`TOO_MANY_PHOTOS`, nothing
+  copied). If one cannot be read, nothing is saved and "Không đọc được N ảnh" is shown (untick it
+  and save again). Files copied for a save that then failed validation or waits for the
+  "Kéo dài chuyến đi?" dialog (R17) are reused by the next "Lưu", not copied again; back without
+  saving deletes them (R9). Nothing is copied before "Lưu".
+* **Source on other imports.** Since v5 every import records `sourceSize`, and `sourceId` when the
+  URI names a gallery item ("Thêm từ ảnh" documents `image:<id>`); Photo Picker imports have only
+  the size.
+* **Permission.** Nothing is asked until the user taps "Cho phép xem ảnh" under the explanation.
+  Android 13+: `READ_MEDIA_IMAGES` (+ `READ_MEDIA_VISUAL_USER_SELECTED` on 14+, so the system
+  offers "Allow limited access"); ≤ 12: `READ_EXTERNAL_STORAGE`. Full = all photos; partial
+  (14+, only `READ_MEDIA_VISUAL_USER_SELECTED` granted) = only the photos the user selected, plus
+  "Chọn thêm ảnh" which asks again; denied = the note, and the Photo Picker "Thêm ảnh" still
+  works. The access is re-checked whenever the editor or the trip screen resumes (a revoke in
+  Settings takes effect at once). Never asked for video, location in media (that stays "Thêm từ
+  ảnh"'s `ACCESS_MEDIA_LOCATION`, R13) or anything in the background.
+* **Count on the suggestion card.** With full or partial access the card adds "N ảnh trong máy"
+  = the number this rule would offer for that suggestion now (0 included); without access
+  nothing is added and nothing is asked from the trip screen.
+
+*Tests:* `StopPhotosTest` (`window is ten minutes before the start to ten minutes after the end, to
+the minute`, `window bounds are inclusive and seconds do not matter`, `window uses the given zone
+for track instants`, `query range covers the window with a day of slack each side`, `only photos
+with a capture time inside the window are offered, oldest first`, `a gallery photo already in the
+trip by id is not offered again`, `same capture minute and same original size counts as already
+imported`, `unknown size or time never matches by time and size`, `the same gallery id is offered
+once`, `every offered photo starts ticked and a tap unticks and reticks it`, `an untick survives a
+refresh, new photos arrive ticked, gone ones are forgotten`, `toggling a photo that is not offered
+changes nothing`); `UseCasesTest.savingStepStoresPhotoSourcesAndKeepsThemOnEdit`;
+`MigrationTest.version4UpgradesWithPhotoSourcesAndKeepsEverything`; UI:
+`TripFlowsTest.stopSuggestionEditor_showsGalleryPhotosOfTheStop`. The permission dialog, partial
+access, denial, import and de-dup are checked by hand on the emulator with photos pushed into
+the gallery (`img/stop-photos/`, AGENTS.md "Test JPEGs").
 
 ## Text rules
 

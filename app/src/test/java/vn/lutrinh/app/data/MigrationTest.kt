@@ -182,6 +182,40 @@ class MigrationTest {
         assertEquals(1, trips.observeTripSummaries().first().single().photoCount)
     }
 
+    @Test fun version4UpgradesWithPhotoSourcesAndKeepsEverything() = runTest {
+        createVersion(4)
+        SQLiteDatabase.openDatabase(ctx.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("UPDATE photos SET taken_at = '2025-10-20T12:07' WHERE id = 'p1'")
+            db.insert("tracks", null, ContentValues().apply {
+                put("id", "k1"); put("trip_id", "t1"); put("status", "ended"); put("started_at", 10L); put("ended_at", 20L)
+                put("active_ms", 10L); put("segment", 0); put("distance_m", 120.0); put("point_count", 1); put("interrupted", 0)
+                put("created_at", 10L); put("updated_at", 20L)
+            })
+            db.insert("track_points", null, ContentValues().apply {
+                put("track_id", "k1"); put("segment", 0); put("recorded_at", 11L); put("latitude", 22.82); put("longitude", 104.98)
+            })
+            db.insert("stop_decisions", null, ContentValues().apply {
+                put("track_id", "k1"); put("start_at", 11L); put("end_at", 19L); put("decision", "dismissed"); put("decided_at", 30L)
+            })
+        }
+        val db = open()
+        val steps = RoomStepRepository(db)
+
+        // Everything survives; the existing photo keeps its capture time and has no source.
+        assertEquals(listOf("s1", "s2"), steps.getSteps("t1").map { it.id })
+        val photo = steps.getStep("s2")!!.photos.single()
+        assertEquals(LocalDateTime.of(2025, 10, 20, 12, 7), photo.takenAt)
+        assertNull(photo.sourceId)
+        assertNull(photo.sourceSize)
+        assertEquals(1, RoomTrackRepository(db).observePoints("t1").first().size)
+        assertEquals(1, RoomStopDecisionRepository(db).observeDecisions("t1").first().size)
+
+        // The new columns are writable and read back.
+        steps.saveStep(steps.getStep("s2")!!.copy(photos = listOf(photo.copy(sourceId = "1234", sourceSize = 2_048_000))))
+        val stored = steps.getStep("s2")!!.photos.single()
+        assertEquals("1234" to 2_048_000L, stored.sourceId to stored.sourceSize)
+    }
+
     private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
         .addMigrations(*AppDatabase.MIGRATIONS)
         .allowMainThreadQueries()

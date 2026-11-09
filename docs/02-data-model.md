@@ -60,7 +60,9 @@ is `arrivalTransport` of step *i+1* (R12).
 | fileName | String | no | unique; name of the file in the app's private `photos/` folder (e.g. `3f2c….jpg`), never a path or URI |
 | position | Int | no | 0-based display order; position 0 = step cover |
 | createdAt | Instant | no | |
-| takenAt | LocalDateTime | yes | capture time from the picked file's EXIF (`DateTimeOriginal`, docs/06; local wall clock, minute precision), read **before** import because the stored copy has no EXIF (R11). Set for photos added since DB v4 (step editor and "Thêm từ ảnh") and in sample data; null for older photos and files without a date. Used only to count photos in a stop suggestion (R17); kept when the step is edited |
+| takenAt | LocalDateTime | yes | capture time from the picked file's EXIF (`DateTimeOriginal`, docs/06; local wall clock, minute precision), read **before** import because the stored copy has no EXIF (R11). Set for photos added since DB v4 (step editor and "Thêm từ ảnh") and in sample data; null for older photos and files without a date. Used to count photos in a stop suggestion (R17) and to recognise a gallery photo already in the trip (R19); kept when the step is edited |
+| sourceId | String | yes | (v5, R19) the phone gallery's id of the original (Android MediaStore `_ID`, iOS PHAsset `localIdentifier`) when the photo came from "Ảnh chụp trong lúc dừng" or "Thêm từ ảnh"; null for Photo Picker imports (the picker gives no id), older photos and sample data. Only used so the same gallery photo is not offered twice (R19) |
+| sourceSize | Long | yes | (v5, R19) byte size of the original file as picked (before re-encoding, R11); recorded for every import since v5, null before. With `takenAt` it recognises a Photo Picker import of the same gallery photo (R19) |
 
 ## Track (a recorded GPS track, "Ghi hành trình", R16)
 
@@ -112,7 +114,9 @@ track that ends or is deleted updates the list at once). Code: `domain/model/Sto
 | pointCount | Int | points in the stay (≥ 1; a pause gap gives 2) |
 
 `StopSuggestion` = a dwell + `photoCount` (photos of the trip whose `takenAt` lies inside the
-window, R17).
+window, R17). The trip card's "N ảnh trong máy" and the editor's "Ảnh chụp trong lúc dừng" (R19)
+are read live from the phone's gallery and never stored; only the photos the user saves become
+`Photo` rows (with `sourceId` / `sourceSize`).
 
 ### StopDecision (stored, v4)
 
@@ -127,20 +131,20 @@ overlaps (`startAt..endAt`), so a small change of the detection keeps old decisi
 | stepId | String | yes | the step created (`added` only); not a foreign key: deleting that step brings the suggestion back (R17) |
 | decidedAt | Instant (epoch ms) | no | |
 
-## Storage (Android: SQLite via Room, database `lutrinh.db`, version 4)
+## Storage (Android: SQLite via Room, database `lutrinh.db`, version 5)
 
 | Table | Columns | Keys / indexes |
 | --- | --- | --- |
 | `trips` | id TEXT PK, title, description, start_date TEXT `yyyy-MM-dd`, end_date TEXT nullable, created_at INTEGER, updated_at INTEGER | — |
 | `steps` | id TEXT PK, trip_id TEXT, title, note, latitude REAL, longitude REAL, arrived_at TEXT `yyyy-MM-dd'T'HH:mm`, created_at, updated_at, transport_mode TEXT nullable (v2) | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id), (trip_id, arrived_at) |
-| `photos` | id TEXT PK, step_id TEXT, file_name TEXT, position INTEGER, created_at INTEGER, taken_at TEXT `yyyy-MM-dd'T'HH:mm` nullable (v4) | FK step_id → steps.id ON DELETE CASCADE; index (step_id); UNIQUE (file_name) |
+| `photos` | id TEXT PK, step_id TEXT, file_name TEXT, position INTEGER, created_at INTEGER, taken_at TEXT `yyyy-MM-dd'T'HH:mm` nullable (v4), source_id TEXT nullable (v5), source_size INTEGER nullable (v5) | FK step_id → steps.id ON DELETE CASCADE; index (step_id); UNIQUE (file_name) |
 | `tracks` (v3) | id TEXT PK, trip_id TEXT, status TEXT, started_at INTEGER, ended_at INTEGER nullable, active_ms INTEGER, resumed_at INTEGER nullable, segment INTEGER, distance_m REAL, point_count INTEGER, interrupted INTEGER (0/1), created_at, updated_at | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id) |
 | `track_points` (v3) | id INTEGER PK AUTOINCREMENT, track_id TEXT, segment INTEGER, recorded_at INTEGER, latitude REAL, longitude REAL, accuracy_m REAL nullable, altitude_m REAL nullable, speed_mps REAL nullable | FK track_id → tracks.id ON DELETE CASCADE; index (track_id, segment, recorded_at) |
 | `stop_decisions` (v4) | track_id TEXT, start_at INTEGER, end_at INTEGER, decision TEXT, step_id TEXT nullable, decided_at INTEGER | PK (track_id, start_at); FK track_id → tracks.id ON DELETE CASCADE; index (track_id) |
 
 Dates are stored as ISO-8601 text so that text order equals time order (used by `ORDER BY` and by
 the step date range query) and the values are readable in any SQLite browser. The exported schemas
-are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 4.json).
+are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 5.json).
 Track times are epoch-millisecond integers (instants, not local times): a recording can cross time
 zones, and only durations and order matter. Each stored point is written in one transaction with
 its track's `distance_m` / `point_count` / `updated_at`, so a process death never leaves them out
@@ -153,6 +157,7 @@ of step.
 | 1 → 2 | leg transport (R12) | `ALTER TABLE steps ADD COLUMN transport_mode TEXT` (existing steps: null = not set) |
 | 2 → 3 | recorded tracks (R16) | `CREATE TABLE tracks …`, `CREATE TABLE track_points …` + their indexes (exact SQL = `3.json`); existing tables untouched |
 | 3 → 4 | stop suggestions (R17) | `ALTER TABLE photos ADD COLUMN taken_at TEXT` (existing photos: null = time unknown), `CREATE TABLE stop_decisions …` + `index_stop_decisions_track_id` (exact SQL = `4.json`) |
+| 4 → 5 | gallery photos of a stop (R19) | `ALTER TABLE photos ADD COLUMN source_id TEXT`, `ALTER TABLE photos ADD COLUMN source_size INTEGER` (existing photos: null = origin unknown) |
 
 * There is **no destructive fallback**: a missing migration crashes on open instead of wiping
   the user's trips. Each version bump adds `MIGRATION_x_y` to `AppDatabase.MIGRATIONS`, bumps
@@ -165,10 +170,15 @@ of step.
   the trip cascades to its tracks and points. `version3UpgradesWithPhotoTimesAndStopDecisionsAndKeepsTracks`
   builds a v3 file from `3.json` with a trip, step, photo, track and points, upgrades it, checks
   every row (old photo: `takenAt` null), stores a decision and checks that deleting the track
-  removes it. Also checked by hand: the main@b07fcf6 build with sample data, then the v2
+  removes it. `version4UpgradesWithPhotoSourcesAndKeepsEverything` builds a v4 file from `4.json`
+(trip, step, photo with `taken_at`, track, point, decision), upgrades it, checks every row (old
+photo: `sourceId` / `sourceSize` null, `takenAt` kept) and saves a photo with a source. Also checked by hand: the main@b07fcf6 build with sample data, then the v2
   build installed over it (`img/27-upgrade-before-v1.png`, `img/28-upgrade-after-v2.png`); and
   main@d96f285 (v3) with sample data + a recorded track, then the v4 build installed over it:
-  2 trips, 14 steps, 16 photos, 1 track, 6 points before and after (`pragma user_version` 3 → 4).
+  2 trips, 14 steps, 16 photos, 1 track, 6 points before and after (`pragma user_version` 3 → 4);
+and main@a664e3e (v4) with sample data, then the v5 build installed over it with `install -r`:
+2 trips, 14 steps, 16 photos, 1 track before and after, all 16 `taken_at` kept, `source_id`
+null (`pragma user_version` 4 → 5).
 
 Photo files live outside the database in `<app private files>/photos/<uuid>.<ext>` (`jpg` for
 re-encoded photos, `png` when transparent, otherwise the picked format — R11); the database

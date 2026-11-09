@@ -4,11 +4,12 @@
 
 * The step form's "Thêm ảnh" opens the **system photo picker** (Android Photo Picker via
   `PickMultipleVisualMedia`, images only, at most 30 per pick).
-* **No storage permission** is requested or declared. The picker runs in the system process and
-  grants the app temporary read access to the chosen items only. (Merged manifest permissions:
-  `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` — all for map tiles — plus
-  `ACCESS_MEDIA_LOCATION`, asked only by "Thêm từ ảnh" below; the location permissions MapLibre
-  would add are removed.)
+* **The picker needs no permission**: it runs in the system process and grants the app temporary
+  read access to the chosen items only. (Merged manifest permissions: `INTERNET`,
+  `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` — all for map tiles — plus `ACCESS_MEDIA_LOCATION`,
+  asked only by "Thêm từ ảnh" below, and since R19 `READ_MEDIA_IMAGES`,
+  `READ_MEDIA_VISUAL_USER_SELECTED` and `READ_EXTERNAL_STORAGE` (maxSdk 32), asked only by
+  "Ảnh chụp trong lúc dừng" below; the location permissions MapLibre would add are removed.)
 * On devices without the new picker, androidx falls back to the documents UI
   (`ACTION_OPEN_DOCUMENT`) automatically — still no permission.
 * Selection order is kept: the first picked photo becomes the step cover if the step had none.
@@ -111,6 +112,35 @@ with GPS was kept at 1200×900 with its EXIF minus the 4 GPS tags.
 EXIF). *Changed:* own size limit (2560 px) and quality (85), one stored copy instead of
 thumbnails + original, small upright images are not re-encoded, GPS is removed explicitly.
 
+### "Ảnh chụp trong lúc dừng" (gallery photos of a stop, R19)
+
+The step editor opened from a stop suggestion reads the phone's gallery itself (no picker), so it
+can show what was shot during the stop without the user searching for it.
+
+* **Access** (`data/GalleryReader.kt`): `READ_MEDIA_IMAGES` = full; on Android 14+ also
+  `READ_MEDIA_VISUAL_USER_SELECTED`, which alone = partial ("Allow limited access": MediaStore
+  returns only the photos the user selected; asking again re-opens the selection); ≤ 12
+  `READ_EXTERNAL_STORAGE`. Asked only after the in-app explanation and a tap on "Cho phép xem
+  ảnh"; checked again on every resume. Denied → the Photo Picker stays the way in. Images only.
+* **Query:** `MediaStore.Images.Media.EXTERNAL_CONTENT_URI`, columns `_ID`, `DATE_TAKEN`,
+  `DATE_MODIFIED`, `SIZE`, where `DATE_TAKEN` is within the stop window ± 26 h (`DATE_TAKEN` is an
+  instant MediaStore derived from the EXIF date; the slack absorbs any zone it guessed) **or
+  `DATE_TAKEN` is empty**, newest-modified first, at most 500 rows. Empty is common: MediaStore
+  leaves `DATE_TAKEN` NULL when the EXIF date has no offset and the file's modification time is
+  far from it — photos copied onto the phone later, and every photo `adb push`ed onto the AVD.
+* **Capture time** of each row: its EXIF (`DateTimeOriginal` → `DateTimeDigitized` → `DateTime`,
+  local wall clock, minute), read through the content URI and cached by `_ID` + `DATE_MODIFIED`;
+  else `DATE_TAKEN` in the device zone; else unknown (not offered). Then `StopPhotos.offer`
+  applies the exact window and the de-dup (R19).
+* **Thumbnails:** Coil loads the `content://media/external/images/media/<id>` URI directly; nothing
+  is written until "Lưu".
+* **Import:** the ticked URIs go through `PhotoStorage.import` like picked photos (R11: copy,
+  downscale, EXIF/GPS stripped), with `takenAt` = the capture time above, `sourceId` = `_ID`,
+  `sourceSize` = `SIZE`.
+* **Source of other imports** (`GalleryReader.sourceOf`): `OpenableColumns.SIZE` for every picked
+  URI; the gallery id when the URI names one (`…/images/media/<id>`, documents `image:<id>` from
+  "Thêm từ ảnh"); Photo Picker URIs give no id, so for them de-dup relies on capture minute + size.
+
 ## Capture time (`photos.taken_at`, DB v4, R17)
 
 * Both import paths (step form "Thêm ảnh" and "Thêm từ ảnh") read the EXIF date of each picked
@@ -120,7 +150,8 @@ thumbnails + original, small upright images are not re-encoded, GPS is removed e
   The Photo Picker URI still returns the date (only GPS is hidden), so no extra permission.
 * The time is attached to the photo row on save (R8) and kept when the step is edited. Photos
   added before v4 keep null (their stored copies may carry no EXIF to read it back from).
-* Used only to count "N ảnh chụp lúc này" on a stop suggestion (R17); not shown elsewhere.
+* Used to count "N ảnh chụp lúc này" on a stop suggestion (R17) and, with `sourceSize`, to
+  recognise a gallery photo already in the trip (R19); not shown elsewhere.
 * Sample data sets it from the step's arrival time plus a few minutes per photo.
 
 ## Lifecycle of a photo file
@@ -128,6 +159,7 @@ thumbnails + original, small upright images are not re-encoded, GPS is removed e
 | Event | File effect |
 | --- | --- |
 | Picked in the form | imported → `photos/x.jpg` (not yet in the database) |
+| Ticked in "Ảnh chụp trong lúc dừng" (R19) | nothing until "Lưu"; then imported like a picked photo just before the rows are written (a save that stops at validation or the extend dialog keeps the copies for the next "Lưu", or deletes them when the form is left) |
 | Removed (×) in the form before saving | stays until the form ends, then deleted (R9) |
 | Form saved | rows written; copies picked in this session but no longer in the list are deleted |
 | Form left without saving (Back → "Bỏ") or the process ends the screen | all copies of this session deleted (R9) |
@@ -178,6 +210,6 @@ caption) pushed into the emulator gallery, so that the real Photo Picker flow co
 
 ## Not done (later)
 
-Suggestions from the whole gallery without picking (needs broad media access), thumbnails (Coil decodes at view size from the 2560 px copy), videos,
+Gallery suggestions outside stop suggestions (manual steps, whole days), cloud-only and video items, thumbnails (Coil decodes at view size from the 2560 px copy), videos,
 camera capture, upload to a server (see 01-architecture.md), photo captions, sharing, removing
 location from XMP blocks (only EXIF GPS tags are removed).

@@ -66,27 +66,35 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
+import vn.lutrinh.app.data.GalleryAccess
+import vn.lutrinh.app.data.GalleryReader
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.model.PhotoSource
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.usecase.GallerySelection
 import vn.lutrinh.app.domain.usecase.Limits
+import vn.lutrinh.app.domain.usecase.PhotoWindow
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
 import vn.lutrinh.app.domain.usecase.SaveResult
 import vn.lutrinh.app.domain.usecase.StepError
 import vn.lutrinh.app.domain.usecase.StepInput
+import vn.lutrinh.app.domain.usecase.StopPhotos
 import vn.lutrinh.app.domain.usecase.StopSuggestions
 import vn.lutrinh.app.domain.usecase.TripDates
 import vn.lutrinh.app.domain.usecase.TripExtension
@@ -130,6 +138,20 @@ data class StepForm(
     val suggestedLocation: GeoPoint? = null,
     /** R17: asks whether to widen the trip for a step from a stop suggestion dated outside it. */
     val extendOffer: ExtendOffer? = null,
+    /** R19: "Ảnh chụp trong lúc dừng"; only for a step opened from a stop suggestion. */
+    val stopPhotos: StopPhotosState? = null,
+)
+
+/** Gallery photos taken during the stop (R19): access, ticks and the time window. */
+data class StopPhotosState(
+    val window: PhotoWindow,
+    val access: GalleryAccess = GalleryAccess.NONE,
+    /** The system permission request was shown from this editor (NONE afterwards = denied). */
+    val asked: Boolean = false,
+    val loading: Boolean = false,
+    /** True once the gallery was read with access (an empty grid then means "no photos"). */
+    val loaded: Boolean = false,
+    val selection: GallerySelection = GallerySelection(),
 )
 
 /** The trip dates now and the smallest dates that would hold the step (R17). */
@@ -141,7 +163,9 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
 
     /** Set when the editor was opened from "Thêm điểm dừng" on a stop suggestion (R17). */
     private val fromStop: StopPrefill? = StopPrefill.from(handle)
-    private val _form = MutableStateFlow(StepForm())
+    private val _form = MutableStateFlow(
+        StepForm(stopPhotos = fromStop?.let { StopPhotosState(StopPhotos.window(it.startAt, it.endAt, ZoneId.systemDefault())) }),
+    )
     val form = _form.asStateFlow()
 
     /** Files copied during this editing session; deleted again unless the step is saved with them. */
@@ -149,6 +173,13 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
 
     /** EXIF capture time of the files imported in this session (R17). */
     private val takenAtByFile = mutableMapOf<String, LocalDateTime>()
+
+    /** Gallery id / original size of the files imported in this session (R19 de-duplication). */
+    private val sourceByFile = mutableMapOf<String, PhotoSource>()
+
+    /** Gallery photo id -> file already copied for it in this session (a retried save reuses it, R19). */
+    private val galleryFiles = mutableMapOf<String, String>()
+    private var galleryJob: Job? = null
     private var finished = false
 
     init {
@@ -217,6 +248,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                     added += name
                     importedThisSession += name
                     meta.getOrNull(i)?.takenAt?.let { takenAtByFile[name] = it }
+                    sourceByFile[name] = c.gallery.sourceOf(uri) // R19: not offered again from the gallery
                 }
             }
             _form.update { it.copy(importing = false, importFailed = failed) }
@@ -228,11 +260,71 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
 
     fun makeCover(name: String) = edit { copy(photos = listOf(name) + (photos - name)) }
 
+    /**
+     * R19: reads which gallery photos of the stop may be offered (on open, on resume, after the
+     * permission answer). Without access the grid is empty and the section explains why.
+     */
+    fun refreshGallery() {
+        val window = _form.value.stopPhotos?.window ?: return
+        galleryJob?.cancel()
+        galleryJob = viewModelScope.launch {
+            val access = c.gallery.access()
+            if (access == GalleryAccess.NONE) {
+                updateStopPhotos { copy(access = access, loading = false, loaded = false, selection = selection.withPhotos(emptyList())) }
+                return@launch
+            }
+            updateStopPhotos { copy(access = access, loading = true) }
+            val candidates = c.gallery.candidates(window, ZoneId.systemDefault())
+            val tripPhotos = c.steps.getSteps(tripId).flatMap { it.photos }
+            val offered = StopPhotos.offer(candidates, window, tripPhotos)
+            updateStopPhotos { copy(loading = false, loaded = true, selection = selection.withPhotos(offered)) }
+        }
+    }
+
+    /** The system permission request is about to be shown (R19). */
+    fun galleryAccessRequested() = updateStopPhotos { copy(asked = true) }
+
+    fun toggleGalleryPhoto(id: String) = updateStopPhotos { copy(selection = selection.toggle(id)) }
+
+    private fun updateStopPhotos(change: StopPhotosState.() -> StopPhotosState) =
+        _form.update { f -> f.stopPhotos?.let { f.copy(stopPhotos = it.change()) } ?: f }
+
+    /**
+     * Copies the ticked gallery photos (R19) like picked ones (R11, capture time and source kept);
+     * returns their files in grid order, or null when the save must stop (too many photos, or a
+     * file could not be read: the user can untick it).
+     */
+    private suspend fun importTickedGalleryPhotos(f: StepForm): List<String>? {
+        val ticked = f.stopPhotos?.selection?.selected.orEmpty()
+        if (ticked.isEmpty()) return emptyList()
+        if (f.photos.size + ticked.size > Limits.PHOTOS_PER_STEP_MAX) {
+            _form.update { it.copy(errors = setOf(StepError.TOO_MANY_PHOTOS)) }
+            return null
+        }
+        _form.update { it.copy(importing = true, importFailed = 0) }
+        var failed = 0
+        for (g in ticked) {
+            if (g.id in galleryFiles) continue
+            val name = c.photos.import(Uri.parse(g.uri))
+            if (name == null) { failed++; continue }
+            galleryFiles[g.id] = name
+            importedThisSession += name
+            g.takenAt?.let { takenAtByFile[name] = it }
+            sourceByFile[name] = PhotoSource(g.id, g.sizeBytes)
+        }
+        _form.update { it.copy(importing = false, importFailed = failed) }
+        return if (failed > 0) null else ticked.mapNotNull { galleryFiles[it.id] }
+    }
+
     /** [extendTrip]: the user accepted widening the trip for this step (only offered from a stop suggestion). */
     fun save(extendTrip: Boolean = false) = viewModelScope.launch {
-        val f = _form.value
         _form.update { it.copy(extendOffer = null) }
-        val input = StepInput(f.title, f.note, f.location, LocalDateTime.of(f.date, f.time), f.photos, takenAtByFile.toMap())
+        val f = _form.value
+        val fromGallery = importTickedGalleryPhotos(f) ?: return@launch
+        val files = f.photos + fromGallery.filterNot { it in f.photos }
+        val input = StepInput(
+            f.title, f.note, f.location, LocalDateTime.of(f.date, f.time), files, takenAtByFile.toMap(), sourceByFile.toMap(),
+        )
         when (val r = c.saveStep(tripId, stepId, input, extendTrip && fromStop != null)) {
             is SaveResult.Saved -> {
                 finished = true
@@ -241,7 +333,7 @@ class StepEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                         StopDecision(stop.trackId, stop.startAt, stop.endAt, StopDecisionKind.ADDED, r.id, c.clock.nowMillis()),
                     )
                 }
-                c.photos.delete(importedThisSession - f.photos.toSet())
+                c.photos.delete(importedThisSession - files.toSet())
                 _form.update { it.copy(savedId = r.id, dirty = false) }
             }
             is SaveResult.Invalid -> {
@@ -324,6 +416,15 @@ fun StepEditScreen(
         ActivityResultContracts.PickMultipleVisualMedia(Limits.PHOTOS_PER_STEP_MAX),
     ) { uris -> vm.addPhotos(uris) }
 
+    // R19: gallery access for "Ảnh chụp trong lúc dừng"; re-read on every resume (settings may change).
+    val galleryPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        vm.refreshGallery()
+    }
+    LifecycleResumeEffect(Unit) {
+        vm.refreshGallery()
+        onPauseOrDispose { }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -391,6 +492,13 @@ fun StepEditScreen(
                     } else null,
                     modifier = Modifier.fillMaxWidth(),
                 )
+                f.stopPhotos?.let { sp ->
+                    StopPhotosSection(
+                        sp,
+                        onRequestAccess = { vm.galleryAccessRequested(); galleryPermission.launch(GalleryReader.permissions()) },
+                        onToggle = vm::toggleGalleryPhoto,
+                    )
+                }
                 PhotosSection(
                     f = f,
                     onAdd = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },

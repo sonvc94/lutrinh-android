@@ -34,6 +34,8 @@ import vn.lutrinh.app.ui.common.formatCoord
 @Composable
 fun StopSuggestionSection(
     suggestions: List<StopSuggestion>,
+    /** R19: gallery photos per [StopSuggestion.key] ("N ảnh trong máy"); empty without gallery access. */
+    galleryCounts: Map<String, Int> = emptyMap(),
     /** "Thêm điểm dừng": receives the suggestion and the default step title ("Điểm dừng 14:05"). */
     onAdd: (StopSuggestion, String) -> Unit,
     onDismiss: (StopSuggestion) -> Unit,
@@ -54,13 +56,13 @@ fun StopSuggestionSection(
             modifier = Modifier.padding(bottom = 6.dp),
         )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            suggestions.forEach { s -> SuggestionCard(s, onAdd, onDismiss) }
+            suggestions.forEach { s -> SuggestionCard(s, galleryCounts[s.key], onAdd, onDismiss) }
         }
     }
 }
 
 @Composable
-private fun SuggestionCard(s: StopSuggestion, onAdd: (StopSuggestion, String) -> Unit, onDismiss: (StopSuggestion) -> Unit) {
+private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, onAdd: (StopSuggestion, String) -> Unit, onDismiss: (StopSuggestion) -> Unit) {
     val start = s.dwell.startAt.localDateTime()
     val end = s.dwell.endAt.localDateTime()
     val defaultTitle = stringResource(R.string.stop_suggest_default_title, start.displayTime())
@@ -82,7 +84,8 @@ private fun SuggestionCard(s: StopSuggestion, onAdd: (StopSuggestion, String) ->
                             stringResource(R.string.stop_suggest_duration, StopFormat.duration(s.dwell.durationMs)),
                             if (s.photoCount > 0) stringResource(R.string.stop_suggest_photos, s.photoCount)
                             else stringResource(R.string.stop_suggest_no_photos),
-                        ).joinToString(" · "),
+                            galleryCount?.let { stringResource(R.string.stop_suggest_gallery, it) },
+                        ).filterNotNull().joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

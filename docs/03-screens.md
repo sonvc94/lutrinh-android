@@ -145,9 +145,12 @@ The picker returns its result to the step form through the previous screen's sav
 * **Content:** "Gợi ý điểm dừng (N)", the hint "Nơi hành trình đã dừng từ 20 phút trở lên mà
   chưa có điểm dừng.", then one card per suggestion, oldest first: pin icon,
   "<day> · HH:mm–HH:mm", "Dừng 35 phút · 2 ảnh chụp lúc này" (or "Không có ảnh chụp lúc này"),
+  then " · N ảnh trong máy" when the app may read the phone's gallery (R19: gallery photos of the
+  stop window not yet in the trip; "0 ảnh trong máy" too; nothing without access),
   the coordinates; buttons "Bỏ qua" (text) and "Thêm điểm dừng" (tonal).
 * **Thêm điểm dừng:** opens the Step form (§5) as a new step prefilled with "Điểm dừng HH:mm",
-  the stay's date/time and centre (shown on the location card; "Đổi vị trí" opens the picker there).
+  the stay's date/time and centre (shown on the location card; "Đổi vị trí" opens the picker there),
+  plus the section "Ảnh chụp trong lúc dừng" (§5, R19).
   Saving adds the step to the timeline as usual and the card disappears (a stored `added`
   decision); back without saving keeps the card.
   **Outside the trip's dates:** when the suggestion's day is before the trip's start or after its
@@ -164,7 +167,7 @@ The picker returns its result to the step form through the previous screen's sav
   `img/stop-suggest/04-dismissed-after-restart.png`, `img/stop-suggest/05-trip-map-markers.png`,
   `img/extend-dates/dialog-after-end.png`, `img/extend-dates/dialog-before-start.png`,
   `img/extend-dates/after-cancel.png`, `img/extend-dates/after-extend.png`,
-  `img/extend-dates/manual-edit-keeps-error.png`.
+  `img/extend-dates/manual-edit-keeps-error.png`, `img/stop-photos/06-card-gallery-count.png`.
 * **Inspired by:** polarsteps' step suggestions from location tracking (its docs describe
   suggestions after several hours of tracking). **Changed:** made from the user's own recorded
   tracks only (no background tracking), shown as a list on the trip with explicit add / dismiss,
@@ -266,14 +269,35 @@ The picker returns its result to the step form through the previous screen's sav
   makes it the cover.
 * **Defaults (new step):** R6 — date/time and the point where the picker opens. From a stop
   suggestion (§3c, R17): name "Điểm dừng HH:mm", the stay's date/time and centre.
+* **"Ảnh chụp trong lúc dừng" (only when opened from a stop suggestion, R19):** a card above
+  "Ảnh (n)": photo-library icon, title, "Ảnh trong máy chụp trong khoảng 08:50–09:36 (từ 10 phút
+  trước đến 10 phút sau lúc dừng)", then one of:
+  * **No access yet:** "Lữ Trình có thể tìm trong thư viện ảnh của máy những ảnh bạn chụp lúc
+    dừng ở đây. Ảnh chỉ được sao chép vào chuyến đi khi bạn bấm Lưu; không có gì được gửi đi."
+    and the tonal button "Cho phép xem ảnh" → the system dialog (Android 14+: "Allow limited
+    access / Allow all / Don’t allow"; 13: allow / don't allow; ≤ 12: storage).
+  * **Denied:** "Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh” bên
+    dưới." and a text button "Cho phép xem ảnh" (asks again; when the system no longer shows the
+    dialog nothing happens and the note stays). "Thêm ảnh" (Photo Picker) works as always.
+  * **Access:** "Đã chọn x/y ảnh · thêm vào điểm dừng khi lưu. Chạm để bỏ chọn." and a 3-column
+    grid of square thumbnails, oldest first, each with its time ("09:12") and a tick (filled
+    check = selected; unticked tiles are washed out with an empty circle). All start ticked; a tap
+    toggles (checkbox semantics, label "Ảnh lúc HH:mm"). None in the window: "Không có ảnh nào
+    trong máy chụp trong khoảng này."
+  * **Partial access (Android 14+):** the grid shows only the photos the user allowed, then "Bạn
+    chỉ cho phép xem một số ảnh." and "Chọn thêm ảnh" (re-opens the system dialog, where the user
+    can select more photos or allow all).
+  The section re-reads the gallery when the screen resumes (back from settings or the system
+  sheet). The ticked photos are copied into the step on "Lưu" (after the regular "Ảnh (n)"
+  photos); they are not shown in "Ảnh (n)" before that. Back without saving copies nothing.
 * **Photo times:** each added photo's EXIF capture time is read before import and saved with the
   photo (`takenAt`, docs/06); nothing is shown for it on this screen.
 * **Save:** top-bar "Lưu" and bottom button; errors per field. Edit mode also has delete.
-* **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`.
+* **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`, `img/stop-photos/01-…07-*.png`.
 * **Inspired by:** docs/22 §1.3 (New/Edit Step: map header with edit pencil, name, arrival date +
   time, media box, note). **Changed:** no "Publish / Save as draft" sheet (a step is saved
-  directly), no location search (offline: map + quick places), no "suggested photos from the step
-  date", no top spots/activities, default time 09:00 instead of 10:00, name typed by the user
+  directly), no location search (offline: map + quick places), suggested photos only for a step made
+  from a stop suggestion (its window, not the whole day), no top spots/activities, default time 09:00 instead of 10:00, name typed by the user
   instead of reverse-geocoded.
 
 ## 6. Location picker — "Chọn vị trí"
@@ -431,6 +455,13 @@ The picker returns its result to the step form through the previous screen's sav
 | share-trip/07-no-basemap.png | airplane mode, Ninh Bình (outside the pack): route on the plain background + the note |
 | share-trip/08-trip-list-card-menu.png | trip card ⋮ on the list: Sửa / Chia sẻ chuyến đi / Xóa |
 | stop-suggest/05-trip-map-markers.png | sample Hà Giang track on the trip map: suggestion markers (white dot, crimson ring and halo) |
+| stop-photos/01-editor-explain-access.png | "Thêm điểm dừng" from the 09:05 suggestion: "Ảnh chụp trong lúc dừng" explains, "Cho phép xem ảnh" |
+| stop-photos/02-system-permission-dialog.png | Android 16 dialog "Allow limited access / Allow all / Don’t allow" |
+| stop-photos/03-preselected-grid.png | after "Allow all": the 4 photos pushed inside 08:55–09:50 (08:58, 09:12, 09:31, 09:47), all ticked; 08:40 and 10:30 not offered |
+| stop-photos/04-one-unticked.png | 09:12 unticked: "Đã chọn 3/4" |
+| stop-photos/05-no-double-offer.png | an overlapping suggestion (window 08:50–09:36) after saving: only 09:12 offered (08:58 and 09:31 are in the trip) |
+| stop-photos/06-card-gallery-count.png | suggestion cards "… · 1 ảnh trong máy" / "· 0 ảnh trong máy" |
+| stop-photos/07-access-denied.png | media permission revoked, "Don’t allow": the note and "Thêm ảnh" below |
 
 ## Accessibility and UI tests
 
@@ -443,7 +474,8 @@ The picker returns its result to the step form through the previous screen's sav
   của tôi" from the list, open "Bản đồ offline" from the list menu (ready-made regions listed) and
   from a trip map ("Tải vùng của chuyến đi này"), check that a trip shows the "Ghi hành
   trình" button (not tapped: it would raise the system location prompt), and open a trip with the
-  sample track: "Gợi ý điểm dừng (3)", "Bỏ qua" one → "(2)" and a stored decision, and open
+  sample track: "Gợi ý điểm dừng (3)", "Bỏ qua" one → "(2)" and a stored decision, open "Thêm điểm dừng" from a suggestion with gallery access granted (the section "Ảnh chụp trong
+  lúc dừng" lists the stop's photos or says there are none, no "Cho phép xem ảnh"), and open
   "Chia sẻ chuyến đi" from a trip (both "Ảnh tóm tắt" and "Trang tóm tắt"; the page shows "Ẩn ghi chú"). They find nodes by the Vietnamese texts/labels above (changing a string means updating the
   test) and delete every trip whose title starts with `UITEST` afterwards. Run with
   `./gradlew connectedDebugAndroidTest` (needs network for tiles only cosmetically; the picker

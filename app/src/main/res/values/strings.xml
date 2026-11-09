@@ -214,6 +214,17 @@
     <string name="stop_suggest_duration">Dừng %1$s</string>
     <string name="stop_suggest_photos">%1$d ảnh chụp lúc này</string>
     <string name="stop_suggest_no_photos">Không có ảnh chụp lúc này</string>
+    <string name="stop_suggest_gallery">%1$d ảnh trong máy</string>
+    <string name="stop_photos_title">Ảnh chụp trong lúc dừng</string>
+    <string name="stop_photos_window">Ảnh trong máy chụp trong khoảng %1$s (từ 10 phút trước đến 10 phút sau lúc dừng)</string>
+    <string name="stop_photos_explain">Lữ Trình có thể tìm trong thư viện ảnh của máy những ảnh bạn chụp lúc dừng ở đây. Ảnh chỉ được sao chép vào chuyến đi khi bạn bấm Lưu; không có gì được gửi đi.</string>
+    <string name="stop_photos_allow">Cho phép xem ảnh</string>
+    <string name="stop_photos_denied">Chưa được phép xem thư viện ảnh. Bạn vẫn có thể chọn ảnh bằng nút “Thêm ảnh” bên dưới.</string>
+    <string name="stop_photos_none">Không có ảnh nào trong máy chụp trong khoảng này.</string>
+    <string name="stop_photos_selected">Đã chọn %1$d/%2$d ảnh · thêm vào điểm dừng khi lưu. Chạm để bỏ chọn.</string>
+    <string name="stop_photos_partial">Bạn chỉ cho phép xem một số ảnh.</string>
+    <string name="stop_photos_pick_more">Chọn thêm ảnh</string>
+    <string name="stop_photos_item">Ảnh lúc %1$s</string>
 
     <!-- Share a trip (R18) -->
     <string name="share_trip">Chia sẻ chuyến đi</string>

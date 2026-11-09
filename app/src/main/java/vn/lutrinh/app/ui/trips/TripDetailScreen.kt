@@ -4,6 +4,8 @@ import vn.lutrinh.app.domain.model.Dwell
 import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.StopSuggestion
+import vn.lutrinh.app.data.GalleryAccess
+import vn.lutrinh.app.domain.usecase.StopPhotos
 import vn.lutrinh.app.domain.usecase.StopSuggestions
 import vn.lutrinh.app.map.StopMarker
 import vn.lutrinh.app.ui.tracks.StopSuggestionSection
@@ -69,10 +71,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.Dispatchers
@@ -177,6 +183,32 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
     fun stopRecording() = c.appScope.launch { c.recorder.stop() }
     fun deleteTrack(trackId: String) = viewModelScope.launch { c.deleteTrack(trackId) }
 
+    private val galleryTick = MutableStateFlow(0)
+
+    /** Re-reads gallery access and photos (R19); called on every resume of the trip screen. */
+    fun refreshGallery() = galleryTick.update { it + 1 }
+
+    /**
+     * R19: per suggestion key, how many gallery photos the step editor would offer ("N ảnh trong
+     * máy"); empty without gallery access.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val galleryCounts: StateFlow<Map<String, Int>> =
+        combine(stopSuggestions, c.steps.observeSteps(tripId), galleryTick) { suggestions, steps, _ -> suggestions to steps }
+            .mapLatest { (suggestions, steps) ->
+                if (suggestions.isEmpty() || c.gallery.access() == GalleryAccess.NONE) emptyMap()
+                else {
+                    val zone = ZoneId.systemDefault()
+                    val tripPhotos = steps.flatMap { it.photos }
+                    suggestions.associate { sg ->
+                        val w = StopPhotos.window(sg.dwell.startAt, sg.dwell.endAt, zone)
+                        sg.key to StopPhotos.offer(c.gallery.candidates(w, zone), w, tripPhotos).size
+                    }
+                }
+            }
+            .catch { emit(emptyMap()) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     /** "Bỏ qua" (R17): hidden for good, also after a restart. */
     fun dismissStop(s: StopSuggestion) = viewModelScope.launch {
         val d = s.dwell
@@ -207,6 +239,11 @@ fun TripDetailScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val deleted by vm.deleted.collectAsStateWithLifecycle()
     val recording by vm.recording.collectAsStateWithLifecycle()
+    val galleryCounts by vm.galleryCounts.collectAsStateWithLifecycle()
+    LifecycleResumeEffect(Unit) {
+        vm.refreshGallery()
+        onPauseOrDispose { }
+    }
     var menu by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var editLegTo by remember { mutableStateOf<String?>(null) }
@@ -274,6 +311,7 @@ fun TripDetailScreen(
                         TrackList(s.value.tracks, onDelete = { vm.deleteTrack(it) })
                         StopSuggestionSection(
                             s.value.stopSuggestions,
+                            galleryCounts = galleryCounts,
                             onAdd = { sg, title -> onAddFromStop(sg.dwell, title) },
                             onDismiss = { vm.dismissStop(it) },
                         )

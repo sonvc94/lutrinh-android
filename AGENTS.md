@@ -8,7 +8,7 @@ No server, login or API in this phase.
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R14 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R19 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -23,7 +23,8 @@ app/src/main/java/vn/lutrinh/app/
             RouteLayers.kt (route + recorded-track layer stack), Pins.kt, MapLibre views
   tracking/ TrackRecordingService (location foreground service + notification); the logic is
             domain/usecase/TrackLogic.kt + TrackRecorder.kt (R16, pure, unit-tested);
-            stop suggestions from tracks = domain/usecase/StopSuggestions.kt (R17)
+            stop suggestions from tracks = domain/usecase/StopSuggestions.kt (R17);
+            gallery photos of a stop = domain/usecase/StopPhotos.kt + data/GalleryReader.kt (R19)
   share/    TripExporter (files, FileProvider, ACTION_SEND, MediaStore) + SummaryImage (R18);
             rules in domain/usecase/TripShare.kt + TripPage.kt, map in map/StaticTripMap.kt
   ui/       screens + view models; ui/common/Common.kt has formatters and VietnameseLocale
@@ -105,6 +106,11 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
 * Test JPEGs with GPS/date: write the EXIF with a small script (APP1 with IFD0 + Exif + GPS IFDs),
   `adb push` to `/sdcard/Pictures/…`, then per file
   `am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/Pictures/…`; check stored copies via `run-as vn.lutrinh.app cat files/photos/<f>`.
+  Pushed files get **`datetaken` NULL** in MediaStore (EXIF date has no offset, mtime = push time),
+  so R19 reads their EXIF itself; check with `content query --uri content://media/external/images/media
+  --projection _id:_display_name:datetaken | grep <name>` (`--where` with LIKE fails). Media access
+  for R19: `pm grant|revoke vn.lutrinh.app android.permission.READ_MEDIA_IMAGES` (+
+  `READ_MEDIA_VISUAL_USER_SELECTED`); a revoke kills the app process.
 * Offline maps (docs/05 "Offline maps"): airplane mode on the AVD with
   `adb -s emulator-5580 shell cmd connectivity airplane-mode enable|disable`
   (`settings get global airplane_mode_on`); MapLibre's store is `files/mbgl-offline.db`

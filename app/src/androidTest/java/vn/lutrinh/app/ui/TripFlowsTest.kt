@@ -3,6 +3,9 @@ package vn.lutrinh.app.ui
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.or
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -18,6 +21,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToLog
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -27,6 +31,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.MainActivity
+import vn.lutrinh.app.data.GalleryReader
 import vn.lutrinh.app.data.SampleData
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.TransportMode
@@ -153,6 +158,37 @@ class TripFlowsTest {
             assertEquals(today, trip.endDate)
             assertEquals(1, container().stopDecisions.observeDecisions(tripId).first().size)
         }
+    }
+
+    /**
+     * R19: the editor opened from a stop suggestion shows "Ảnh chụp trong lúc dừng"; with gallery
+     * access granted it reads the gallery (no access request, no explanation button).
+     */
+    @Test
+    fun stopSuggestionEditor_showsGalleryPhotosOfTheStop() {
+        val ctx = ApplicationProvider.getApplicationContext<LuTrinhApp>()
+        GalleryReader.permissions().forEach {
+            InstrumentationRegistry.getInstrumentation().uiAutomation.grantRuntimePermission(ctx.packageName, it)
+        }
+        runBlocking {
+            val c = container()
+            val id = (c.saveTrip(null, TripInput(title, "", LocalDate.now(), null)) as SaveResult.Saved).id
+            SampleData.addHaGiangTrack(c, id, LocalDate.now())
+        }
+        rule.waitUntil(TIMEOUT) { rule.onAllNodesWithText(title).fetchSemanticsNodes().isNotEmpty() }
+        rule.onAllNodesWithText(title).onFirst().performClick()
+
+        waitForText("Gợi ý điểm dừng (3)")
+        waitForText("ảnh trong máy") // R19 count on the card, only shown with access
+        clickable("Thêm điểm dừng").onFirst().performClick()
+        waitForText("Điểm dừng mới")
+        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Ảnh chụp trong lúc dừng"))
+        waitForText("Ảnh chụp trong lúc dừng")
+        rule.waitUntil(TIMEOUT) {
+            rule.onAllNodes(hasText("Không có ảnh nào", substring = true) or hasText("Đã chọn", substring = true))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        assertEquals(0, rule.onAllNodesWithText("Cho phép xem ảnh").fetchSemanticsNodes().size)
     }
 
     @Test

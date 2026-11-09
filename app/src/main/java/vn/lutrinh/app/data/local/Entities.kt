@@ -67,6 +67,10 @@ data class PhotoEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     /** EXIF capture time, "yyyy-MM-ddTHH:mm" local, or null (added in DB version 4, R17). */
     @ColumnInfo(name = "taken_at") val takenAt: LocalDateTime? = null,
+    /** Gallery id of the original (MediaStore _ID), or null (added in DB version 5, R19). */
+    @ColumnInfo(name = "source_id") val sourceId: String? = null,
+    /** Byte size of the original file, or null (added in DB version 5, R19). */
+    @ColumnInfo(name = "source_size") val sourceSize: Long? = null,
 )
 
 data class StepWithPhotos(
