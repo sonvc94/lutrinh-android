@@ -294,6 +294,9 @@ with `RoundedRectangle(cornerRadius: 4)`, no `.shadow`.
 
 * Leg-mode badge glyphs and the smaller in-row stock icons (§5 Icons) are still Material.
 * Satellite labels keep their dark green halo `#26332C`.
+* B4 remainder: the feature screenshot folders not listed as retaken in docs/03 "Screenshot
+  index" still show the old green/clay look (they need GPS replays, camera, airplane mode, pushed
+  EXIF photos or Hoàng Sa zooms to reproduce).
 * Dark theme (the app is light-only).
 
 Rules adapted from huashu-design (MIT, © alchaincyf, https://github.com/alchaincyf/huashu-design).
