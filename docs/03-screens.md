@@ -686,7 +686,7 @@ Same sample data, same flow, scripted on a separate review AVD: `before-*` from 
 | trip-detail.png | Hà Giang detail: green/clay/gold → chàm route and pins, ink end pin and track; hairline stat cells, tabular km |
 | step-detail.png | Step detail: mini map pins, bottom bar with a hairline instead of a shadow |
 | step-form.png | Step form: field and chip colours from the palette |
-| location-picker.png | Location picker (map tiles did not draw in the scripted run on either build) |
+| location-picker.png | Location picker (map tiles did not draw in the scripted run on either build; they draw on a separate AVD, see b3-after-location-picker.png) |
 | location-picker-layers.png | Map style sheet "Kiểu bản đồ" on the picker: chàm selection, 12 dp radius |
 | my-map.png | My map: coloured left bar on each card → a short legend line in the trip colour; chàm selection edge |
 | offline-list.png | Offline maps list: terrace-green downloaded card → chàm wash; hairline cards |
@@ -694,10 +694,20 @@ Same sample data, same flow, scripted on a separate review AVD: `before-*` from 
 | share-image.png | The 1080 × 1920 share PNG: cream/green → limestone paper, ink title, hairline stat cells |
 | font-check.png | Vietnamese marks (ữ ằ ệ ỗ) in Be Vietnam Pro, Barlow Condensed, Newsreader, Source Serif 4, Literata |
 
-Still reads "AI" (follow-up B3, docs/08 "Not done"): shadowed pill FABs ("Chuyến đi mới", map
-buttons); pill M3 buttons; stock Material icons (top bar, leg modes, pins' badges); stat tiles
-are still four equal boxes instead of a scale bar/readout; the generic route glyph on the share
-image; the share segmented label "Ảnh dọc cho mạng xã hội" wraps to two lines in Be Vietnam Pro.
+B3, signature parts (docs/08 §5): `b3-before-*` from main at ecef295 (the B2 look above),
+`b3-after-*` from the B3 branch, same data and flow on a separate AVD (emulator-5594), 540 px wide.
+
+| File (b3-before-… / b3-after-…) | Shows |
+| --- | --- |
+| trip-list.png | Trip list: shadowed pill FAB "Chuyến đi mới" → flat chàm block (4 dp, no shadow), own icons (atlas, more, add) |
+| trip-detail.png | Hà Giang detail: four stat tiles → "139 km đường chim bay" over a chàm scale bar (0 · 50 · 100), counts as a line of type; square "Xem bản đồ" button, flat FAB "Thêm", end pin as an ink square with an ink edge |
+| step-detail.png | Step detail: own back/edit/delete icons, edged pins |
+| share-screen.png | Share screen: segmented label "Ảnh dọc cho mạng xã hội" on two lines → "Ảnh dọc" on one line; 4 dp segmented/buttons; preview with the readout |
+| share-image.png | 1080 × 1920 share PNG: hairline stat cells → km readout + scale bar; stock route glyph → the app's route mark before "Lữ Trình" |
+| my-map.png | My map: three totals tiles → compact readout "149 km · 2 chuyến đi · 14 điểm dừng" + scale bar; square map buttons (layers, my location) |
+| location-picker.png (after only) | Picker renders on a separate AVD; stock pin → own centre needle (its lower end is the point), own search icon |
+
+Still Material (docs/08 §10): leg-mode badge glyphs and small in-row icons; satellite label halo.
 
 | File | Shows |
 | --- | --- |
