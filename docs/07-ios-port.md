@@ -59,6 +59,17 @@ Suggested floor: iOS 17 (SwiftData, `@Observable`, `PhotosPicker` with `Transfer
 | UI tests | Compose `createAndroidComposeRule<MainActivity>` (`TripFlowsTest`: create/edit/delete trip, add step via a trip-step chip of the location picker, set a leg's mode from the timeline, open "Bản đồ của tôi"), finds nodes by Vietnamese text / content description | XCUITest with the same twelve flows (incl. the two "Bản đồ offline" ones, the "Ghi hành trình" button, "Gợi ý điểm dừng" on a trip with the sample track, extending the trip from a suggestion outside it and "Chia sẻ chuyến đi" showing both outputs); find by accessibility label (`app.buttons["Chuyến đi mới"]`, `"Bản đồ của tôi"`, `"Thêm từ ảnh"`) | give the FAB-equivalent buttons the same labels |
 | Picker language | `VietnameseLocale { … }` provides a `vi-VN` `LocalConfiguration` + resources **inside** the dialog content (a dialog window re-provides the device config) | `.environment(\.locale, Locale(identifier: "vi_VN"))` on the `DatePicker` (and the time picker); set `.environment(\.calendar, …)` with `firstWeekday = 2` for Monday-first weeks | device language must not change the picker |
 
+## Draft steps and trip cover (R20, R21)
+
+| Android | iOS |
+| --- | --- |
+| Room v6: `steps.is_draft` INTEGER NOT NULL DEFAULT 0, `trips.cover_photo_id` TEXT nullable (`MIGRATION_5_6`, two `ALTER TABLE … ADD COLUMN`) | SwiftData: `var isDraft: Bool = false` on `Step`, `var coverPhotoID: String?` on `Trip` (lightweight migration: new properties with defaults). Keep the cover a plain id, **not** a relationship: a deleted photo must leave a stale id that reads as automatic, never a cascade or a nullify that loses the rule |
+| `domain/usecase/Drafts.kt`: `List<Step>.published()`, `stepNumbers`, `TripCover.candidates / resolve / isChosen`; every published-only rule calls `published()` inside the rule (`statsOf`, `legsOf`, `routeOf`, `overallStatsOf`, `TripShare.stats / sharedSteps / imagePhotos`) | Same functions on `[Step]` in the domain module; filtering inside the rule (not in the view) keeps the share/stats/My map tests meaningful. Port `DraftsAndCoverTest` 1:1 |
+| Trip list summary: one SQL (`TripDao.observeSummaries`) with published / draft counts and `COALESCE(chosen photo of this trip, first photo)` as cover | Compute `TripSummary` in Swift from the fetched trip + steps with `TripCover.resolve` (the SQL is an Android optimisation; results must match `RoomRepositoryTest.chosenCoverWinsAndFallsBackToAutomaticWhenItsPhotoIsGone`) |
+| `PublishStep` (`setDraft(id, false, now)`), `SetTripCover` (`setCover(id, photoId?, now)`), `StepInput.draft` | Same use cases; "Lưu nháp" / "Lưu" in the step form toolbar or bottom bar, "Đăng" on step detail |
+| Draft pin `PinKind.DRAFT`: 22 dp translucent white disc, dashed route-green ring (`DashPathEffect`), no number; markers with `draft = true` are left out of start/end and legs (`MapViews.kt`) | Draw the same bitmap with `UIBezierPath` + `setLineDash`; same marker rules |
+| Cover sheet: `ModalBottomSheet` + 3-column grid, "Tự động" tile first | `.sheet` with `LazyVGrid` (3 columns), same order and check mark; selection trait for VoiceOver ("Ảnh của <điểm dừng>") |
+
 ## My location and the battery guide (R22)
 
 | Android | iOS |

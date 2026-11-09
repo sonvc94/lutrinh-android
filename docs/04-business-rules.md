@@ -577,6 +577,68 @@ changes nothing`); `UseCasesTest.savingStepStoresPhotoSourcesAndKeepsThemOnEdit`
 access, denial, import and de-dup are checked by hand on the emulator with photos pushed into
 the gallery (`img/stop-photos/`, AGENTS.md "Test JPEGs").
 
+## R20 — Draft steps ("Lưu nháp" / "Nháp" / "Đăng")
+
+*Tests:* `DraftsAndCoverTest.tripStatsLeaveDraftsOut`, `.legsAndRouteSkipDrafts`,
+`.onlyPublishedStepsAreNumbered`, `.shareLeavesDraftsOut`, `.openEndedShareDaysIgnoreALaterDraft`,
+`.myMapTotalsLeaveDraftsOut`, `.saveDraftStoresADraftAndSaveOrPublishPublishesIt`,
+`.draftsAreCountedApartInTheTripList`; `RoomRepositoryTest.draftsAreCountedApartAndCanBePublished`;
+`MigrationTest.version5UpgradesWithDraftsAndCoverAndKeepsEverything`.
+
+Code: `domain/usecase/Drafts.kt` (`published()`, `stepNumbers`), `PublishStep` in `UseCases.kt`,
+`StepInput.draft`, `Step.isDraft` (DB v6 `steps.is_draft`).
+
+* **Two saves.** The step form has "Lưu nháp" (stores the step as a draft) next to "Lưu" (stores
+  it published). Both validate exactly like any step (R5, R8 …); a draft is not a half-filled step.
+  "Lưu" on a draft publishes it; "Lưu nháp" on a published step makes it a draft again. The top-bar
+  "Lưu" = the bottom "Lưu". The R17 extend-dates question keeps the button the user pressed.
+* **Publish.** Step detail of a draft shows "Nháp", the hint "Bản nháp chưa có trên lộ trình, thống
+  kê, bản đồ của tôi và tệp chia sẻ. Bấm “Đăng” khi đã xong." and the button "Đăng" (= publish,
+  `updatedAt` = now, nothing else changes).
+* **Where a draft shows.** In the trip timeline in its R2 place (hollow dot with a pencil icon
+  instead of a number, muted text, "Nháp" badge), in step detail (title without number, prev/next
+  include it), on the trip map and the header map as a dashed hollow pin (docs/05) with a card
+  marked "Nháp", and in the location-picker chips. The trip list card adds "· N nháp".
+* **Where a draft is left out.** Legs and route (R3, R12: the leg runs from the published step
+  before to the published step after, so its transport mode is the one stored on that next
+  step), numbering (published steps only, 1..n), trip stats (R10: steps, photos, km, GPS
+  comparison), the trip list counts ("N điểm dừng · M ảnh" = published only), the share image and
+  page (R18: stats, map, photos, steps; an open-ended trip's days ignore draft dates),
+  "Bản đồ của tôi" (R14: pins, lines, totals).
+* **Still counted everywhere it protects data:** R4 date checks, R7 delete confirm counts (trip
+  delete says the total steps and photos, drafts included), R17 "already a step" matching, R19
+  de-duplication and nearest-step place labels — a draft is a real stop, only not shown off yet.
+* **Upgrade.** Existing steps are published (`is_draft` default 0).
+* *Polarsteps (docs/22 §1.3) has "Publish / Save as draft" in the step editor; we keep the idea,
+  with two buttons on the form instead of a sheet, and nothing leaves the device either way.*
+
+## R21 — Trip cover ("Ảnh bìa": "Tự động" or a chosen photo)
+
+*Tests:* `DraftsAndCoverTest.coverIsTheChosenPhotoElseTheFirstPhoto`,
+`.coverFallsBackToAutomaticWhenTheChosenPhotoIsGone`, `.setTripCoverIsKeptByTripEditsAndClearedByAutomatic`;
+`RoomRepositoryTest.chosenCoverWinsAndFallsBackToAutomaticWhenItsPhotoIsGone`;
+`MigrationTest.version5UpgradesWithDraftsAndCoverAndKeepsEverything`.
+
+Code: `TripCover` in `domain/usecase/Drafts.kt`, `SetTripCover` in `UseCases.kt`, `Trip.coverPhotoId`
+(DB v6 `trips.cover_photo_id`), the cover subquery in `TripDao.observeSummaries`, `ui/trips/CoverPicker.kt`.
+
+* **Choice.** Any photo of the trip's steps (drafts included; candidates in timeline order, then
+  photo position) or "Tự động". Picked in "Sửa chuyến đi" (row "Ảnh bìa" → "Đổi ảnh bìa", stored
+  on "Lưu", Back without saving discards it) or from trip detail ⋮ "Đổi ảnh bìa" (stored at once).
+  The row and the menu entry exist only for a saved trip; a trip without photos shows "Chuyến đi
+  chưa có ảnh…" in the sheet.
+* **Automatic** (`coverPhotoId` null): the first photo (by position) of the first step in timeline
+  order that has photos — unchanged from before v6. Drafts count here: the cover is private (the
+  trip list), it never leaves the device.
+* **Fallback.** A chosen id that no longer names a photo of this trip (photo removed from its step,
+  step or trip deleted, an id from another trip) reads as automatic; the stale id is not cleaned
+  up, and the form shows "Tự động" and stores null on the next "Lưu". Editing a step keeps its
+  photos' ids (R8), so a chosen cover survives edits of its step.
+* **Where it shows:** the trip list card (the only place a trip cover is drawn). The share image
+  (R18) keeps its own photo choice (`TripShare.imagePhotos`), not the cover.
+* *Polarsteps (docs/22 §1.2) lets the trip editor pick a cover photo; ours picks from the trip's own
+  step photos only (no upload, no crop).*
+
 ## R22 — My location on the maps and the battery guide ("Vị trí của tôi", "Ghi hành trình ổn định")
 
 Code: `ui/common/MyLocation.kt` (state + button + rationale), `ui/picker/DeviceLocation.kt`

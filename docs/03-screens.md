@@ -83,8 +83,9 @@ The picker returns its result to the step form through the previous screen's sav
 ## 1. Trip list — "Chuyến đi của tôi"
 
 * **Purpose:** all trips, newest first (R1); entry point.
-* **Content:** large title; one card per trip with cover photo (or a gradient placeholder), title,
-  date range (`6 thg 11 – 9 thg 11, 2026`, or `từ …` when open-ended), "N điểm dừng · M ảnh".
+* **Content:** large title; one card per trip with cover photo (R21: the chosen "Ảnh bìa", else
+  automatic; or a gradient placeholder), title, date range (`6 thg 11 – 9 thg 11, 2026`, or `từ …`
+  when open-ended), "N điểm dừng · M ảnh" (published steps, R20) and "· K nháp" when the trip has drafts.
 * **Actions:** tap → Trip detail; the card ⋮ (label "Tùy chọn: <tên chuyến đi>") or long-press → Sửa / Chia sẻ chuyến đi (§3d) / Xóa; FAB "Chuyến đi mới"; globe icon
   in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Tùy chọn khác") →
   "Bản đồ offline" (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
@@ -94,7 +95,9 @@ The picker returns its result to the step form through the previous screen's sav
   Bắc Sum, at Cổng Trời (matches that step, so not suggested) and a paused stay at Tam Sơn — so
   "Gợi ý điểm dừng" shows two suggestions (R17).
 * **Screens:** `img/01-trip-list-empty.png`, `img/04-trip-list.png`, `img/15-trip-list-sample.png`,
-  `img/17-trip-delete-confirm.png`, `img/18-trip-list-after-delete.png`.
+  `img/17-trip-delete-confirm.png`, `img/18-trip-list-after-delete.png`,
+  `img/draft-cover/07-trip-list-draft-count.png` ("· 1 nháp"), `img/draft-cover/10-trip-list-chosen-cover.png`
+  (chosen cover), `img/draft-cover/13-trip-list-auto-cover.png` (back to "Tự động").
 * **Inspired by:** polarsteps docs/22 §1.1 (Me tab trip cards, long-press sheet for trip settings).
   **Changed:** no profile/"Me" page, no trip-type sheet (future / now / past) before the form, no
   privacy entries; sharing makes files (§3d) instead of links; delete is reachable from the list, not only from settings.
@@ -108,12 +111,19 @@ The picker returns its result to the step form through the previous screen's sav
   English emulator). The step form's time picker (24 h) gets the same treatment.
 * **Validation:** on save, via the domain (02-data-model.md); errors appear under the fields. Edit
   also blocks date changes that would orphan steps (R4).
-* **Edit only:** "Xóa chuyến đi" button → same confirm as the list.
+* **Edit only:** row "Ảnh bìa" (R21) under the dates: thumbnail of the cover as it will be,
+  "Tự động" or "Đã chọn", and "Đổi ảnh bìa" → the cover sheet ("Đổi ảnh bìa": a wide "Tự động" tile
+  — the automatic photo dimmed, "Ảnh đầu tiên của điểm dừng đầu tiên" — then every photo of the
+  trip's steps in timeline order, 3 per row; the current choice has a ring and a tick; a tap picks
+  and closes; no photos: "Chuyến đi chưa có ảnh. Thêm ảnh vào điểm dừng để chọn ảnh bìa."). The
+  choice is stored with "Lưu"; Back asks to discard like any other edit.
+  "Xóa chuyến đi" button → same confirm as the list.
 * **After create:** opens the new trip's detail (form removed from the back stack). After edit: back.
-* **Screens:** `img/02-trip-create.png`, `img/03-trip-edit.png`, `img/19-trip-validation.png`.
+* **Screens:** `img/02-trip-create.png`, `img/03-trip-edit.png`, `img/19-trip-validation.png`,
+  `img/draft-cover/11-trip-form-cover-row.png`, `img/draft-cover/12-cover-picker-chosen.png`.
 * **Inspired by:** docs/22 §1.2 (name required, start required, end optional, delete at the bottom
-  of edit with a strong warning). **Changed:** no cover-photo picker (cover comes from the first
-  step photo), no travel buddies / privacy / tracker / location-privacy fields, no "no overlap with
+  of edit with a strong warning) and §1.2 cover photo. **Changed:** the cover is picked from the
+  trip's own step photos or left automatic (no upload or crop); no travel buddies / privacy / tracker / location-privacy fields, no "no overlap with
   other trips" rule (overlapping trips are allowed), plain date pickers instead of a full-screen
   calendar, Vietnamese copy written for this app.
 
@@ -133,7 +143,12 @@ The picker returns its result to the step form through the previous screen's sav
 * **Top bar:** back, share icon ("Chia sẻ chuyến đi") and ⋮. The trip title appears in the bar only
   after the header has scrolled away (it is not shown twice); there is one entry to the Trip map
   (the header map and its expand button), no map icon in the bar.
-* **Actions:** share icon → Share trip (§3d); header map / expand → Trip map; ⋮ → Sửa / Xóa; tap
+* **Drafts (R20):** a draft step sits in the timeline in its time order with a hollow dot (pencil
+  icon) instead of a number, muted text and a "Nháp" badge; no leg chip leads into it, the chip
+  above the next published step is the leg from the published step before the draft. Stat tiles
+  ignore drafts.
+* **Actions:** share icon → Share trip (§3d); header map / expand → Trip map; ⋮ → Sửa chuyến đi /
+  Đổi ảnh bìa (the cover sheet of §2, stored at once, R21) / Xóa chuyến đi; tap
   step → Step detail; tap a leg chip → Leg mode sheet; **one FAB** "Thêm" that shrinks to "+" when
   the list scrolls down and opens a small menu: "Thêm điểm dừng" → Step form, "Thêm từ ảnh" → From
   photos. The FAB floats over the list, so while scrolling it can pass over a card; at rest at the
@@ -143,7 +158,8 @@ The picker returns its result to the step form through the previous screen's sav
   card, km tile), `img/trip-detail-declutter/gps-card-expanded.png`,
   `img/trip-detail-declutter/gps-card-scrolled.png` (title in the bar, FAB as "+"),
   `img/03` (empty state), `img/08-trip-detail.png` (older layout), `img/14-photos-after-restart.png`,
-  `img/28-upgrade-after-v2.png` (leg chips), `img/30-from-photos-result.png` (older two-FAB layout).
+  `img/28-upgrade-after-v2.png` (leg chips), `img/30-from-photos-result.png` (older two-FAB layout),
+  `img/draft-cover/02-timeline-draft-badge.png`, `03-stats-unchanged-by-draft.png`, `08-timeline-after-publish.png`.
 * **Inspired by:** docs/22 §1.1 (trip opens on its map with step cards, drawer with stats).
   **Changed:** a scrolling timeline with the map as a header instead of a map-first screen with a
   drawer; day numbers are computed from the trip start date; GPS tools are folded into one card
@@ -317,6 +333,10 @@ The picker returns its result to the step form through the previous screen's sav
   date · time; from card 2 on, the chip of the leg that arrives at this step, on card 1 the text "Điểm xuất phát"
   — every card has the same height); two small round buttons stacked above the carousel's right end:
   **"Vị trí của tôi"** (crosshair, R22) over "Xem toàn bộ hành trình" (fit icon).
+  Drafts (R20): a smaller hollow pin with a dashed outline and no number, no leg to or from it
+  (the line joins the published steps around it); its card has no number and shows "Nháp" where the leg chip
+  would be; start/end pins are the first/last published steps. `img/draft-cover/06-trip-map-draft-pin.png`
+  (the draft was placed on Du Già's point, so the 9 → 10 leg ends under it).
 * **"Vị trí của tôi" (R22):** tap → (first time: dialog "Dùng vị trí của bạn?" explaining that the
   position is taken only on tap, not recorded or sent; "Tiếp tục" → system prompt) → one fix: a blue dot
   with a pale accuracy circle appears and the camera flies there (zoom ≥ 15, above the carousel).
@@ -361,6 +381,7 @@ The picker returns its result to the step form through the previous screen's sav
 ## 4c. My map — "Bản đồ của tôi"
 
 * **Purpose:** every trip on one map (R14).
+* **Drafts (R20)** are not on this map: no pin, not in the lines, the totals or the card counts.
 * **Content:** full-screen map; at the top a card with three totals: số chuyến đi, điểm dừng, km
   (sum of each trip's straight-line distance); at the bottom a carousel of trip cards (colour
   dot, title, dates, "N điểm dừng · M km"). Each trip is drawn in its own colour on a white
@@ -386,7 +407,9 @@ The picker returns its result to the step form through the previous screen's sav
   removing a badged tile (×) unticks it. The Vị trí card shows the R-label "gần <điểm dừng>, N km"
   (Display conventions) with the coordinates as a smaller second line; "Đổi vị trí" / "Chọn trên bản đồ" is the
   same tonal-less text button here, in from-photos cards and in the picker flow. The time/date chips use the same
-  colour. "Lưu" is in the top bar and as the bottom button, like the trip form.
+  colour. "Lưu" is in the top bar and as the bottom button, like the trip form; next to the bottom
+  "Lưu" is **"Lưu nháp"** (outlined, R20: saves the step as a draft). Editing a draft shows "Nháp"
+  in the top bar.
 * **Defaults (new step):** R6 — date/time and the point where the picker opens. From a stop
   suggestion (§3c, R17): name "Điểm dừng HH:mm", the stay's date/time and centre.
 * **"Ảnh chụp trong lúc dừng" (only when opened from a stop suggestion, R19):** a card below
@@ -414,12 +437,14 @@ The picker returns its result to the step form through the previous screen's sav
   the grid shows them straight from the gallery. Back without saving copies nothing.
 * **Photo times:** each added photo's EXIF capture time is read before import and saved with the
   photo (`takenAt`, docs/06); nothing is shown for it on this screen.
-* **Save:** top-bar "Lưu" and bottom button; errors per field. Edit mode also has delete.
+* **Save:** top-bar "Lưu" and bottom button (published); "Lưu nháp" (draft, R20); errors per field
+  for both. Edit mode also has delete.
 * **Screens:** `img/06-step-create.png`, `img/11-step-edit.png`, `img/stop-photos/01-…09-*.png` (before the
-  single grid), `img/ux-flows/02-step-form-from-suggestion.png`, `03-step-form-one-photo-grid.png`.
+  single grid), `img/ux-flows/02-step-form-from-suggestion.png`, `03-step-form-one-photo-grid.png`,
+  `img/draft-cover/01-step-form-save-draft.png` ("Lưu nháp" | "Lưu").
 * **Inspired by:** docs/22 §1.3 (New/Edit Step: map header with edit pencil, name, arrival date +
-  time, media box, note). **Changed:** no "Publish / Save as draft" sheet (a step is saved
-  directly), no location search (offline: the picker offers "Vị trí của tôi" and this trip's steps), suggested photos only for a step made
+  time, media box, note) and its "Publish / Save as draft" choice. **Changed:** the choice is two
+  buttons on the form ("Lưu nháp" / "Lưu") instead of a sheet, publishing later is "Đăng" on step detail, no location search (offline: the picker offers "Vị trí của tôi" and this trip's steps), suggested photos only for a step made
   from a stop suggestion (its window, not the whole day), no top spots/activities, default time 09:00 instead of 10:00, name typed by the user
   instead of reverse-geocoded.
 
@@ -448,13 +473,16 @@ The picker returns its result to the step form through the previous screen's sav
 * **Content:** cover photo (only when the step has photos), title, date · time, place line
   "gần <điểm dừng khác>, N km" with the coordinates as a smaller line (Display conventions; with no other step the
   coordinates alone), note ("Chưa có ghi chú." when empty), mini map of the trip with this step highlighted, photo
-  grid "Ảnh (n)".
+  grid "Ảnh (n)". **Draft (R20):** the title has no number and a card under it shows "Nháp", "Bản nháp chưa có
+  trên lộ trình, thống kê, bản đồ của tôi và tệp chia sẻ. Bấm “Đăng” khi đã xong." and the button
+  **"Đăng"** (publishes; the card goes, the step gets its number).
 * **Actions:** pencil → Step form (edit); bin → "Xóa điểm dừng này?" (shows the photo count);
   tap photo → viewer at that index. **Bottom bar:** "‹ Trước: <title>" and "Sau: <title> ›" for the
   neighbouring steps in timeline order (a side without a neighbour is empty; none at all when the trip
   has one step); a tap replaces this screen with that step's detail, so Back still returns to the trip. The mini map's
   OpenStreetMap attribution keeps a fixed 9 dp text size so it stays a thin strip at any font scale.
-* **Screens:** `img/10-step-detail.png`, `img/13-step-delete-confirm.png`, `img/ux-flows/04-step-detail-prev-next.png`.
+* **Screens:** `img/10-step-detail.png`, `img/13-step-delete-confirm.png`, `img/ux-flows/04-step-detail-prev-next.png`,
+  `img/draft-cover/05-step-detail-draft-publish.png`.
 * **Inspired by:** docs/22 §1.3 (step story with ⋮ Edit / Delete, delete confirm). **Changed:** a
   scrolling detail page instead of a full-screen story; delete is never blocked (no sync).
 
@@ -631,6 +659,19 @@ The picker returns its result to the step form through the previous screen's sav
 | my-location/07-guide-auto-first-recording.png | the guide opened by itself at the first recording (Google emulator = general steps only) |
 | my-location/08-system-battery-settings.png | "Mở cài đặt pin của Lữ Trình" → system "App battery usage" |
 | ux-flows/08-from-photos-review.png | from-photos review: names "Điểm dừng HH:mm", "gần Phố cổ Đồng Văn, 0,2 km" with coordinates below, "Đổi vị trí" |
+| draft-cover/01-step-form-save-draft.png | step form (R20): "Lưu nháp" next to "Lưu", one photo added |
+| draft-cover/02-timeline-draft-badge.png | Hà Giang timeline, day 4: the draft (hollow pencil dot, muted, "Nháp"), the Xe máy leg Mèo Vạc → Du Già skips it |
+| draft-cover/03-stats-unchanged-by-draft.png | trip detail with the draft saved: tiles still 10 điểm dừng · 12 ảnh · 139 km · 4 ngày |
+| draft-cover/04-share-image-unchanged.png | "Chia sẻ chuyến đi" with the draft saved: 10 · 12 · 139 · 4, no pin and no photo of the draft |
+| draft-cover/05-step-detail-draft-publish.png | step detail of the draft: "Nháp" card with the hint and "Đăng" |
+| draft-cover/06-trip-map-draft-pin.png | trip map, draft card selected: dashed hollow pin, card with "Nháp" |
+| draft-cover/07-trip-list-draft-count.png | trip list card "10 điểm dừng · 12 ảnh · 1 nháp" |
+| draft-cover/08-timeline-after-publish.png | after "Đăng": the step is number 10 with its legs, no badge (the tiles above then read 11 điểm dừng · 13 ảnh) |
+| draft-cover/09-cover-picker.png | trip detail ⋮ "Đổi ảnh bìa" (R21): "Tự động" selected, the trip's photos below |
+| draft-cover/10-trip-list-chosen-cover.png | trip list card with the chosen cover (Cột cờ Lũng Cú photo) |
+| draft-cover/11-trip-form-cover-row.png | "Sửa chuyến đi": row "Ảnh bìa · Đã chọn · Đổi ảnh bìa" |
+| draft-cover/12-cover-picker-chosen.png | the cover sheet from the form: the chosen photo ringed and ticked |
+| draft-cover/13-trip-list-auto-cover.png | after "Tự động" + "Lưu": the card shows the automatic cover again |
 
 ## Accessibility and UI tests
 

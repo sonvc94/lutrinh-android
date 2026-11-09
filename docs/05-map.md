@@ -177,6 +177,7 @@ number (R2 position, 1-based) in bold:
 | STEP | other steps; every pin when the route is hidden (Thêm từ ảnh) | 24 dp route-green disc, 2 dp white ring, white number |
 | END | last step of a route | 28 dp **clay** `#B85C2E` disc, 2.5 dp white ring, white number |
 | CONTEXT | other steps in the location picker | 22 dp clay disc, white ring |
+| DRAFT | a draft step (R20) on the trip map and the trip-detail / step-detail mini maps | 22 dp translucent white disc, dashed route-green ring, **no number**; never START/END, no leg to or from it (the route and legs join the published steps around it) |
 | selected / highlighted | tapped pin; step in Step detail / Step form | same pin ×1.3, rice-gold ring, on a 54 dp translucent gold halo |
 
 No clustering: overlapping pins stay visible (a Hà Giang loop at country zoom is a tight group).
