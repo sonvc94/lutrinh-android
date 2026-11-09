@@ -710,6 +710,8 @@ B3, signature parts (docs/08 §5): `b3-before-*` from main at ecef295 (the B2 lo
 Still Material (docs/08 §10): leg-mode badge glyphs and small in-row icons; satellite label halo.
 
 Retaken in the atlas look (B4, separate AVD emulator-5594, debug sample data): 01–06, 08–21, 23–26.
+Also retaken: trip-detail-declutter/*, share-trip/01, 02, 04, 08, ux-flows/01, 04, 07,
+map-style/03, my-location/01, 02. The other feature folders still show the old look (docs/08 §10).
 Still the old green/clay look: 07 (the system Photo Picker, no app UI), 22 and 29–30 (need pushed
 EXIF photos), 27–28 (a historical upgrade from the v1 build).
 
@@ -723,9 +725,9 @@ EXIF photos), 27–28 (a historical upgrade from the v1 build).
 | 06-step-create.png | the empty new-step form (name, location, date and time, note, photos) |
 | 07-photo-picker.png | Android Photo Picker with 3 selected |
 | 08-trip-detail.png | detail: header map with route, title plate, km readout "139 km đường chim bay" + scale bar, counts, collapsed GPS card, Ngày 1 |
-| trip-detail-declutter/trip-detail-collapsed.png | Hà Giang detail: stats with "km / đường chim bay", collapsed "Hành trình GPS · 1 hành trình · 2 gợi ý", "Ngày 1" visible, one FAB "Thêm", Be Vietnam Pro title |
+| trip-detail-declutter/trip-detail-collapsed.png | Hà Giang detail: km readout "139 km đường chim bay" + scale bar, collapsed "Hành trình GPS · 1 hành trình · 2 gợi ý", "Ngày 1" visible, one FAB "Thêm", Be Vietnam Pro title |
 | trip-detail-declutter/gps-card-expanded.png | the card open on an ended trip: hint, "Tạo chuyến mới và ghi", track row, suggestions |
-| trip-detail-declutter/gps-card-scrolled.png | card just opened (scrolled to the top): title in the bar, FAB shrunk to "+", suggestion cards "gần TP Hà Giang, 9,7 km" with "Tạo điểm dừng ở đây" |
+| trip-detail-declutter/gps-card-scrolled.png | card just opened (scrolled to the top): title in the bar, FAB shrunk to "+", suggestion cards ("gần Mịch B (Tuyên Quang), 1,9 km") with "Tạo điểm dừng ở đây" |
 | trip-detail-declutter/trip-map-ended.png | Hà Giang trip map: "Tạo chuyến mới và ghi" instead of "Ghi hành trình" |
 | 09-trip-map-route.png | full trip map, numbered pins joined by the route, legs and track, card carousel |
 | 10-step-detail.png | step detail with photo, mini map |
@@ -777,7 +779,7 @@ EXIF photos), 27–28 (a historical upgrade from the v1 build).
 | share-trip/05-page-hagiang-chrome.png | the summary HTML pulled from `Download/LuTrinh`, headless Chrome with network blocked |
 | share-trip/06-airplane-image.png | airplane mode, app restarted: the image with the basemap from the offline pack |
 | share-trip/07-no-basemap.png | airplane mode, Ninh Bình (outside the pack): route on the plain background + the note |
-| share-trip/08-trip-list-card-menu.png | trip card ⋮ on the list: Sửa / Chia sẻ chuyến đi / Xóa |
+| share-trip/08-trip-list-card-menu.png | trip card ⋮ on the list: Sửa / Chia sẻ chuyến đi / Xuất GPX / Xóa (own icons) |
 | stop-suggest/05-trip-map-markers.png | sample Hà Giang track on the trip map: suggestion markers (white dot, crimson ring and halo) |
 | stop-photos/01-editor-explain-access.png | "Thêm điểm dừng" from the 09:05 suggestion: "Ảnh chụp trong lúc dừng" explains, "Cho phép xem ảnh" |
 | stop-photos/02-system-permission-dialog.png | Android 16 dialog "Allow limited access / Allow all / Don’t allow" |
@@ -795,7 +797,7 @@ EXIF photos), 27–28 (a historical upgrade from the v1 build).
 | ux-flows/05-from-photos-intro.png | "Thêm điểm dừng từ ảnh" intro sheet before the file picker |
 | ux-flows/06-from-photos-discard.png | "Bỏ các điểm dừng gợi ý?" after Back from the review |
 | ux-flows/07-location-picker-chips.png | location picker: "Vị trí của tôi" + the trip's steps as chips |
-| my-location/01-trip-map-my-location.png | trip map after "Vị trí của tôi" with `geo fix 105.85 21.03`: blue dot, camera on Hà Nội, the two stacked buttons |
+| my-location/01-trip-map-my-location.png | trip map after "Vị trí của tôi" with `geo fix 105.85 21.03`: chàm dot, camera on Hà Nội, the stacked square map buttons |
 | my-location/02-my-map-my-location.png | Bản đồ của tôi, same fix |
 | my-location/03-accuracy-circle-80m.png | same, from a temporary build forcing accuracy = 80 m (the emulator's fixes carry none) to check the accuracy circle's size |
 | my-location/04-permission-explanation.png | permission revoked: "Dùng vị trí của bạn?" |
