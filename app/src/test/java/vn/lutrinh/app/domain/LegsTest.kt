@@ -111,6 +111,22 @@ class LegsTest {
         assertEquals(Geo.distanceKm(hg, dv), stats.distanceKm, 1e-9)
     }
 
+    @Test fun overallDistanceEqualsSumOfPerTripDistancesOnTheSampleRoutes() {
+        val hgRoute = listOf(
+            22.8233 to 104.9836, 23.0688 to 104.9930, 23.1203 to 105.1406, 23.3638 to 105.3164, 23.3557 to 105.3266,
+            23.2786 to 105.3621, 23.2397 to 105.4096, 23.2128 to 105.4366, 23.1597 to 105.4086, 22.9333 to 105.1667,
+        )
+        val nbRoute = listOf(20.2862 to 105.9063, 20.2546 to 105.8954, 20.2299 to 105.9327, 20.2163 to 105.9370)
+        val trips = listOf(Trip("hg", "HG", "", LocalDate.of(2025, 10, 20), null, 1, 1), Trip("nb", "NB", "", LocalDate.of(2025, 6, 7), null, 2, 2))
+        fun steps(id: String, r: List<Pair<Double, Double>>) =
+            r.mapIndexed { i, (la, ln) -> step("$id$i", "2025-10-20T%02d:00".format(8 + i), GeoPoint(la, ln), trip = id) }
+        val all = steps("hg", hgRoute) + steps("nb", nbRoute)
+        val perTrip = trips.map { t -> vn.lutrinh.app.domain.usecase.statsOf(t, all.filter { it.tripId == t.id }).distanceKm }
+        val total = overallStatsOf(trips, all).distanceKm
+        println("PER-TRIP km: hg=${perTrip[0]} nb=${perTrip[1]} total=$total")
+        assertEquals(perTrip.sum(), total, 1e-9)
+    }
+
     @Test fun tripColoursFollowCreationOrderAndStayWhenTripsAreAdded() {
         fun trip(id: String, created: Long) = Trip(id, id, "", LocalDate.of(2025, 1, 1), null, created, created)
         val before = tripColorSlots(listOf(trip("new", 20), trip("old", 10)), 3)
