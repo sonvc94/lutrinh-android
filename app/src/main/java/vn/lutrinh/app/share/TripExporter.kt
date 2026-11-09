@@ -26,7 +26,9 @@ import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.R
 import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.domain.usecase.TripPage
+import vn.lutrinh.app.map.MapEngine
 import vn.lutrinh.app.map.StaticTripMap
+import vn.lutrinh.app.map.basemap.BasemapProvider
 import java.io.ByteArrayOutputStream
 import java.io.File
 
@@ -36,7 +38,13 @@ import java.io.File
  * [FileProvider]) and saves copies to shared storage (MediaStore). The rules live in
  * domain/usecase/TripShare.kt and TripPage.kt.
  */
-class TripExporter(context: Context, private val photos: PhotoStorage) {
+class TripExporter(
+    context: Context,
+    private val photos: PhotoStorage,
+    private val engine: MapEngine,
+    /** The basemap of share images/pages: an offline-capable one ("Bản đồ"), so a share works in airplane mode. */
+    val basemap: BasemapProvider,
+) {
     private val context = context.applicationContext
     private val dir: File get() = File(context.cacheDir, DIR).apply { mkdirs() }
 
@@ -45,7 +53,7 @@ class TripExporter(context: Context, private val photos: PhotoStorage) {
 
     /** The trip map for the summary image (also embedded in the page). */
     suspend fun map(input: StaticTripMap.Input): StaticTripMap.Output = StaticTripMap.render(
-        context, input, SummaryImage.MAP_WIDTH, SummaryImage.MAP_HEIGHT, SummaryImage.MAP_PIXEL_RATIO, SummaryImage.MAP_PADDING,
+        context, input, SummaryImage.MAP_WIDTH, SummaryImage.MAP_HEIGHT, SummaryImage.MAP_PIXEL_RATIO, SummaryImage.MAP_PADDING, engine, basemap,
     )
 
     /** Renders the summary image with [chosen] photos (TripShare.imagePhotos). */

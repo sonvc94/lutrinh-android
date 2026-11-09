@@ -1,4 +1,4 @@
-package vn.lutrinh.app.map
+package vn.lutrinh.app.map.maplibre
 
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
@@ -9,19 +9,21 @@ import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
 import org.maplibre.geojson.Polygon
+import vn.lutrinh.app.map.GeoBounds
+import vn.lutrinh.app.map.SovereigntyLabels
 
 /*
  * R30 on the map (docs/05 "Hoàng Sa / Trường Sa"): the SovereigntyLabels rule as a style filter
- * on every basemap label layer, plus our "Quần đảo Hoàng Sa / Trường Sa" labels. Used by the live
- * maps (loadBasemap + tuneBasemap) and the share snapshot (StaticTripMap), so offline packs, which
- * render the same style, get it too.
+ * on every basemap label layer, plus our "Quần đảo Hoàng Sa / Trường Sa" labels. Applied to every
+ * basemap (BasemapPlan.sovereigntyFiltered / archipelagoLabels) on the live maps and the share
+ * snapshot, so offline packs, which render the same style, get it too.
  */
 
 internal const val SOVEREIGNTY_SOURCE = "r30-archipelagos"
 internal const val SOVEREIGNTY_LAYER = "r30-archipelago-labels"
 
-/** Adds the archipelago label source and layer (on top of the basemap, below our route layers). */
-internal fun Style.Builder.withSovereigntyLabels(): Style.Builder = this
+/** Adds the archipelago label source and layer (on top of the basemap, below our route layers) in the basemap's label colours. */
+internal fun Style.Builder.withSovereigntyLabels(color: String, halo: String): Style.Builder = this
     .withSource(GeoJsonSource(SOVEREIGNTY_SOURCE, FeatureCollection.fromJson(SovereigntyLabels.labelsGeoJson())))
     .withLayer(
         SymbolLayer(SOVEREIGNTY_LAYER, SOVEREIGNTY_SOURCE).withProperties(
@@ -30,8 +32,8 @@ internal fun Style.Builder.withSovereigntyLabels(): Style.Builder = this
             PropertyFactory.textSize(byZoom(4f to 11f, 8f to 14f)),
             PropertyFactory.textLetterSpacing(0.05f),
             PropertyFactory.textMaxWidth(7f),
-            PropertyFactory.textColor(MapConfig.LABEL_COLOR),
-            PropertyFactory.textHaloColor(MapConfig.LABEL_HALO),
+            PropertyFactory.textColor(color),
+            PropertyFactory.textHaloColor(halo),
             PropertyFactory.textHaloWidth(1.2f),
             PropertyFactory.textAllowOverlap(true),
         ).apply {

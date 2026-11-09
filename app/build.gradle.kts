@@ -1,9 +1,21 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
+
+/**
+ * Optional ArcGIS Location Platform key for the "Vệ tinh" basemap (docs/05 "Esri World Imagery"):
+ * `-PesriApiKey=…`, `esriApiKey=…` in ~/.gradle/gradle.properties, or in local.properties (git-
+ * ignored). Never commit a key. Without one the build uses Esri's keyless endpoint.
+ */
+val esriApiKey: String = (findProperty("esriApiKey") as String?)
+    ?: rootProject.file("local.properties").takeIf { it.exists() }
+        ?.let { f -> Properties().apply { f.inputStream().use { load(it) } }.getProperty("esriApiKey") }
+    ?: ""
 
 android {
     namespace = "vn.lutrinh.app"
@@ -16,6 +28,7 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "ESRI_API_KEY", "\"${esriApiKey.replace("\"", "")}\"")
     }
 
     buildTypes {

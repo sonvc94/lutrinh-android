@@ -218,7 +218,7 @@ All numbers live in `map/OfflineConfig.kt` (pure Kotlin; the iOS port copies the
   plus 10 km on each side (latitude margin 10/111.32°, longitude margin measured at the box's
   widest latitude); a trip without steps has no area.
 * **What is stored.** For each area MapLibre's offline store keeps the basemap style
-  (`MapConfig.STYLE_URL`), its sprite, its fonts (Latin/Vietnamese glyph ranges, no CJK) and
+  of the offline basemap "Bản đồ" (`Positron.STYLE_URL`; never satellite imagery, R33), its sprite, its fonts (Latin/Vietnamese glyph ranges, no CJK) and
   every tile of the style's sources inside the box for **zoom 0–14**. The vector tiles end at
   z14, so maps over-zoom them up to z19 with the same street and village names. Style, sprite
   and fonts are shared between areas and stored once. Nothing about trips, steps or photos is
@@ -644,7 +644,7 @@ Code: `TripCover` in `domain/usecase/Drafts.kt`, `SetTripCover` in `UseCases.kt`
 ## R22 — My location on the maps and the battery guide ("Vị trí của tôi", "Ghi hành trình ổn định")
 
 Code: `ui/common/MyLocation.kt` (state + button + rationale), `ui/picker/DeviceLocation.kt`
-(`requestFix`), `map/MyLocationLayer.kt` (docs/05), `ui/tracks/BatteryGuideScreen.kt`,
+(`requestFix`), `map/maplibre/MyLocationLayers.kt` (docs/05), `ui/tracks/BatteryGuideScreen.kt`,
 `domain/usecase/BatteryGuide.kt` (`BatteryGuide.makerOf`, `ShowOnce`), `data/LocalPrefs.kt`.
 
 **My location (trip map, My map)**
@@ -950,8 +950,9 @@ no file (`08`); backup with two videos and restore: every file md5-identical (`1
 ## R30 — Hoàng Sa and Trường Sa labels (sovereignty)
 
 Code: `map/SovereigntyLabels.kt` (pure: areas, blocked names, the rule `hides`, the label GeoJSON;
-the iOS port copies it), `map/SovereigntyLayers.kt` (the same rule as a MapLibre filter + our label
-layer). Lữ Trình is made for Vietnam: no map ever shows a Chinese administrative name for Vietnam's
+the iOS port copies it), `map/maplibre/SovereigntyLayers.kt` (the same rule as a MapLibre filter + our label
+layer, on every basemap of R32: `BasemapTest.hybrid_keepsSovereigntyFilterOnEveryLabelLayer`,
+`.light_keepsTodaysLook`, `.snapshot_declaredPlanFiltersTheKnownLabelLayers`). Lữ Trình is made for Vietnam: no map ever shows a Chinese administrative name for Vietnam's
 Hoàng Sa (Paracel) and Trường Sa (Spratly) archipelagos.
 
 * **Areas.** Hoàng Sa box S 15.4, W 110.9, N 17.4, E 113.2; Trường Sa box S 6.8, W 111.3, N 12.2,
@@ -1019,6 +1020,78 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
 *Tests:* `OfflineConfigTest.r31_limitsAreOpenFreeMapsTerms_inclusive`,
 `.r31_tileEstimate_countsVectorAndRasterSources`, `.r31_readyMadeRegionsAndAHaGiangTripStayAllowed`,
 `.r31_anAreaOverTheTileCapIsRefused_evenUnderTheByteCap`, `.tripArea_spanningTheCountryIsOverTheLimit`.
+
+## R32 — Map style ("Kiểu bản đồ": "Bản đồ" or "Vệ tinh")
+
+* **Where.** A layers button ("Kiểu bản đồ") on:
+  * the trip map, above "Vị trí của tôi";
+  * "Bản đồ của tôi", above "Vị trí của tôi";
+  * the location picker, at the right edge below the quick-place chips.
+* **Choices.** It opens a bottom sheet with one row per registered basemap provider, in
+  registry order:
+  * "Bản đồ", subtitle "Dùng được offline với vùng đã tải";
+  * "Vệ tinh", subtitle "Cần mạng · không tải offline được".
+  The current one has its radio button on. Tapping a row selects it and closes the sheet.
+* **Persistence.** The choice is stored on the device: SharedPreferences `lutrinh_prefs`, key
+  `map_style`, value = provider id `light` or `satellite`. It is read at the next start.
+* **Scope.** It applies to every live map at once: the trip map, "Bản đồ của tôi", the picker
+  and the small previews (trip detail header, step card).
+* **Defaults.** No stored value or an unknown id (e.g. `mapbox-…` from an old build) = the
+  default `light`. Choosing an unknown id stores `light`.
+* **Never changed by the style:** routes, pins, step and leg selection, the camera, my
+  location, the offline indicator.
+* **Never "Vệ tinh":** offline packs (R15/R31) and the share image/page (R18) always use
+  "Bản đồ".
+
+*Tests:* `BasemapTest.registry_defaultIsTheOfflineMap`, `.registry_unknownOrMissingIdIsTheDefault`,
+`.registry_defaultMustWorkOffline`, `.registry_idsAreUnique`, `.registry_newProviderNeedsNoOtherChange`,
+`.mapStyle_choiceIsPersisted`, `.mapStyle_unknownStoredValueReadsAsDefault`,
+`.offlinePacksAndShare_useTheOfflineMap`.
+
+## R33 — Satellite needs a network
+
+* **Online only.** "Vệ tinh" (Esri World Imagery) is online-only, since Esri does not allow
+  storing its tiles. There is no offline pack for it and no satellite share image.
+* **Fallback.** While the stored choice needs a network and the device is offline
+  (`NetworkMonitor.online` = false), every map shows "Bản đồ" (with downloaded areas, R15).
+* **Snackbar.** Each time the fallback starts, the screen with the map shows "Ảnh vệ tinh cần
+  mạng".
+* **Stored choice.** It stays "Vệ tinh". When the network returns, the maps show satellite
+  again.
+
+*Test:* `BasemapTest.satellite_offlineFallsBackToTheMap`.
+
+## R34 — Attribution follows the style
+
+* **Every map.** Every map shows the credit of the basemap it shows: live maps bottom right
+  (9 dp text on white 75 %), the share image bottom right, and the share page footer.
+  * "Bản đồ": "OpenFreeMap © OpenMapTiles © OpenStreetMap contributors".
+  * "Vệ tinh": "Esri, Vantor, Earthstar Geographics, and the GIS User Community · OpenFreeMap ©
+    OpenMapTiles © OpenStreetMap contributors". Roads and labels still come from OpenStreetMap.
+* **Fallback.** During the offline fallback (R33) the credit is the one of "Bản đồ".
+* **No SDK logo.** The MapLibre logo and (i) button stay hidden.
+
+*Tests:* `BasemapTest.attribution_followsTheStyle`, `.esri_keylessWithoutKey_tokenWithKey`;
+`TripShareTest` (share page credit).
+
+## R35 — Maps only through the map interface
+
+* **No SDK outside the adapter.** Screens, view models, share and data code use only:
+  * the app's map interface (`MapController`, `MapEngine`, `OfflineMapStore`, map models);
+  * the basemap providers (`BasemapProvider`, registry, settings).
+* **One package.** The map SDK (MapLibre) is imported only in its adapter package
+  `map/maplibre/`.
+* **Changing the renderer or a tile provider** means writing one adapter and registering it,
+  with no screen change (docs/05 "Map interface and providers").
+* **Check:** `git grep -n "org.maplibre" -- app/src/main | grep -v app/src/main/java/vn/lutrinh/app/map/maplibre/`
+  is empty.
+
+*Tests:* `MapBoundaryTest.mapSdk_onlyInTheAdapterPackage`; the contract every adapter is driven by:
+`MapPresentersTest.tripMap_pinsLegsAndBadges`, `.tripMap_cameraRules`,
+`.tripMap_selectingAStepFliesThere_onlyOnChange`, `.tripMap_notInteractive_neverFlies`, `.tripMap_taps`,
+`.tripMap_myLocationFliesOncePerSignal`, `.allTrips_linesDotsAndTaps`,
+`.picker_startsOnce_andEasesToEachMove`; hybrid style: `BasemapTest.hybrid_imageryUnderRoadsAndLabels`,
+`.hybrid_withoutBackgroundLayer_imageryGoesToTheBottom`.
 
 ## Text rules
 

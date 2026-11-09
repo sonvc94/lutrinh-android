@@ -15,31 +15,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.maplibre.android.maps.MapLibreMap
 import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
-
-/** Centre of a map's camera, updated whenever the camera stops; feeds [OfflineIndicator]. */
-@Composable
-internal fun rememberCameraCenter(): MutableState<GeoPoint?> = remember { mutableStateOf(null) }
-
-internal fun MapLibreMap.trackCenter(center: MutableState<GeoPoint?>) {
-    addOnCameraIdleListener {
-        val t = cameraPosition.target ?: return@addOnCameraIdleListener
-        center.value = GeoPoint(t.latitude, t.longitude)
-    }
-}
 
 /**
  * Offline indicator drawn over every map (R15). Nothing while online. Offline, a small chip

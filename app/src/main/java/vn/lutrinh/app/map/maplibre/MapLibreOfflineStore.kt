@@ -1,4 +1,4 @@
-package vn.lutrinh.app.map
+package vn.lutrinh.app.map.maplibre
 
 import android.content.Context
 import android.util.Log
@@ -17,6 +17,15 @@ import org.maplibre.android.offline.OfflineRegionError
 import org.maplibre.android.offline.OfflineRegionStatus
 import org.maplibre.android.offline.OfflineTilePyramidRegionDefinition
 import org.maplibre.android.storage.FileSource
+import vn.lutrinh.app.map.GeoBounds
+import vn.lutrinh.app.map.NetworkMonitor
+import vn.lutrinh.app.map.OfflineArea
+import vn.lutrinh.app.map.OfflineAreaState
+import vn.lutrinh.app.map.OfflineConfig
+import vn.lutrinh.app.map.OfflineMapStore
+import vn.lutrinh.app.map.OfflinePhase
+import vn.lutrinh.app.map.OfflinePhases
+import vn.lutrinh.app.map.OfflineProblem
 import java.io.File
 
 /**
@@ -32,7 +41,12 @@ import java.io.File
  * complete ones so their tiles keep matching the style's current tileset.
  * All MapLibre callbacks arrive on the main thread; state is only touched there.
  */
-class OfflineMaps(private val context: Context, private val network: NetworkMonitor) {
+internal class MapLibreOfflineStore(
+    private val context: Context,
+    private val network: NetworkMonitor,
+    /** Style of the offline basemap provider (OfflineMapStore: only providers that allow offline use). */
+    private val styleUrl: String,
+) : OfflineMapStore {
     private class Entry(val region: OfflineRegion, val area: OfflineArea, var paused: Boolean) {
         var status: OfflineRegionStatus? = null
         var problem: OfflineProblem? = null
@@ -52,13 +66,13 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
 
     private val _states = MutableStateFlow<Map<String, OfflineAreaState>>(emptyMap())
     /** Every known area by key: stored ones, plus ones being created or refused. */
-    val states: StateFlow<Map<String, OfflineAreaState>> = _states.asStateFlow()
+    override val states: StateFlow<Map<String, OfflineAreaState>> = _states.asStateFlow()
 
     private val _storeBytes = MutableStateFlow(0L)
     /** Size of MapLibre's database file (offline areas + the ambient cache of online viewing). */
-    val storeBytes: StateFlow<Long> = _storeBytes.asStateFlow()
+    override val storeBytes: StateFlow<Long> = _storeBytes.asStateFlow()
 
-    fun start() {
+    override fun start() {
         if (started) return
         started = true
         manager.listOfflineRegions(object : OfflineManager.ListOfflineRegionsCallback {
@@ -102,7 +116,7 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
     }
 
     /** Starts (or resumes) downloading [area]. Refused without network or storage (R15). */
-    fun download(area: OfflineArea) {
+    override fun download(area: OfflineArea) {
         entries[area.key]?.let { resume(area.key); return }
         if (pending[area.key]?.phase == OfflinePhase.DOWNLOADING) return
         val problem = when {
@@ -120,7 +134,7 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
         publish()
         val b = area.bounds
         val definition = OfflineTilePyramidRegionDefinition(
-            MapConfig.STYLE_URL,
+            styleUrl,
             LatLngBounds.from(b.north, b.east, b.south, b.west),
             OfflineConfig.MIN_ZOOM.toDouble(),
             OfflineConfig.MAX_ZOOM.toDouble(),
@@ -148,7 +162,7 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
         })
     }
 
-    fun pause(key: String) {
+    override fun pause(key: String) {
         val e = entries[key] ?: return
         e.paused = true
         e.region.setDownloadState(OfflineRegion.STATE_INACTIVE)
@@ -156,7 +170,7 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
         publish()
     }
 
-    fun resume(key: String) {
+    override fun resume(key: String) {
         val e = entries[key] ?: return
         if (e.complete) return
         e.paused = false
@@ -167,7 +181,7 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
     }
 
     /** Cancels a download or deletes a downloaded area; its space is freed (R15). */
-    fun delete(key: String) {
+    override fun delete(key: String) {
         if (pending.remove(key) != null) publish()
         val e = entries[key] ?: return
         if (e.deleting) return
@@ -207,7 +221,7 @@ class OfflineMaps(private val context: Context, private val network: NetworkMoni
     }
 
     /** Free bytes on the volume of MapLibre's database. */
-    fun freeBytes(): Long = storeDir().usableSpace
+    override fun freeBytes(): Long = storeDir().usableSpace
 
     private fun attach(region: OfflineRegion): Entry? {
         val meta = runCatching { JSONObject(String(region.metadata)) }.getOrNull()

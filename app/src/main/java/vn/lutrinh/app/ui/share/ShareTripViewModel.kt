@@ -30,7 +30,6 @@ import vn.lutrinh.app.domain.usecase.TrackMath
 import vn.lutrinh.app.domain.usecase.TripPage
 import vn.lutrinh.app.domain.usecase.TripShare
 import vn.lutrinh.app.domain.usecase.legsOf
-import vn.lutrinh.app.map.MapConfig
 import vn.lutrinh.app.map.StaticTripMap
 import vn.lutrinh.app.share.SummaryImage
 import vn.lutrinh.app.share.TripExporter
@@ -132,7 +131,7 @@ class ShareTripViewModel(private val c: AppContainer, handle: SavedStateHandle) 
                         steps = r.source.steps,
                         hideNotes = hide,
                         mapJpeg = c.exporter.mapJpeg(r.map.bitmap),
-                        attribution = MapConfig.ATTRIBUTION,
+                        attribution = r.map.attribution,
                     )
                     val (file, result) = c.exporter.writePage(content, TripShare.fileName(t.title, t.startDate, "html"))
                     ExportState.Ready(file, file.length(), photos = result.photosIncluded, omittedPhotos = result.photosOmitted, withBasemap = r.map.withBasemap)

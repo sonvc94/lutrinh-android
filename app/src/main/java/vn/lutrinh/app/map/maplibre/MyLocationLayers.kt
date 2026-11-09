@@ -1,9 +1,5 @@
-package vn.lutrinh.app.map
+package vn.lutrinh.app.map.maplibre
 
-import org.maplibre.android.camera.CameraPosition
-import org.maplibre.android.camera.CameraUpdateFactory
-import org.maplibre.android.geometry.LatLng
-import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
@@ -12,15 +8,10 @@ import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
-import vn.lutrinh.app.domain.model.GeoPoint
-import vn.lutrinh.app.domain.usecase.Geo
+import vn.lutrinh.app.map.MyLocationFix
 import kotlin.math.cos
 
-/**
- * "Vị trí của tôi" (docs/05-map.md): one device fix drawn as a blue dot with its accuracy circle.
- * Nothing tracks the device while the screen is open: the dot is the fix of the last tap.
- */
-data class MyLocationFix(val point: GeoPoint, val accuracyM: Float)
+/* "Vị trí của tôi" (docs/05-map.md): the fix of the last tap as a blue dot with its accuracy circle. */
 
 private const val BLUE = "#1A73E8"
 private const val METRES_PER_PX_Z20 = 0.07464 // 512 px world tile at the equator
@@ -64,17 +55,4 @@ internal fun Style.showMyLocation(src: String, fix: MyLocationFix?) {
         )
     }.orEmpty()
     getSourceAs<GeoJsonSource>(src)?.setGeoJson(FeatureCollection.fromFeatures(features))
-}
-
-/** Flies to [fix] at [MapConfig.MY_LOCATION_ZOOM] at least, centred in the area left free by [padding] (l, t, r, b px). */
-internal fun flyToMyLocation(map: MapLibreMap, fix: MyLocationFix, padding: IntArray) {
-    val from = map.cameraPosition
-    val zoom = maxOf(from.zoom, MapConfig.MY_LOCATION_ZOOM).coerceAtMost(MapConfig.MAX_ZOOM)
-    val target = CameraPosition.Builder()
-        .target(LatLng(fix.point.latitude, fix.point.longitude))
-        .zoom(zoom)
-        .padding(padding.map { it.toDouble() }.toDoubleArray())
-        .build()
-    val km = from.target?.let { Geo.distanceKm(GeoPoint(it.latitude, it.longitude), fix.point) } ?: 0.0
-    map.animateCamera(CameraUpdateFactory.newCameraPosition(target), CameraMath.flyDurationMs(km, from.zoom, zoom))
 }

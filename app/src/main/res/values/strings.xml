@@ -241,6 +241,11 @@
     <string name="offline_indicator">Ngoại tuyến · %1$s</string>
     <string name="offline_no_network">Không có mạng</string>
     <string name="offline_not_downloaded">Vùng này chưa tải bản đồ offline.</string>
+    <!-- Basemap choice "Bản đồ" / "Vệ tinh" (R32-R34) -->
+    <string name="map_style">Kiểu bản đồ</string>
+    <string name="map_style_online_only">Cần mạng · không tải offline được</string>
+    <string name="map_style_offline_ok">Dùng được offline với vùng đã tải</string>
+    <string name="map_style_needs_network">Ảnh vệ tinh cần mạng</string>
     <!-- GPS track recording (R16) -->
     <string name="track_record">Ghi hành trình</string>
     <string name="track_recording">Đang ghi</string>

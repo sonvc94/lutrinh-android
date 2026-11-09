@@ -6,7 +6,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.video.VideoFrameDecoder
 import kotlinx.coroutines.launch
-import vn.lutrinh.app.map.MapSetup
+import vn.lutrinh.app.map.MapEngines
 import vn.lutrinh.app.tracking.TrackNotifications
 
 class LuTrinhApp : Application(), SingletonImageLoader.Factory {
@@ -15,7 +15,7 @@ class LuTrinhApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
-        MapSetup.init(this)
+        MapEngines.active.initialize(this)
         container = AppContainer(this)
         // Re-attach offline map areas; resumes a download the app was killed in (R15).
         container.offlineMaps.start()

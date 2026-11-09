@@ -1,5 +1,7 @@
 package vn.lutrinh.app.ui.picker
 
+import vn.lutrinh.app.ui.common.BasemapFallbackNotice
+import vn.lutrinh.app.ui.common.MapStyleButton
 import android.os.CancellationSignal
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -194,6 +196,9 @@ fun LocationPickerScreen(
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = (-22).dp),
             )
+            BasemapFallbackNotice(snackbar)
+            // "Kiểu bản đồ" (R32): right edge, below the search field and the quick-place chips.
+            MapStyleButton(Modifier.align(Alignment.TopEnd).padding(top = 124.dp, end = 12.dp))
             val chipColors = AssistChipDefaults.assistChipColors(
                 containerColor = MaterialTheme.colorScheme.surface,
                 disabledContainerColor = MaterialTheme.colorScheme.surface,

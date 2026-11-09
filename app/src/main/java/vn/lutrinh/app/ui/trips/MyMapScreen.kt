@@ -81,6 +81,8 @@ import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.dateRange
+import vn.lutrinh.app.ui.common.BasemapFallbackNotice
+import vn.lutrinh.app.ui.common.MapStyleButton
 import vn.lutrinh.app.ui.common.MyLocationButton
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.rememberMyLocation
@@ -202,7 +204,15 @@ fun MyMapScreen(
                     tonalElevation = 2.dp,
                 ) { Text(stringResource(R.string.my_map_empty), Modifier.padding(16.dp)) }
             }
-            MyLocationButton(me, Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = cardsDp.dp + 12.dp))
+            BasemapFallbackNotice(snackbar)
+            // "Kiểu bản đồ" (R32) above "Vị trí của tôi".
+            Column(
+                Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = cardsDp.dp + 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MapStyleButton()
+                MyLocationButton(me)
+            }
             LazyRow(
                 state = listState,
                 contentPadding = PaddingValues(horizontal = 16.dp),

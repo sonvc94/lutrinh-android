@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.map.maplibre.sovereigntyHidden
 
 /** R30 (docs/04): Chinese admin names over Hoàng Sa / Trường Sa are hidden; ours are drawn. */
 class SovereigntyLabelsTest {

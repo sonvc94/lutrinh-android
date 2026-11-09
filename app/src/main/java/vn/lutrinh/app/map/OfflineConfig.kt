@@ -36,7 +36,7 @@ data class OfflineArea(
  * which areas exist, which zoom levels are stored, the size estimate and the limits.
  * Pure Kotlin, no Android, so the iOS port copies the numbers as they are.
  *
- * What is stored per area: the [MapConfig.STYLE_URL] style, its sprite, its fonts (without
+ * What is stored per area: the offline basemap's style (OpenFreeMap Positron), its sprite, its fonts (without
  * CJK ideographs) and every tile of the style's sources inside [OfflineArea.bounds] for zoom
  * [MIN_ZOOM]..[MAX_ZOOM]. The vector tiles stop at z14 anyway (MapConfig.MAX_ZOOM over-zooms
  * them up to z19), so street and village names stay readable at any zoom.

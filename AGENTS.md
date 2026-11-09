@@ -8,7 +8,7 @@ No server, login or API in this phase.
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R31 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R35 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -18,11 +18,17 @@ screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 app/src/main/java/vn/lutrinh/app/
   domain/   models, repository interfaces, validation, ordering, use cases (pure Kotlin)
   data/     Room DB, repositories, PhotoStorage (import: EXIF/downscale/GPS strip), data/photo/ (pure maths), sample data
-  map/      MapConfig.kt (the ONLY place for style URL/basemap tuning/attribution/User-Agent),
-            SovereigntyLabels.kt (R30: Hoàng Sa/Trường Sa names hidden + our labels, pure) +
-            SovereigntyLayers.kt (its filter/layer, applied by loadBasemap/tuneBasemap/StaticTripMap),
-            OfflineConfig.kt (the ONLY place for offline areas/zooms/limits), OfflineMaps.kt,
-            RouteLayers.kt (route + recorded-track layer stack), Pins.kt, MapLibre views
+  map/      the map interface (R35, docs/05 "Map interface and providers"): MapController.kt +
+            MapEngine.kt (engine, OfflineMapStore, MapEngines.active), MapPresenters.kt (pins/legs/
+            camera rules, engine-neutral), MapViews.kt (TripMap/PickerMap/AllTripsMap), MapConfig.kt
+            (User-Agent, zooms, background), SovereigntyLabels.kt (R30, pure), OfflineConfig.kt (the
+            ONLY place for offline areas/zooms/limits), Pins.kt, StaticTripMap.kt
+  map/basemap/   basemap providers (R32-R34): one adapter per provider (OpenFreeMap.kt = "Bản đồ"
+            + Positron style ids/repaint/label ids, EsriWorldImagery.kt = "Vệ tinh"), registered in
+            Basemaps.registry; BasemapPlanner (pure: hide/repaint/R30 filter per style)
+  map/maplibre/  the ONLY package importing org.maplibre: MapLibreEngine, MapLibreController,
+            MapLibreOfflineStore, BasemapLayers, OverlayLayers (route/track/pin layer stack),
+            SovereigntyLayers, MyLocationLayers. New provider = adapter + registration, no screen change
   tracking/ TrackRecordingService (location foreground service + notification); the logic is
             domain/usecase/TrackLogic.kt + TrackRecorder.kt (R16, pure, unit-tested);
             stop suggestions from tracks = domain/usecase/StopSuggestions.kt (R17);
@@ -39,7 +45,8 @@ app/src/main/java/vn/lutrinh/app/
   media     photo order (R27), system-camera capture (R28), short videos (R29): domain/usecase/Media.kt
             (pure), data/MediaCapture.kt, data/VideoMeta.kt, PhotoStorage.importVideo,
             ui/steps/MediaStrip.kt (drag strip + camera contract); videos are `photos` rows (media_type)
-  data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22)
+  data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22;
+            `map_style` = `light`|`satellite`, R32)
   ui/       screens + view models; domain/usecase/DisplayFormat.kt has the km/duration/day formatters; ui/common/Common.kt has date helpers and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
@@ -74,8 +81,13 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
 * zsh does not word-split `ADB="adb -s emulator-5580"`; call the full adb path with `-s`.
 * `adb shell input text` cannot type Vietnamese diacritics (use ASCII, or Compose tests, which can).
 * `*.openstreetmap.org` resets TLS from this network → the basemap is the OpenFreeMap vector
-  style (`MapConfig.STYLE_URL`, `curl -sI` it first). Runtime repaint ids in `BASEMAP_TUNING` are
-  Positron layer ids; another style needs its own ids.
+  style (`Positron.STYLE_URL` in `map/basemap/OpenFreeMap.kt`, `curl -sI` it first). Repaint ids
+  in `Positron.REPAINT` are Positron layer ids; another style needs its own ids.
+* Satellite (R32/R33): Esri imagery is keyless unless `esriApiKey=` is in `local.properties`
+  (git-ignored, never commit a key; a git grep for the key prefix must find nothing). Switch styles on the AVD
+  with the layers button ("Kiểu bản đồ" content description); check the choice with
+  `run-as vn.lutrinh.app cat shared_prefs/lutrinh_prefs.xml | grep map_style`. Leave the captain's
+  AVD at `light`.
 * Map screenshots by script: pinch needs root; zoom in with a double tap
   (`input tap x y; sleep 0.1; input tap x y` — without the sleep it is two single taps) and out
   with a quick-scale (`input motionevent DOWN/UP/DOWN`, MOVE upwards, UP).
@@ -138,7 +150,7 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
 * Share (R18): `logcat -s ShareTrip TripExporter StaticTripMap` prints each share URI, page
   size/level and save path; saved files are `/sdcard/Pictures/LuTrinh/*.png` and
   `/sdcard/Download/LuTrinh/*.html` (`adb pull`). The snapshotter cannot list style layers, so
-  label ids for it are in `MapConfig.LABEL_LAYER_IDS` (change them with the style).
+  label ids for it are in `Positron.LABEL_LAYER_IDS` (change them with the style).
 * Polarsteps analysis docs (`/Volumes/wdblack/workspace/vietmap/vietmap/polarsteps/docs`) are reference only; write our own code and copy.
 * My location + battery guide (R22): `adb emu geo fix <lng> <lat>` then tap "Vị trí của tôi"; the fix
   takes 3–8 s to arrive (screencap after a sleep). Emulator fixes carry no accuracy, so no accuracy
@@ -168,9 +180,9 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   `MEDIA_SCANNER_SCAN_FILE` broadcast, then they show in the Photo Picker. A file *renamed* out of
   `cacheDir` keeps the `u0_aNNN_cache` group: copy captured files (PhotoStorage does).
 * Hoàng Sa / Trường Sa (R30): OSM tiles name Chinese admin units there ("Tam Sa", "Quận Tây Sa",
-  "Quận Nam Sa", 三沙市…); every map hides them via `SovereigntyLayers` and draws "Quần đảo
+  "Quận Nam Sa", 三沙市…); every map (both basemaps) hides them via `maplibre/SovereigntyLayers.kt` and draws "Quần đảo
   Hoàng Sa/Trường Sa". A new style, a new label layer or a new tile build: add the layer to the
-  filter (`tuneBasemap` prefixes + `MapConfig.LABEL_LAYER_IDS`), resurvey z5–10 tiles over the
+  filter (the provider's `labelLayerPrefixes` + `labelLayerIds`, e.g. `Positron.LABEL_*`), resurvey z5–10 tiles over the
   boxes and extend `SovereigntyLabels.BLOCKED_NAMES`; `tools/map-survey/` decodes the tiles and
   lists what the rule keeps. Admin labels there survive only by `VIETNAMESE_ADMIN` (claimants,
   docs/04 R30). Map text is GL-drawn: uiautomator cannot see it, judge screenshots. To get there

@@ -28,7 +28,11 @@ import vn.lutrinh.app.domain.usecase.SetLegTransport
 import vn.lutrinh.app.domain.usecase.SetTripCover
 import vn.lutrinh.app.domain.usecase.TrackRecorder
 import vn.lutrinh.app.map.NetworkMonitor
-import vn.lutrinh.app.map.OfflineMaps
+import vn.lutrinh.app.map.MapEngine
+import vn.lutrinh.app.map.MapEngines
+import vn.lutrinh.app.map.OfflineMapStore
+import vn.lutrinh.app.map.basemap.BasemapSettings
+import vn.lutrinh.app.map.basemap.Basemaps
 import vn.lutrinh.app.share.TripExporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,10 +81,16 @@ class AppContainer(context: Context) {
     val prefs = LocalPrefs(context)
 
     val network = NetworkMonitor(context)
-    val offlineMaps = OfflineMaps(context, network)
 
-    /** "Chia sẻ chuyến đi" (R18): summary image + page export. */
-    val exporter = TripExporter(context, photos)
+    /** The map engine (MapLibre today) and the basemap choice "Bản đồ" / "Vệ tinh" (R32-R35). */
+    val mapEngine: MapEngine = MapEngines.active
+    val basemaps = BasemapSettings(prefs, Basemaps.registry)
+
+    /** Offline areas (R15) of the offline basemap ("Bản đồ"; satellite imagery may not be stored). */
+    val offlineMaps: OfflineMapStore = mapEngine.createOfflineStore(context, network, Basemaps.registry.offline.style)
+
+    /** "Chia sẻ chuyến đi" (R18): summary image + page export, always on the offline basemap. */
+    val exporter = TripExporter(context, photos, mapEngine, Basemaps.registry.offline)
 
     /** GPX export/import of one trip (R25). */
     val exportGpx = ExportGpx(trips, steps, tracks, clock)

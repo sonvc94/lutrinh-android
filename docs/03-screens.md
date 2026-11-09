@@ -73,6 +73,7 @@ Step detail ── pencil ─▶ Step form (edit) │ bin ─▶ confirm ─▶ 
 Trip map ── tap card ─▶ Step detail │ tap leg chip on a card / mode badge on the map ─▶ Leg mode sheet
 Trip map ── top-bar icon "Bản đồ offline" ─▶ Offline maps (with this trip's area first)
 Trip map / My map ── "Vị trí của tôi" ─▶ (rationale ─▶ system prompt) ─▶ blue dot, camera flies there (R22)
+Trip map / My map / Location picker ── "Kiểu bản đồ" ─▶ sheet "Bản đồ" | "Vệ tinh" ─▶ every map switches (R32)
 GPS card ── "Ghi hành trình ổn định" ─▶ Battery guide │ first recording ever starts ─▶ Battery guide (once)
 Share trip ── "Chia sẻ" ─▶ system share sheet │ "Lưu vào máy" ─▶ snackbar "Đã lưu vào …"
 ```
@@ -336,8 +337,8 @@ The picker returns its result to the step form through the previous screen's sav
   route (camera rules) in the area above the card carousel, so no pin hides under a card; first
   pin white with a green ring (start), last pin clay (end); a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
   date · time; from card 2 on, the chip of the leg that arrives at this step, on card 1 the text "Điểm xuất phát"
-  — every card has the same height); two small round buttons stacked above the carousel's right end:
-  **"Vị trí của tôi"** (crosshair, R22) over "Xem toàn bộ hành trình" (fit icon).
+  — every card has the same height); three small round buttons stacked above the carousel's right end:
+  **"Kiểu bản đồ"** (layers, R32, §4d) over **"Vị trí của tôi"** (crosshair, R22) over "Xem toàn bộ hành trình" (fit icon).
   Drafts (R20): a smaller hollow pin with a dashed outline and no number, no leg to or from it
   (the line joins the published steps around it); its card has no number and shows "Nháp" where the leg chip
   would be; start/end pins are the first/last published steps. `img/draft-cover/06-trip-map-draft-pin.png`
@@ -403,9 +404,31 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
 * **"Vị trí của tôi" (R22):** the same round button at the bottom right above the carousel, same
   flow and messages as §4; the camera flies to the device (zoom ≥ 15) and the blue dot is drawn above the
   trip lines. Screen: `img/my-location/02-my-map-my-location.png`.
+* **"Kiểu bản đồ" (R32):** layers button above "Vị trí của tôi" (§4d). Screen:
+  `img/map-style/04-my-map-satellite.png`.
 * **Screen:** `img/26-my-map.png`.
 * **Inspired by:** polarsteps' world map of all trips (docs/22). **Changed:** totals limited to
   what works offline — no countries/provinces (needs geocoding), no world-percentage.
+
+## 4d. Map style — "Kiểu bản đồ" (R32–R34)
+
+* **Entry:** the round layers button (`Icons.Outlined.Layers`, content description "Kiểu bản
+  đồ") on the trip map (§4), "Bản đồ của tôi" (§4c) and the location picker (§6).
+* **Content:** modal bottom sheet titled "Kiểu bản đồ" with one row per basemap provider:
+  * "Bản đồ" (map icon), subtitle "Dùng được offline với vùng đã tải";
+  * "Vệ tinh" (satellite icon), subtitle "Cần mạng · không tải offline được".
+  The current one has its radio button on.
+* **Behaviour:** tapping a row stores the choice (`map_style`), closes the sheet, and switches
+  every map at once. Route, pins, selection, camera and my location stay.
+  * "Vệ tinh": Esri photos under the OpenFreeMap roads, borders and Vietnamese labels (white on
+    dark).
+  * The credit at the bottom right follows the style (R34).
+  * Offline with "Vệ tinh" chosen: the maps show "Bản đồ" (downloaded areas work) and a
+    snackbar says "Ảnh vệ tinh cần mạng" (R33). When the network returns, satellite comes back.
+* **Not affected:** offline downloads and shared images always use "Bản đồ".
+* **Screens:** `img/map-style/03-style-sheet.png`, `01-trip-map-satellite-ma-pi-leng.png`,
+  `02-trang-an-satellite.png`, `06-offline-fallback-snackbar.png`,
+  `07-truong-sa-satellite.png`, `08-hoang-sa-satellite.png`.
 
 ## 5. Step form — "Điểm dừng mới" / "Sửa điểm dừng"
 
@@ -496,6 +519,8 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
   đang tắt…", "Chưa xác định được vị trí của bạn…"); the user can still drag the map. A step chip
   flies to that step's point.
 * **Opens at:** the step's current point; else the last step of the trip; else Vietnam overview.
+* **"Kiểu bản đồ" (R32):** layers button at the right edge below the chips (§4d); satellite
+  helps to place the pin on a building or a viewpoint. Screen: `img/map-style/05-picker-satellite.png`.
 * **Screens:** `img/05-location-picker.png` (before search), `img/place-search/01-search-dong-van-offline.png`
   (airplane mode), `02-search-trang-an.png`, `03-search-former-province.png`, `04-picker-search-picked.png`.
 * **Inspired by:** docs/22 §1.3 ("Search step location" map + pin; "Change step location" shows

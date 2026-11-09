@@ -8,6 +8,12 @@
   source (BSD), same engine and style format on iOS (MapLibre Native iOS), GPU rendering, GeoJSON
   sources + line/symbol layers for route and pins, vector styles we can repaint at runtime.
   osmdroid was the alternative: Android-only, raster only.
+* **Interface:** screens never use the map SDK; they talk to the app's map interface and
+  basemap providers through adapters ("Map interface and providers", R35). The renderer and each
+  tile provider can be replaced by writing one adapter.
+* **Basemaps:** "Bản đồ" (OpenFreeMap, below, the default and the only one offline) and "Vệ
+  tinh" (Esri World Imagery under OpenFreeMap roads and labels, online only), chosen by the user
+  (R32–R34).
 * **Style:** OpenFreeMap **Positron** (a light, low-contrast style made to put data on top),
   loaded from its URL, then repainted at runtime in Lữ Trình's warm colours (see "Basemap
   tuning"). Positron, not `liberty`/`bright`: those are full-colour "general" maps where a route
@@ -17,18 +23,110 @@ Before/after comparison of the route redraw (main@55b3966 raster OSM vs. now), H
 `img/route-redraw/before-*.png` and `after-*.png` (country, region, city zoom, flight leg,
 selected step, trip detail, Bản đồ của tôi; plus `after-leg-selected.png`).
 
-## Basemap — the one place to change it
+## Map interface and providers (R32–R35)
 
-`map/MapConfig.kt`:
+Screens and view models never touch a map SDK (R35). Four parts, ported one to one to iOS
+(07-ios-port.md):
+
+| Part | Android | Role |
+| --- | --- | --- |
+| Map interface | `map/MapController.kt`: `MapController`, `MapListener`, models `MapCamera`, `MapInsets`, `CameraAnimation`, `MapIcon`, `MapPin`, `MapLeg`, `MapBadge`, `MapTripLine`, `MapTripDot`, `TrackLine`, `StopMarker`, `MyLocationFix`, `MapHit`; `map/MapEngine.kt`: `MapEngine`, `OfflineMapStore`, `MapEngines.active` | what the app asks of any map |
+| Presenters | `map/MapPresenters.kt`: `TripMapPresenter`, `AllTripsPresenter`, `PickerPresenter`, `MapCameraRules`; composables in `map/MapViews.kt` (`TripMap`, `PickerMap`, `AllTripsMap`, `MapAttribution`) | the app's map behaviour (pins, legs, badges, camera rules, taps); engine-neutral, unit-tested with a fake controller |
+| Basemap providers | `map/basemap/`: `BasemapProvider`, `BasemapStyle`, `RasterImagery`, `BasemapRegistry` + `Basemaps.registry`, `BasemapSettings` (the persisted choice), `BasemapPlanner` (what to hide, repaint and filter in a loaded style); adapters `OpenFreeMap.kt` ("Bản đồ") and `EsriWorldImagery.kt` ("Vệ tinh") | which tiles, which credit, offline or not |
+| Engine adapter | `map/maplibre/` (the only package importing `org.maplibre`): `MapLibreEngine`, `MapLibreController`, `MapLibreOfflineStore`, `BasemapLayers.kt`, `OverlayLayers.kt`, `SovereigntyLayers.kt`, `MyLocationLayers.kt` | turns interface calls into MapLibre calls |
+
+**Map interface.** Coordinates are `GeoPoint`, colours `#RRGGBB`, sizes px.
+
+* `setBasemap(BasemapStyle)`.
+* Overlays: `setRouteColors`, `setPins`, `setLegs(legs, badges)`, `setTrips(lines, dots)`,
+  `setTracks`, `setStopSuggestions`, `setMyLocation`.
+* Camera: `camera`, `moveTo(center, zoom, padding?, NONE | EASE | FLY)`,
+  `fitPoints(points, padding, maxZoom, animation)`, `afterLayout(action)`.
+* Events: `setListener` → `onTap(MapHit?)` (pin, leg, trip, or nothing) and
+  `onCameraIdle(MapCamera)`. Tap boxes: pins 22 dp, badges 22 dp, leg lines 11 dp, trips 18 dp.
+* `MapEngine`:
+  * `MapSurface(interactive) { controller }`;
+  * `createOfflineStore(basemap)` → `OfflineMapStore` (`states`, `storeBytes`, `download`,
+    `pause`, `resume`, `delete`, `freeBytes`);
+  * `snapshot(basemap, camera, w, h, pixelRatio)` → a bitmap, or null.
+
+The adapter keeps the last value of every overlay and redraws it after each style load, so a
+basemap switch keeps the route, pins, selection, my location and the camera.
+
+**Flow.** A map composable takes a controller from `LocalMapEngine.current.MapSurface` and sets
+the basemap shown (`rememberShownBasemap()`: the choice, or "Bản đồ" while the choice needs a
+network that is missing, R33). Its presenter then pushes overlays and camera moves. The
+composable draws the offline indicator and `MapAttribution` of the basemap shown (R34) on top.
+
+### Basemap providers
+
+| id (stored as `map_style`) | Name | Tiles | Attribution (R34) | Offline (R15) | Needs network |
+| --- | --- | --- | --- | --- | --- |
+| `light` (default) | Bản đồ | OpenFreeMap Positron vector style (below) | `OpenFreeMap © OpenMapTiles © OpenStreetMap contributors` | yes | no |
+| `satellite` | Vệ tinh | Esri World Imagery raster under the Positron roads, borders and labels | `Esri, Vantor, Earthstar Geographics, and the GIS User Community · OpenFreeMap © OpenMapTiles © OpenStreetMap contributors` | no | yes |
+
+* The first registered provider is the default and must work offline (checked when the
+  registry is built).
+* Offline packs (R15) and the share image and page (R18) always use `registry.offline`, i.e.
+  "Bản đồ".
+* The choice (R32) is app-wide: the trip map, "Bản đồ của tôi", the picker and the small
+  previews all show the same basemap.
+
+**"Vệ tinh" is a hybrid.** The Positron style plus a raster source (`RasterImagery`: 256-px
+tiles, z0–18, over-zoomed above) inserted directly above `background` (or at the bottom if a
+style has no `background`). The planner (`BasemapPlanner.plan`) then:
+
+* hides every non-label `fill`, `fill-extrusion` and `hillshade` layer and `waterway`, which
+  would cover the photo;
+* keeps roads, rail and borders, with borders repainted `#F1E6C8` / `#D9CFB6`;
+* draws labels in white `#FFFFFF` on a dark green halo `#26332C`.
+
+Label layers are never hidden. In both styles the R30 filter goes on every label layer and the
+"Quần đảo Hoàng Sa/Trường Sa" labels are added.
+
+**Esri terms and key.**
+
+* **Keyless tiles.** `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
+  acceptable for development and a non-commercial prototype.
+* **Key for a release.** Esri asks for an ArcGIS Location Platform API key (free tier: 2 million
+  basemap tiles per month).
+  * Put `esriApiKey=<key>` in `local.properties` (git-ignored) or pass `-PesriApiKey=<key>`.
+  * The build turns it into `BuildConfig.ESRI_API_KEY`.
+  * Tiles then come from `https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token=<key>`.
+  * Never commit a key. Without one, the build uses the keyless URL.
+* **No offline.** Esri does not allow storing its tiles for offline use, so "Vệ tinh" is
+  online-only (R33) and gets no offline pack.
+* **Credit.** It stays visible whenever imagery is shown (R34). Imagery over Hà Giang (Mã Pí
+  Lèng, 0.34 m) and Ninh Bình (Tràng An, 0.5 m) is sharp at z13–17.
+
+**Adding a provider** (no screen changes):
+
+1. Write one adapter, `map/basemap/<Name>.kt`, implementing `BasemapProvider`. It declares:
+   * the style URL, or Positron plus a `RasterImagery`;
+   * the label-layer prefixes and ids of that style;
+   * repaint and hidden layers;
+   * the attribution and the offline policy (`offlineAllowed`, `needsNetwork`).
+2. Register it in `Basemaps.registry`. The "Kiểu bản đồ" sheet lists it automatically.
+3. Resurvey R30 for its label layers ("Hoàng Sa / Trường Sa" below) and check its terms for
+   offline use and attribution.
+
+**Another engine** (e.g. a different SDK): a new package implementing `MapEngine`,
+`MapController` and `OfflineMapStore`, set in `MapEngines.active`. Presenters, screens and
+providers stay as they are.
+
+## Basemap "Bản đồ" — OpenFreeMap Positron
+
+`map/basemap/OpenFreeMap.kt` (`OpenFreeMap` provider, `Positron` style ids) and `map/MapConfig.kt`
+(shared by all basemaps):
 
 | Constant | Value |
 | --- | --- |
-| `STYLE_URL` | `https://tiles.openfreemap.org/styles/positron` |
-| `ATTRIBUTION` | `OpenFreeMap © OpenMapTiles © OpenStreetMap contributors` |
-| `USER_AGENT` | `LuTrinh/<versionName> (Android; vn.lutrinh.app)` |
-| `MAX_ZOOM` | 19 (vector tiles stop at z14 and are over-zoomed; streets stay sharp) |
-| `BACKGROUND` | `#F3EFE6` — painted while the style loads and if it fails (never a black map) |
-| `BASEMAP_TUNING`, `LABEL_*` | runtime repaint, below |
+| `Positron.STYLE_URL` | `https://tiles.openfreemap.org/styles/positron` |
+| `OpenFreeMap.ATTRIBUTION` | `OpenFreeMap © OpenMapTiles © OpenStreetMap contributors` |
+| `MapConfig.USER_AGENT` | `LuTrinh/<versionName> (Android; vn.lutrinh.app)` |
+| `MapConfig.MAX_ZOOM` | 19 (vector tiles stop at z14 and are over-zoomed; streets stay sharp) |
+| `MapConfig.BACKGROUND` | `#F3EFE6` — painted while the style loads and if it fails (never a black map) |
+| `Positron.REPAINT`, `Positron.LABEL_*` | runtime repaint, below |
 
 The style pulls everything from `tiles.openfreemap.org`: TileJSON `/planet`, vector tiles, fonts
 (`/fonts/{fontstack}/{range}.pbf`), sprite (`/sprites/ofm_f384/ofm`) and a Natural Earth shaded
@@ -45,21 +143,21 @@ curl https://tile.openstreetmap.org/1/1/0.png            → (35) Recv failure: 
 for attribution; it is fine for development and a beta. Its terms allow offline downloads of
 "≤3,000 tiles or 50 MB per offline download": rule R31, `OfflineConfig.MAX_AREA_TILES`/`MAX_AREA_BYTES`. For production either self-host the
 same OpenMapTiles data (OpenFreeMap is open source) or move to a paid OSM-based provider
-(MapTiler, Stadia…): only `STYLE_URL` and `ATTRIBUTION` change; tuning entries for layer ids the
-new style lacks are skipped.
+(MapTiler, Stadia…): one new provider adapter ("Adding a provider"); repaint entries for layer
+ids the new style lacks are skipped.
 
-**User-Agent.** MapLibre downloads through OkHttp; at app start `MapSetup.init` installs an
+**User-Agent.** MapLibre downloads through OkHttp; at app start `MapLibreEngine.initialize` (via `MapEngines.active` in `LuTrinhApp`) installs an
 OkHttp client whose network interceptor sets `User-Agent: MapConfig.USER_AGENT`. No personal
 data is sent. On iOS set the header via `MLNNetworkConfiguration`.
 
-**Attribution.** Every map shows `MapConfig.ATTRIBUTION` in its bottom-right corner (9 sp,
+**Attribution.** Every map shows the attribution of the basemap shown (`BasemapProvider.attribution`, R34) in its bottom-right corner (9 sp,
 `#4A524E`, on white at 75 % opacity, drawn by the app). The MapLibre logo and the (i) button
 are hidden because the label already gives the required credit.
 
 **Caching.** MapLibre keeps its default ambient HTTP cache (tiles seen online, in the same
 database as the offline areas); areas the user downloads are kept until deleted ("Offline maps").
 
-### Basemap tuning (runtime, after the style loads — `RouteLayers.kt` `tuneBasemap`)
+### Basemap tuning (runtime, after the style loads — `Positron.REPAINT`, applied by `maplibre/BasemapLayers.kt` `applyBasemap`)
 
 | Positron layer | Property | Colour |
 | --- | --- | --- |
@@ -76,10 +174,10 @@ Labels: every symbol layer whose id starts with `label_`, `water_name`, `waterwa
 `highway-name` or `airport` gets `text-field = coalesce(name:vi, name:latin, name)` (Vietnamese
 first — the tiles carry `name:vi`), text colour `#5F6661` and halo `#F7F4EE`. The share
 snapshot cannot list a style's layers, so the same label layers are also named one by one in
-`MapConfig.LABEL_LAYER_IDS` (another style needs its own list). Roads keep
+`Positron.LABEL_LAYER_IDS` (another style needs its own list). Roads keep
 Positron's light greys. Result: the land is quiet and the route is the darkest thing on the map.
 
-### Hoàng Sa / Trường Sa (R30, `map/SovereigntyLabels.kt`, `map/SovereigntyLayers.kt`)
+### Hoàng Sa / Trường Sa (R30, `map/SovereigntyLabels.kt`, `map/maplibre/SovereigntyLayers.kt`)
 
 OpenStreetMap, and so the OpenFreeMap tiles (checked 2026-11-01 build, z3–10 over both
 archipelagos), carries Chinese administrative units there: city 三沙市 (`name:vi` "Tam Sa"),
@@ -88,7 +186,7 @@ Sa", 9.55 N 112.89 E), towns 永兴镇/永乐群岛/七连屿/渚碧岛, village
 Tuyền") …, the airport 三沙永兴机场 and Chinese-only island and sea-mount names. The app is for
 Vietnam, so (rule R30):
 
-* **Filter.** `tuneBasemap` (live maps) and `StaticTripMap.onDidFinishLoadingStyle` (share
+* **Filter.** `applyBasemap` (live maps, both basemaps) and `MapLibreEngine.snapshot` (share
   snapshot) add `all(<layer's own filter>, not(hidden))` to every label layer of the table above,
   where `hidden` = `within(Hoàng Sa box) or within(Trường Sa box)` and (any name field in
   `BLOCKED_NAMES`, or contains a blocked substring, or `class` in the admin classes and `name`
@@ -99,7 +197,7 @@ Vietnam, so (rule R30):
   `r30-archipelagos` (two points from `SovereigntyLabels.labelsGeoJson()`, bundled in code) and
   symbol layer `r30-archipelago-labels`: "Quần đảo Hoàng Sa" (16.45 N 111.95 E) and "Quần đảo
   Trường Sa" (10.0 N 114.3 E), Noto Sans Italic 11→14 sp (z4→z8), label ink + halo, always
-  placed, z3 up to (not incl.) z11. Both `loadBasemap` (trip map, picker, "Bản đồ của tôi") and
+  placed, z3 up to (not incl.) z11. `styleBuilder(basemap)` (every live map, both basemaps) and
   the snapshotter's style builder use it (the snapshotter has no `addLayer`, but it applies a
   `Style.Builder`'s sources and layers).
 * **Offline.** Packs store the plain style and tiles; the filter and labels are applied at
@@ -171,7 +269,7 @@ Tests: `RouteGeometryTest` (great-circle ends/spacing/antimeridian, lift at ends
 left side, point count, DP tolerance/corners/short lines, simplified arc, `pointAt`),
 `LegsTest.onlyFlightsAreDrawnAsArcs`.
 
-## Layers (bottom → top, `RouteLayers.kt` `addRouteLayers`)
+## Layers (bottom → top, `maplibre/OverlayLayers.kt` `addOverlayLayers`, above the basemap)
 
 Widths are dp and interpolate linearly with zoom between the stops z5 / z9 / z13 (clamped
 outside); "→" gives the selected-leg value. Colour = route green `#1F5C45` (theme primary), the
@@ -238,7 +336,7 @@ No clustering: overlapping pins stay visible (a Hà Giang loop at country zoom i
 
 ### All trips ("Bản đồ của tôi", R14)
 
-`map/AllTripsMap.kt`: one GeoJSON LineString per trip with ≥ 2 steps (R3 order; flight legs
+`AllTripsPresenter` (`map/MapPresenters.kt`) + `OverlayLayers.kt`: one GeoJSON LineString per trip with ≥ 2 steps (R3 order; flight legs
 drawn as the same arc, every other leg straight; simplified like above; no dashes or badges — the
 colour identifies the trip) and one point per step.
 Layers (dp at z5 / z9 / z13, "→" selected): `trips-shadow-layer` (same soft shadow as
@@ -250,7 +348,7 @@ Screenshot: `img/26-my-map.png`.
 
 ### Recorded tracks (R16)
 
-`RouteLayers.kt` `addTrackLayers` + `TrackLine.toFeatureCollection`: one GeoJSON source
+`OverlayLayers.kt` `addTrackLayers` + `toTrackFeatures`: one GeoJSON source
 (`tracks-src` on trip maps, `all-tracks-src` on Bản đồ của tôi) with one LineString per drawn
 segment (`TrackMath.displayLines`: one line per track segment, Douglas–Peucker 5·10⁻⁵°; a pause
 splits the line), properties `track` (id) and `live` (the open track).
@@ -276,7 +374,7 @@ are not tappable. The step map and location picker draw no tracks.
 
 ### Stop suggestions (R17)
 
-`RouteLayers.kt` `addStopSuggestionLayers` + `List<StopMarker>.toStopFeatureCollection`: one
+`OverlayLayers.kt` `addStopSuggestionLayers` + `toStopFeatures`: one
 GeoJSON source `stop-suggest-src` with one Point per current suggestion (its centre), property
 `key` (`<trackId>@<startAt>`). Two circle layers right above `track-line`, below the leg badges
 and step pins:
@@ -293,7 +391,7 @@ the filled, numbered step pins. Drawn on the trip detail header map and the full
 suggestion's marker goes at once) and do not change the camera fit (the stays lie on the
 tracks, which the fit already includes). Screenshot: `img/stop-suggest/05-trip-map-markers.png`.
 
-### My location (R22, `map/MyLocationLayer.kt`)
+### My location (R22, `map/maplibre/MyLocationLayers.kt`)
 
 One GeoJSON source `my-location-src` (a single Point with property `r20`) and two circle layers,
 added by `TripMap` and `AllTripsMap` right above the tracks / stop suggestions and below the leg
@@ -312,10 +410,11 @@ Android 12+ with only "approximate" location still gives a fix, with a larger ac
 The "Ảnh dọc cho mạng xã hội" and "Trang xem offline" (04-business-rules.md R18) need the trip map as a bitmap,
 without a visible map view. Two steps:
 
-1. **Basemap** — MapLibre `MapSnapshotter` with `MapConfig.STYLE_URL`, size 960 × 980 logical
+1. **Basemap** — `MapEngine.snapshot` of the offline basemap ("Bản đồ", never satellite imagery,
+   whose terms forbid storing it); on Android a MapLibre `MapSnapshotter` with `Positron.STYLE_URL`, size 960 × 980 logical
    px × pixel ratio 2.5 (`SummaryImage.MAP_*`), logo off, the camera from `MapFit`, and the same
-   repaint as the live maps applied in `onDidFinishLoadingStyle` through `getLayer(id)`
-   (`BASEMAP_TUNING` + the Vietnamese-first labels on `LABEL_LAYER_IDS`). Tiles come from the
+   repaint as the live maps applied once the style loads through `getLayer(id)`
+   (`BasemapPlanner.declared`: `Positron.REPAINT` + the Vietnamese-first labels on `Positron.LABEL_LAYER_IDS`). Tiles come from the
    network or, offline, from MapLibre's store (an offline pack, R15, or the ambient cache). The
    snapshot runs on the main thread and is cancelled after **15 s** (`SNAPSHOT_TIMEOUT_MS`).
 2. **Overlay** — drawn by us on a `Canvas` over the snapshot, not as runtime style layers in
@@ -408,14 +507,14 @@ tap-to-move the pin; neighbour steps are drawn there as a dotted line, here as s
 Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map/OfflineConfig.kt`.
 
 * **Engine.** MapLibre's own offline store: `OfflineManager.createOfflineRegion` with an
-  `OfflineTilePyramidRegionDefinition(STYLE_URL, bounds, minZoom 0, maxZoom 14, pixelRatio =
+  `OfflineTilePyramidRegionDefinition(<offline basemap style URL>, bounds, minZoom 0, maxZoom 14, pixelRatio =
   screen density, includeIdeographs = false)` and JSON metadata
   `{"key","name","description","paused"}`. MapLibre downloads style, sprite, glyphs and tiles of
   every source in the style (vector `openmaptiles` z0–14, Natural Earth relief raster z0–6) into
   `files/mbgl-offline.db` and serves them to every `MapView` when the network is gone — no change
-  to the map code. The basemap repaint (`tuneBasemap`), route layers, pins and badges are built
+  to the map code. The basemap repaint (`applyBasemap`), route layers, pins and badges are built
   at runtime after the style loads, so they work offline unchanged.
-* **App side.** `map/OfflineMaps.kt` (one per process, in `AppContainer`, started in
+* **App side.** `OfflineMapStore` (`map/MapEngine.kt`), on Android `map/maplibre/MapLibreOfflineStore.kt` (one per process, in `AppContainer`, started in
   `LuTrinhApp.onCreate`) lists regions, maps them to `OfflineArea`s by the metadata key, observes
   status/errors and exposes `states` (phase, bytes, resources, problem) to the screen and the
   indicator; `map/NetworkMonitor.kt` gives online/offline (`ConnectivityManager` default network
@@ -434,7 +533,7 @@ Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map
   The fonts (~17 MB for all glyph ranges of the 3 Noto stacks) dominate small areas; tile bytes
   are only ~8 MB per area.
 * **Deleting.** `OfflineRegion.delete` only unlinks the region: its resources become ambient
-  cache (MapLibre keeps up to 50 MB) and the file does not shrink. `OfflineMaps.delete` therefore
+  cache (MapLibre keeps up to 50 MB) and the file does not shrink. `OfflineMapStore.delete` therefore
   calls `OfflineManager.clearAmbientCache` + `packDatabase` afterwards (measured: 33,7 → 28,2 →
   0,07 MB deleting Ninh Bình then Hà Giang; the fonts stay while any area uses them).
 * **Provider note.** OpenFreeMap is a donated public instance: downloads are kept modest on
@@ -442,8 +541,8 @@ Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map
   50 MB per offline download" — R31: estimate ≤ 50 MB and ≤ 3 000 tiles, vector z0–14 + relief
   raster z0–6, else refused without splitting; no country/province packs; one revalidation per
   process). A production release with many users should self-host the
-  OpenMapTiles data (or use a paid provider) before offering offline areas widely; only
-  `STYLE_URL` changes, `OfflineConfig` re-measures `BYTES_PER_TILE`/`FIXED_BYTES`.
+  OpenMapTiles data (or use a paid provider) before offering offline areas widely; only the
+  offline provider's style URL changes, `OfflineConfig` re-measures `BYTES_PER_TILE`/`FIXED_BYTES`.
 * **Tileset versions.** The style's vector source is a TileJSON (`/planet`, max-age 1 h) whose
   `tiles` URL contains a version (`/planet/20261101_080013_pt/{z}/{x}/{y}.pbf`). Offline, MapLibre
   uses the stored TileJSON, so the pack stays consistent. Online after a new OpenFreeMap
@@ -458,7 +557,7 @@ Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map
 ## Not done (later)
 
 Drawing a custom offline box on the map, background download as a foreground service/WorkManager
-(today downloads stop when the process dies and resume at the next start), dark map, clustering for trips with many steps, road-following routes
+(today downloads stop when the process dies and resume at the next start), dark map, clustering for trips with many steps, satellite imagery offline (Esri's terms forbid it), 3D terrain, road-following routes
 (snap-to-roads / OSRM — legs stay straight or arcs), photo thumbnails inside pins, current-location
 button and following the user on the map (location is used only while recording a track, R16),
 snapping recorded tracks to roads (GPX export/import is done, R25: an imported track is drawn

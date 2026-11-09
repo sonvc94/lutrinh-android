@@ -12,6 +12,7 @@ import vn.lutrinh.app.domain.usecase.ShareStats
 import vn.lutrinh.app.domain.usecase.TripPage
 import vn.lutrinh.app.domain.usecase.TripShare
 import vn.lutrinh.app.map.MapConfig
+import vn.lutrinh.app.map.basemap.OpenFreeMap
 import vn.lutrinh.app.map.MapFit
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -76,7 +77,7 @@ class TripShareTest {
     private fun content(steps: List<Step>, hideNotes: Boolean = false, title: String = "Hà Giang") = TripPage.Content(
         title = title, dates = "3 – 6 thg 11, 2025", description = "", tripStart = start,
         stats = ShareStats(22, 4, steps.size, steps.sumOf { it.photos.size }), steps = steps, hideNotes = hideNotes,
-        mapJpeg = byteArrayOf(1, 2, 3), attribution = MapConfig.ATTRIBUTION,
+        mapJpeg = byteArrayOf(1, 2, 3), attribution = OpenFreeMap.ATTRIBUTION,
     )
 
     @Test fun pageEscapesUserTextIncludingScript() {

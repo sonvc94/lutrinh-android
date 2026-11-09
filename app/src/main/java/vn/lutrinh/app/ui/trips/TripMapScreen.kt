@@ -66,6 +66,8 @@ import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.DraftBadge
 import vn.lutrinh.app.ui.common.LocalPhoto
 import vn.lutrinh.app.ui.common.displayDateTime
+import vn.lutrinh.app.ui.common.BasemapFallbackNotice
+import vn.lutrinh.app.ui.common.MapStyleButton
 import vn.lutrinh.app.ui.common.MyLocationButton
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.rememberMyLocation
@@ -153,6 +155,7 @@ fun TripMapScreen(
                 myLocation = me.fix,
                 myLocationSignal = me.signal,
             )
+            BasemapFallbackNotice(snackbar)
             // "Ghi hành trình" (R16) floats top-right; the offline indicator sits top-left.
             RecordTrackControl(
                 tripId = detail.trip.id, active = recording,
@@ -174,6 +177,8 @@ fun TripMapScreen(
                 Modifier.align(Alignment.BottomEnd).padding(end = 12.dp, bottom = carouselDp.dp + 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                // "Kiểu bản đồ" (R32): "Bản đồ" / "Vệ tinh".
+                MapStyleButton()
                 MyLocationButton(me)
                 if (detail.steps.size > 1 || selected != null) {
                     SmallFloatingActionButton(
