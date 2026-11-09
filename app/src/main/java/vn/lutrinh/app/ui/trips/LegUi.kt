@@ -25,12 +25,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.TransportMode
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.Leg
 import vn.lutrinh.app.map.TransportStyle
-import java.util.Locale
 
 /** Straight-line distance of a leg, 1 decimal under 10 km. */
-fun Leg.kmText(): String = String.format(Locale.US, if (distanceKm < 10) "%.1f" else "%.0f", distanceKm)
+fun Leg.kmText(): String = DisplayFormat.kmNumber(distanceKm)
 
 /** Compact chip on the timeline / map card: the leg's mode (or a prompt) and its distance. */
 @Composable

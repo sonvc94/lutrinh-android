@@ -22,7 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.StopSuggestion
-import vn.lutrinh.app.domain.usecase.StopFormat
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.ui.common.displayDay
 import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.formatCoord
@@ -81,7 +81,7 @@ private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, onAdd: (StopSu
                     )
                     Text(
                         listOf(
-                            stringResource(R.string.stop_suggest_duration, StopFormat.duration(s.dwell.durationMs)),
+                            stringResource(R.string.stop_suggest_duration, DisplayFormat.duration(s.dwell.durationMs)),
                             if (s.photoCount > 0) stringResource(R.string.stop_suggest_photos, s.photoCount)
                             else stringResource(R.string.stop_suggest_no_photos),
                             galleryCount?.let { stringResource(R.string.stop_suggest_gallery, it) },

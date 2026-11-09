@@ -12,6 +12,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.TextUtils
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.ShareStats
 
 /**
@@ -79,7 +80,7 @@ object SummaryImage {
 
         // Stats: four tiles.
         val s = input.stats
-        val tiles = listOf("${s.distanceKm}" to "km", "${s.days}" to "ngày", "${s.stepCount}" to "điểm dừng", "${s.photoCount}" to "ảnh")
+        val tiles = listOf("${s.stepCount}" to "điểm dừng", "${s.photoCount}" to "ảnh", DisplayFormat.kmNumber(s.distanceKm.toLong()) to "km", "${s.days}" to "ngày")
         val gap = 20f
         val tileW = (contentW - gap * (tiles.size - 1)) / tiles.size
         val tileH = 160f

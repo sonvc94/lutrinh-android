@@ -297,7 +297,7 @@ Constants live in `domain/usecase/TrackLogic.kt` (`TrackRules`); the iOS port co
 * **Distance / duration.** Distance = Σ distance (haversine, R = 6371 km) between consecutive
   points of the same segment, kept up to date in the track row on every stored point. Duration =
   `activeMs` (+ `now − resumedAt` while recording). Shown as "850 m" (< 1 km), "2,4 km" (< 100 km,
-  Vietnamese decimal comma), "125 km"; time as "m:ss" or "h:mm:ss".
+  Vietnamese decimal comma), "125 km"; a running timer as "m:ss" or "h:mm:ss", a finished track's duration in words ("6 giờ 45 phút"); see 03-screens.md "Display conventions".
 * **Stop.** Ends the track (`ended`, `endedAt = now`, open segment closed), stops the GPS and
   removes the notification. A track with 0 or 1 point is kept (it shows in the list, draws
   nothing) so the user decides whether to delete it.
@@ -425,7 +425,7 @@ Rendering (map, image, photo encoding, files) is `share/TripExporter.kt`, `share
 and `map/StaticTripMap.kt` (docs/05 "Static map for sharing", docs/06 "Export").
 
 * **What.** Two outputs of one trip, made on the phone, nothing uploaded (no link, no server):
-  **"Ảnh tóm tắt"** = one portrait PNG 1080 × 1920; **"Trang tóm tắt"** = one self-contained HTML
+  **"Ảnh dọc cho mạng xã hội"** = one portrait PNG 1080 × 1920; **"Trang xem offline"** = one self-contained HTML
   file that opens offline in any browser. Both are rebuilt live while the share screen is open
   (trip, steps, tracks, "Ẩn ghi chú").
 * **Image contents.** Title (max 2 lines, then "…"), the trip dates as on the trip screen
@@ -435,13 +435,15 @@ and `map/StaticTripMap.kt` (docs/05 "Static map for sharing", docs/06 "Export").
 * **Stats** (`TripShare.stats`). km = R10 distance rounded to a whole km (straight lines between
   steps, not the GPS tracks); ngày = `endDate − startDate + 1`, or for an open-ended trip from the
   start date to the last step's date (+1), at least 1; điểm dừng and ảnh = counts of the trip.
+  Shown in this order on the image, the page and Trip detail: điểm dừng, ảnh, km, ngày
+  (`DisplayFormat`, 03-screens.md "Display conventions"; thousands with ".").
 * **Image photos** (`TripShare.imagePhotos`). At most 4. With ≥ 4 steps that have photos: the
   first photo (by position) of 4 of them evenly spaced along the timeline, first and last such
   step always in (index `round(i·(n−1)/3)`). With fewer: each such step's first photo, then their
   second photos in turn, and so on, until 4 or none are left. No photos → no photo row.
 * **Page contents** (`TripPage.build`). Title, dates, trip description, the map image with the
   plain-text caption "Bản đồ: <attribution>", the four stats, then every step in timeline order
-  (R2) grouped by day "Ngày N · <weekday>, d/M/yyyy" (N from the trip start, as on Trip detail):
+  (R2) grouped by day "Ngày N · <weekday>, dd/MM/yyyy" (N from the trip start, as on Trip detail):
   number, title, time `HH:mm`, note (line breaks kept) and its photos in position order; footer
   "Tạo bằng Lữ Trình …". A photo whose file is missing is skipped.
 * **Offline and safe.** All user text (title, description, step titles, notes) is HTML-escaped

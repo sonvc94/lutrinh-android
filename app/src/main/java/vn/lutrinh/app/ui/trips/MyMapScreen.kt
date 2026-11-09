@@ -60,6 +60,7 @@ import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.TripSummary
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.Geo
 import vn.lutrinh.app.domain.usecase.OverallStats
 import vn.lutrinh.app.domain.usecase.legsOf
@@ -79,7 +80,6 @@ import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.theme.Palette
-import java.util.Locale
 
 /** Trip colours on "Bản đồ của tôi" (R14): theme colours first, then distinct extras. */
 private val TripPalette = listOf(
@@ -182,7 +182,7 @@ fun MyMapScreen(
                 Row(Modifier.padding(horizontal = 8.dp, vertical = 10.dp)) {
                     Total("${data.stats.tripCount}", stringResource(R.string.my_map_trips), Modifier.weight(1f))
                     Total("${data.stats.stepCount}", stringResource(R.string.stat_steps), Modifier.weight(1f))
-                    Total(String.format(Locale.US, "%,.0f", data.stats.distanceKm).replace(',', '.'), stringResource(R.string.stat_km), Modifier.weight(1.3f))
+                    Total(DisplayFormat.kmNumber(data.stats.distanceKm), stringResource(R.string.stat_km), Modifier.weight(1.3f))
                 }
             }
             if (data.trips.isEmpty()) {
@@ -235,7 +235,7 @@ private fun TripMapCard(t: MyMapTrip, selected: Boolean, onClick: () -> Unit) {
                     maxLines = 1,
                 )
                 Text(
-                    stringResource(R.string.my_map_trip_line, t.summary.stepCount, String.format(Locale.US, "%.0f", t.distanceKm)),
+                    stringResource(R.string.my_map_trip_line, t.summary.stepCount, DisplayFormat.kmNumber(t.distanceKm)),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )

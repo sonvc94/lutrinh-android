@@ -3,8 +3,6 @@ package vn.lutrinh.app.domain.usecase
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.LocationFix
 import vn.lutrinh.app.domain.model.TrackPoint
-import java.util.Locale
-import kotlin.math.roundToLong
 
 /** Sampling and filter constants of a recording (R16, docs/04-business-rules.md). */
 object TrackRules {
@@ -85,23 +83,10 @@ object TrackMath {
     }
 }
 
-/** Display formats of a track (docs/03-screens.md "Ghi hành trình"); Vietnamese decimal comma. */
+/** Display formats of a track (docs/03-screens.md "Ghi hành trình"); shared rules in [DisplayFormat]. */
 object TrackFormat {
-    private val VI = Locale.forLanguageTag("vi-VN")
+    fun distance(m: Double): String = DisplayFormat.trackDistance(m)
 
-    /** "850 m" under 1 km, "2,4 km" under 100 km, "125 km" above. */
-    fun distance(m: Double): String = when {
-        m < 1000 -> "${m.roundToLong()} m"
-        m < 100_000 -> String.format(VI, "%.1f km", m / 1000)
-        else -> "${(m / 1000).roundToLong()} km"
-    }
-
-    /** "0:45" (m:ss) under an hour, "2:05:09" (h:mm:ss) above. */
-    fun duration(ms: Long): String {
-        val s = (ms.coerceAtLeast(0) / 1000)
-        val h = s / 3600
-        val m = (s % 3600) / 60
-        val sec = s % 60
-        return if (h > 0) String.format(Locale.US, "%d:%02d:%02d", h, m, sec) else String.format(Locale.US, "%d:%02d", m, sec)
-    }
+    /** Live timer of a recording ("0:45"); finished tracks show [DisplayFormat.duration]. */
+    fun duration(ms: Long): String = DisplayFormat.clock(ms)
 }

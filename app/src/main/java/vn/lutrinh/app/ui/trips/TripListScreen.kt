@@ -248,7 +248,9 @@ private fun TripCard(summary: TripSummary, onOpen: () -> Unit, onEdit: () -> Uni
                 )
             }
             Box {
-                IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.action_more)) }
+                IconButton(onClick = { menu = true }) {
+                    Icon(Icons.Filled.MoreVert, stringResource(R.string.trip_options, summary.trip.title))
+                }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.action_edit)) },

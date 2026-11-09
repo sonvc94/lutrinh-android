@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -229,7 +230,7 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
     val done = s.phase == OfflinePhase.COMPLETE
     Card(
         Modifier.fillMaxWidth(),
-        colors = if (done) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer) else CardDefaults.cardColors(),
+        colors = if (done) CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer) else CardDefaults.cardColors(),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -252,11 +253,14 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
                 }
                 OfflinePhase.COMPLETE -> stringResource(R.string.offline_complete, formatBytes(s.completedBytes))
             }
-            Text(
-                status,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (s.phase == OfflinePhase.FAILED) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (done) Icon(Icons.Filled.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(
+                    status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (s.phase == OfflinePhase.FAILED) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                )
+            }
             if (s.phase in setOf(OfflinePhase.DOWNLOADING, OfflinePhase.WAITING_NETWORK, OfflinePhase.PAUSED)) {
                 LinearProgressIndicator(progress = { s.progress }, modifier = Modifier.fillMaxWidth())
             }

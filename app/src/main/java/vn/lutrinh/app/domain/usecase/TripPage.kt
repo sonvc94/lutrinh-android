@@ -6,7 +6,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Base64
-import java.util.Locale
 
 /**
  * "Trang tóm tắt" (R18): one self-contained, offline HTML file of a trip. Everything is inline
@@ -96,7 +95,7 @@ object TripPage {
 
         val s = content.stats
         sb.append("<ul class=\"stats\">")
-        listOf(s.distanceKm to "km", s.days to "ngày", s.stepCount to "điểm dừng", s.photoCount to "ảnh").forEach { (n, label) ->
+        listOf(s.stepCount.toString() to "điểm dừng", s.photoCount.toString() to "ảnh", DisplayFormat.kmNumber(s.distanceKm.toLong()) to "km", s.days.toString() to "ngày").forEach { (n, label) ->
             sb.append("<li><b>").append(n).append("</b><span>").append(label).append("</span></li>")
         }
         sb.append("</ul>\n<main>\n")
@@ -153,11 +152,9 @@ object TripPage {
 
     private fun dataUri(jpeg: ByteArray) = "data:image/jpeg;base64," + Base64.getEncoder().encodeToString(jpeg)
 
-    private val VI: Locale = Locale.forLanguageTag("vi-VN")
-    private val DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, d/M/yyyy", VI)
-    private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", VI)
+    private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm", DisplayFormat.VI)
 
-    private fun dayLabel(d: LocalDate) = d.format(DAY).replaceFirstChar { it.titlecase(VI) }
+    private fun dayLabel(d: LocalDate) = DisplayFormat.dayWithYear(d)
 
     private fun utf8Length(s: String): Int {
         var n = 0

@@ -17,7 +17,11 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import android.app.Activity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -59,6 +63,15 @@ fun PhotoViewerScreen(
 ) {
     val step by vm.step.collectAsStateWithLifecycle()
     val photos = step?.photos.orEmpty()
+    // Black screen: light status-bar icons while it is open (the app default is dark icons).
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val window = (view.context as? Activity)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        val before = controller?.isAppearanceLightStatusBars
+        controller?.isAppearanceLightStatusBars = false
+        onDispose { if (before != null) controller.isAppearanceLightStatusBars = before }
+    }
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (photos.isNotEmpty()) {
             val pager = rememberPagerState(initialPage = vm.startIndex.coerceIn(0, photos.lastIndex)) { photos.size }

@@ -43,17 +43,19 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 
-val VI: Locale = Locale.forLanguageTag("vi-VN")
+val VI: Locale = DisplayFormat.VI
 private val DATE_FMT = DateTimeFormatter.ofPattern("d MMM, yyyy", VI)
 private val DATE_SHORT = DateTimeFormatter.ofPattern("d MMM", VI)
-private val DAY_FMT = DateTimeFormatter.ofPattern("EEEE, d/M", VI)
 private val TIME_FMT = DateTimeFormatter.ofPattern("HH:mm", VI)
 
 fun LocalDate.display(): String = format(DATE_FMT)
-fun LocalDate.displayDay(): String = format(DAY_FMT).replaceFirstChar { it.titlecase(VI) }
+/** In-trip day: "Thứ Hai, 20/10". */
+fun LocalDate.displayDay(): String = DisplayFormat.day(this)
 fun LocalDateTime.displayTime(): String = format(TIME_FMT)
-fun LocalDateTime.displayDateTime(): String = "${toLocalDate().display()} · ${displayTime()}"
+/** In-trip moment: "Thứ Hai, 20/10 · 08:10" (a date with year only where a trip is picked: [display]). */
+fun LocalDateTime.displayDateTime(): String = "${toLocalDate().displayDay()} · ${displayTime()}"
 
 /**
  * Runs [content] with a Vietnamese configuration, whatever the device language. Used around the

@@ -58,6 +58,7 @@ import kotlinx.coroutines.delay
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackStatus
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.TrackFormat
 import vn.lutrinh.app.tracking.TrackRecordingService
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
@@ -265,7 +266,7 @@ fun TrackList(tracks: List<Track>, onDelete: (String) -> Unit, modifier: Modifie
                     Text(
                         listOf(
                             TrackFormat.distance(t.distanceM),
-                            TrackFormat.duration(t.durationMs(now)),
+                            DisplayFormat.duration(t.durationMs(now)),
                             stringResource(R.string.track_points, t.pointCount),
                         ).joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,

@@ -5,6 +5,7 @@ import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.StopSuggestion
 import vn.lutrinh.app.data.GalleryAccess
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.StopPhotos
 import vn.lutrinh.app.domain.usecase.StopSuggestions
 import vn.lutrinh.app.map.StopMarker
@@ -116,7 +117,6 @@ import vn.lutrinh.app.ui.common.displayDay
 import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.factory
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 
 data class TripDetail(
     val trip: Trip,
@@ -413,7 +413,7 @@ private fun TripHeader(d: TripDetail) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Stat("${d.stats.stepCount}", stringResource(R.string.stat_steps), Modifier.weight(1f))
             Stat("${d.stats.photoCount}", stringResource(R.string.stat_photos), Modifier.weight(1f))
-            Stat(String.format(Locale.US, "%.0f", d.stats.distanceKm), stringResource(R.string.stat_km), Modifier.weight(1.4f))
+            Stat(DisplayFormat.kmNumber(d.stats.distanceKm), stringResource(R.string.stat_km), Modifier.weight(1.4f))
             d.stats.days?.let { Stat("$it", stringResource(R.string.stat_days), Modifier.weight(1f)) }
         }
     }

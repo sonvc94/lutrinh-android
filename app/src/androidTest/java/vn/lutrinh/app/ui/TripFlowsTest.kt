@@ -88,10 +88,10 @@ class TripFlowsTest {
         waitForText("Hồ Gươm")
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithContentDescription("Chia sẻ chuyến đi").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithContentDescription("Chia sẻ chuyến đi").performClick()
-        waitForText("Ảnh tóm tắt")
-        rule.onAllNodesWithText("Ảnh tóm tắt").onFirst().assertExists()
-        rule.onAllNodesWithText("Trang tóm tắt").onFirst().assertExists()
-        rule.onAllNodesWithText("Trang tóm tắt").onFirst().performClick()
+        waitForText("Ảnh dọc cho mạng xã hội")
+        rule.onAllNodesWithText("Ảnh dọc cho mạng xã hội").onFirst().assertExists()
+        rule.onAllNodesWithText("Trang xem offline").onFirst().assertExists()
+        rule.onAllNodesWithText("Trang xem offline").onFirst().performClick()
         waitForText("Ẩn ghi chú")
     }
 
@@ -199,7 +199,7 @@ class TripFlowsTest {
     fun editTrip_changesTheTitle() {
         createTrip(title)
         waitForText("Chưa có điểm dừng")
-        rule.onNodeWithContentDescription("Thêm tùy chọn").performClick()
+        rule.onNodeWithContentDescription("Tùy chọn khác").performClick()
         rule.onNodeWithText("Sửa chuyến đi").performClick()
 
         val field = rule.onNode(hasSetTextAction() and hasText("Tên chuyến đi"))
@@ -215,7 +215,7 @@ class TripFlowsTest {
     fun deleteTrip_removesItFromTheList() {
         createTrip(title)
         waitForText("Chưa có điểm dừng")
-        rule.onNodeWithContentDescription("Thêm tùy chọn").performClick()
+        rule.onNodeWithContentDescription("Tùy chọn khác").performClick()
         rule.onNodeWithText("Xóa chuyến đi").performClick()
         waitForText("Xóa chuyến đi này?")
         rule.onNodeWithText("Xóa").performClick()
@@ -278,8 +278,8 @@ class TripFlowsTest {
     @Test
     fun openOfflineMaps_fromTheTripListMenu_listsTheReadyMadeRegions() {
         rule.waitUntil(TIMEOUT) { rule.onAllNodesWithContentDescription("Chuyến đi mới").fetchSemanticsNodes().isNotEmpty() }
-        // Trip cards have a "Thêm tùy chọn" menu too; the top bar's one is the highest on screen.
-        val menus = rule.onAllNodesWithContentDescription("Thêm tùy chọn")
+        // Trip cards have a "Tùy chọn khác" menu too; the top bar's one is the highest on screen.
+        val menus = rule.onAllNodesWithContentDescription("Tùy chọn khác")
         val top = menus.fetchSemanticsNodes().withIndex().minBy { it.value.boundsInRoot.top }.index
         menus[top].performClick()
         rule.onNodeWithText("Bản đồ offline").performClick()

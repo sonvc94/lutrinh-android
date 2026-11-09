@@ -12,6 +12,31 @@ Eleven destinations, one activity/window. Every screen that reads data shows one
 Forms keep their own transient state (field values, dirty flag, errors). Leaving a dirty form with
 Back asks "Bỏ các thay đổi?" (Bỏ / Tiếp tục sửa).
 
+## Display conventions (one rule per kind of value)
+
+All of them live in `domain/usecase/DisplayFormat.kt` (Swift: one `DisplayFormat` enum, tests
+ported 1:1 from `DisplayFormatTest`); no screen formats km, durations or in-trip days itself.
+
+| Value | Rule | Example |
+| --- | --- | --- |
+| Distance (trip, leg, totals) | Vietnamese decimal comma, one decimal under 10 km, whole above, "." for thousands; never "10,0" | "9,3 km", "51 km", "1.234 km" |
+| Recorded track distance | "N m" under 1 km, one decimal under 100 km, whole above | "850 m", "51,5 km" |
+| Duration (finished track, stop) | words, whole minutes rounded down | "35 phút", "6 giờ 45 phút", "1 giờ" |
+| Live timer (recording panel, notification) | clock | "0:45", "2:05:09" |
+| Day inside a trip (timeline, suggestions, tracks, step detail, trip map cards) | weekday + dd/MM | "Thứ Hai, 20/10"; with the time "Thứ Hai, 20/10 · 08:10" |
+| Trip dates (list, header, pickers, errors) | "d MMM, yyyy" with year | "20 thg 10 – 23 thg 10, 2025" |
+| Shared page (leaves the app) | weekday + dd/MM/yyyy | "Thứ Hai, 20/10/2025" |
+| Stat order (trip detail, share image, share page; My map keeps its own set in the same order) | điểm dừng, ảnh, km, ngày (My map: chuyến đi, điểm dừng, km) | |
+
+Theme: the app is light-only. The system bars are forced to the light style (dark icons) so the
+clock and icons stay readable on the cream app bar when the device is in dark mode (Android:
+`enableEdgeToEdge(SystemBarStyle.light(…))`; the photo viewer, which is black, switches the status
+bar icons to light while it is open). A dark palette is a separate decision. Library strings (sheet
+"Đóng trang tính", drag handle "Nút kéo", pickers) are Vietnamese whatever the device language
+(`MainActivity.attachBaseContext` sets a Vietnamese configuration on the activity's resources).
+Every `surfaceContainer*` role of the colour scheme is defined from the palette (cream, limestone), so no card falls back to
+the Material lavender default.
+
 ## Navigation graph
 
 ```
@@ -50,8 +75,8 @@ The picker returns its result to the step form through the previous screen's sav
 * **Purpose:** all trips, newest first (R1); entry point.
 * **Content:** large title; one card per trip with cover photo (or a gradient placeholder), title,
   date range (`6 thg 11 – 9 thg 11, 2026`, or `từ …` when open-ended), "N điểm dừng · M ảnh".
-* **Actions:** tap → Trip detail; ⋮ or long-press → Sửa / Chia sẻ chuyến đi (§3d) / Xóa; FAB "Chuyến đi mới"; globe icon
-  in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Thêm tùy chọn") →
+* **Actions:** tap → Trip detail; the card ⋮ (label "Tùy chọn: <tên chuyến đi>") or long-press → Sửa / Chia sẻ chuyến đi (§3d) / Xóa; FAB "Chuyến đi mới"; globe icon
+  in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Tùy chọn khác") →
   "Bản đồ offline" (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
 * **Empty:** suitcase icon, "Chưa có chuyến đi nào" + invitation text; in debug builds a
   "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip; the
@@ -87,7 +112,7 @@ The picker returns its result to the step form through the previous screen's sav
 * **Purpose:** one trip as a timeline.
 * **Content:** header map (220 dp) with numbered pins and the route (R3) and an expand button;
   title, date range, description; four stat tiles: điểm dừng, ảnh, km (đường chim bay = straight
-  line, R10), ngày; timeline grouped by day ("Ngày 2 · Thứ Bảy, 7/11"), each step with its number,
+  line, R10), ngày; timeline grouped by day ("Ngày 2 · Thứ Bảy, 07/11"), each step with its number,
   time, note preview and up to a row of photo thumbnails. Between two steps a **leg chip** (mode
   icon + name in the mode colour, or "Chọn cách di chuyển" when not set, then "· N km") sits on
   the timeline connector (R12); the header map draws the legs per mode (05-map.md) and the
@@ -178,7 +203,7 @@ The picker returns its result to the step form through the previous screen's sav
 * **Where:** the share icon in the Trip detail top bar (before the map icon) and "Chia sẻ chuyến
   đi" in a trip card's ⋮ menu on the Trip list. Both open this screen for that trip.
 * **Content, top to bottom:** top bar "Chia sẻ chuyến đi" with back; a two-option segmented
-  control **"Ảnh tóm tắt"** (image icon, selected first) / **"Trang tóm tắt"** (article icon); one
+  control **"Ảnh dọc cho mạng xã hội"** (image icon, selected first) / **"Trang xem offline"** (article icon); one
   line explaining the selected output; the **live preview** filling the rest (spinner + "Đang tạo…" while it is made); an info line (page: "0,5 MB · 12 ảnh", "Đã lược bớt N ảnh để
   trang không quá 15 MB" when the cap removed photos, and "Không tải được nền bản đồ …" when the map
   had no basemap); for the page only, the row **"Ẩn ghi chú"** with a switch (off by default; the
@@ -186,12 +211,12 @@ The picker returns its result to the step form through the previous screen's sav
   (info icon) "Tệp chia sẻ có bản đồ, tên và thời gian các điểm dừng của bạn. Chỉ gửi cho người
   bạn tin."; buttons **"Lưu vào máy"** (outlined, download icon) and **"Chia sẻ"** (filled,
   share icon), both disabled until the file is ready.
-* **Ảnh tóm tắt** — preview of the 1080 × 1920 PNG itself (R18): cream background; title (bold,
+* **Ảnh dọc cho mạng xã hội** — preview of the 1080 × 1920 PNG itself (R18): cream background; title (bold,
   green, max 2 lines), dates; the map (960 × 980 px, rounded) with the route, recorded tracks,
-  numbered pins and the attribution; four stat tiles (km, ngày, điểm dừng, ảnh); one row of up to
+  numbered pins and the attribution; four stat tiles (điểm dừng, ảnh, km, ngày); one row of up to
   four square photos; the small route glyph + "Lữ Trình" at the bottom.
-* **Trang tóm tắt** — the generated HTML in a WebView (JavaScript and network off): title, dates,
-  description, the map, the stats, then the timeline "Ngày N · <weekday>, d/M/yyyy" with each
+* **Trang xem offline** — the generated HTML in a WebView (JavaScript and network off): title, dates,
+  description, the map, the stats, then the timeline "Ngày N · <weekday>, dd/MM/yyyy" with each
   step's number, name, time, note (unless hidden) and photos; footer "Tạo bằng Lữ Trình …".
 * **Chia sẻ:** the system share sheet ("Sharing 1 file" + the file name) with the file as a
   `content://` URI (read permission granted to the receiving app).
@@ -381,7 +406,7 @@ The picker returns its result to the step form through the previous screen's sav
 | waiting for network | "Mất mạng · 42% · sẽ tự tải tiếp khi có mạng" | "Tạm dừng", "Hủy tải" |
 | paused | "Đã tạm dừng · 42% · 11,0 MB" | "Tiếp tục", "Hủy tải" |
 | failed | error text: "Không có mạng. Hãy kết nối Wi‑Fi hoặc 4G rồi thử lại." / "Không đủ bộ nhớ trống (cần ~X). …" / "Máy chủ bản đồ đang lỗi, đang thử lại…" / "Không tải được vùng này. Hãy thử lại." | "Tải về" (retry) or "Tiếp tục", "Hủy tải" when something is stored |
-| downloaded | "Đã tải · 26,3 MB" (stored size) | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng tới 26,3 MB (phần dùng chung với vùng khác được giữ lại). …" / Xóa · Hủy |
+| downloaded | ✓ "Đã tải · 26,3 MB" (stored size); the card is `primaryContainer` (terrace-green tint), the others the neutral card colour | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng tới 26,3 MB (phần dùng chung với vùng khác được giữ lại). …" / Xóa · Hủy |
 
 * **Behaviour:** downloads run in the app process, not in the screen: leaving the screen does
   not stop them; after the app is killed they resume at the next start (unless paused).
@@ -404,14 +429,14 @@ The picker returns its result to the step form through the previous screen's sav
 | 01-trip-list-empty.png | first run, empty list |
 | 02-trip-create.png | create form filled in |
 | 03-trip-edit.png | edit form with changed title, delete button |
-| 04-trip-list.png | list after create/edit and an app restart, cover from step photo |
+| 04-trip-list.png | list with the two sample trips (refreshed after the UX base batch) |
 | 05-location-picker.png | picker on the OpenFreeMap basemap, pin near Du Già |
-| 06-step-create.png | new step with map-picked location, date, note and 3 photos |
+| 06-step-create.png | the empty new-step form (name, location, date and time, note, photos) |
 | 07-photo-picker.png | Android Photo Picker with 3 selected |
-| 08-trip-detail.png | detail: header map with route (cased green line, start/end pins), stats, timeline |
-| 09-trip-map-route.png | full trip map, numbered pins joined by the route, card carousel (old raster basemap, before the route redraw) |
+| 08-trip-detail.png | detail: header map with route, stats (điểm dừng, ảnh, km, ngày), track row, suggestions |
+| 09-trip-map-route.png | full trip map, numbered pins joined by the route, legs and track, card carousel |
 | 10-step-detail.png | step detail with photo, mini map |
-| 11-step-edit.png | edit step: new name, re-picked location |
+| 11-step-edit.png | edit step: mini map, location, date and time, note, photo with cover label |
 | 12-photo-viewer.png | full-screen viewer 2 / 3 |
 | 13-step-delete-confirm.png | delete step confirm |
 | 14-photos-after-restart.png | trip detail after force-stop + relaunch: photos still there |
@@ -448,8 +473,8 @@ The picker returns its result to the step form through the previous screen's sav
 | stop-suggest/02-step-form-prefilled.png | "Thêm điểm dừng" from a suggestion: step form with "Điểm dừng HH:mm", date/time and place prefilled |
 | stop-suggest/03-trip-with-new-step.png | after saving: the new step in the timeline, that suggestion gone |
 | stop-suggest/04-dismissed-after-restart.png | after "Bỏ qua" and a force-stop + restart: the dismissed suggestion still hidden |
-| share-trip/01-share-screen-image.png | "Chia sẻ chuyến đi" for the Hà Giang sample: "Ảnh tóm tắt" preview (map with route + track, stats, 4 photos) |
-| share-trip/02-share-screen-page.png | same screen, "Trang tóm tắt": the HTML in the preview, size line, "Ẩn ghi chú" |
+| share-trip/01-share-screen-image.png | "Chia sẻ chuyến đi" for the Hà Giang sample: "Ảnh dọc cho mạng xã hội" preview (map with route + track, stats, 4 photos) |
+| share-trip/02-share-screen-page.png | same screen, "Trang xem offline": the HTML in the preview, size line, "Ẩn ghi chú" |
 | share-trip/03-share-sheet.png | "Chia sẻ" → Android share sheet "Sharing 1 file" with the HTML |
 | share-trip/04-summary-hagiang.png | the 1080 × 1920 summary PNG pulled from `Pictures/LuTrinh` |
 | share-trip/05-page-hagiang-chrome.png | the summary HTML pulled from `Download/LuTrinh`, headless Chrome with network blocked |
@@ -469,6 +494,8 @@ The picker returns its result to the step form through the previous screen's sav
 
 ## Accessibility and UI tests
 
+* Every ⋮ names what it opens: "Tùy chọn: <tên chuyến đi>" on a trip card, "Tùy chọn khác" on the
+  top bars (a screen reader would otherwise read the same label for every card).
 * The extended FABs ("Chuyến đi mới", "Thêm điểm dừng") and the icon buttons "Thêm từ ảnh" and
   "Bản đồ của tôi" carry their label as content description:
   Material 3 1.3 exposes no text for them, so TalkBack would only say "Button".
@@ -480,7 +507,7 @@ The picker returns its result to the step form through the previous screen's sav
   trình" button (not tapped: it would raise the system location prompt), and open a trip with the
   sample track: "Gợi ý điểm dừng (3)", "Bỏ qua" one → "(2)" and a stored decision, open "Thêm điểm dừng" from a suggestion with gallery access granted (the section "Ảnh chụp trong
   lúc dừng" lists the stop's photos or says there are none, no "Cho phép xem ảnh"), and open
-  "Chia sẻ chuyến đi" from a trip (both "Ảnh tóm tắt" and "Trang tóm tắt"; the page shows "Ẩn ghi chú"). They find nodes by the Vietnamese texts/labels above (changing a string means updating the
+  "Chia sẻ chuyến đi" from a trip (both "Ảnh dọc cho mạng xã hội" and "Trang xem offline"; the page shows "Ẩn ghi chú"). They find nodes by the Vietnamese texts/labels above (changing a string means updating the
   test) and delete every trip whose title starts with `UITEST` afterwards. Run with
   `./gradlew connectedDebugAndroidTest` (needs network for tiles only cosmetically; the picker
   centre updates without tiles).

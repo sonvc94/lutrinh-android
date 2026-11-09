@@ -10,7 +10,8 @@
     <string name="action_edit">Sửa</string>
     <string name="action_back">Quay lại</string>
     <string name="action_close">Đóng</string>
-    <string name="action_more">Thêm tùy chọn</string>
+    <string name="action_more">Tùy chọn khác</string>
+    <string name="trip_options">Tùy chọn: %1$s</string>
     <string name="action_retry">Thử lại</string>
     <string name="state_loading">Đang tải…</string>
     <string name="state_error">Không đọc được dữ liệu: %1$s</string>
@@ -228,10 +229,10 @@
 
     <!-- Share a trip (R18) -->
     <string name="share_trip">Chia sẻ chuyến đi</string>
-    <string name="share_kind_image">Ảnh tóm tắt</string>
-    <string name="share_kind_page">Trang tóm tắt</string>
-    <string name="share_kind_image_body">Một ảnh dọc 1080 × 1920: bản đồ, số liệu và tối đa 4 ảnh.</string>
-    <string name="share_kind_page_body">Một tệp HTML mở được không cần mạng: bản đồ, hành trình theo ngày, ghi chú và ảnh.</string>
+    <string name="share_kind_image">Ảnh dọc cho mạng xã hội</string>
+    <string name="share_kind_page">Trang xem offline</string>
+    <string name="share_kind_image_body">Một ảnh dọc có bản đồ, số liệu và tối đa 4 ảnh, hợp để đăng lên mạng xã hội.</string>
+    <string name="share_kind_page_body">Một trang mở được không cần mạng, gửi cho ai cũng xem được: bản đồ, hành trình theo ngày, ghi chú và ảnh.</string>
     <string name="share_hide_notes">Ẩn ghi chú</string>
     <string name="share_hide_notes_body">Không đưa ghi chú của các điểm dừng vào trang.</string>
     <string name="share_action">Chia sẻ</string>

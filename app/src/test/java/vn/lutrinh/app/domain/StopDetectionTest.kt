@@ -13,7 +13,7 @@ import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackPoint
 import vn.lutrinh.app.domain.model.TrackStatus
 import vn.lutrinh.app.domain.usecase.StopDetection
-import vn.lutrinh.app.domain.usecase.StopFormat
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.StopSuggestions
 import vn.lutrinh.app.domain.usecase.TrackMath
 import java.time.LocalDateTime
@@ -172,8 +172,8 @@ class StopDetectionTest {
     }
 
     @Test fun `duration reads in minutes and hours`() {
-        assertEquals("20 phút", StopFormat.duration(20 * 60_000L + 59_000))
-        assertEquals("1 giờ", StopFormat.duration(60 * 60_000L))
-        assertEquals("2 giờ 05 phút", StopFormat.duration(125 * 60_000L))
+        assertEquals("20 phút", DisplayFormat.duration(20 * 60_000L + 59_000))
+        assertEquals("1 giờ", DisplayFormat.duration(60 * 60_000L))
+        assertEquals("2 giờ 05 phút", DisplayFormat.duration(125 * 60_000L))
     }
 }

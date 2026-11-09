@@ -27,7 +27,7 @@ app/src/main/java/vn/lutrinh/app/
             gallery photos of a stop = domain/usecase/StopPhotos.kt + data/GalleryReader.kt (R19)
   share/    TripExporter (files, FileProvider, ACTION_SEND, MediaStore) + SummaryImage (R18);
             rules in domain/usecase/TripShare.kt + TripPage.kt, map in map/StaticTripMap.kt
-  ui/       screens + view models; ui/common/Common.kt has formatters and VietnameseLocale
+  ui/       screens + view models; domain/usecase/DisplayFormat.kt has the km/duration/day formatters; ui/common/Common.kt has date helpers and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
 docs/                 spec 01–07 + img/
@@ -101,6 +101,11 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
 * MapLibre `line-dasharray` is not data-driven: one `LineLayer` per dash kind, filtered by `mode`.
 * Room schema bump = bump `AppDatabase.VERSION`, add `MIGRATION_x_y` to `MIGRATIONS`, commit
   `app/schemas/.../<v>.json`, extend `MigrationTest` (no destructive fallback, on purpose).
+* Gboard on emulator-5580 shows a "Try out your stylus" popup on scripted taps; it swallows
+  `adb shell input text`. Dismiss the onboarding once by hand-tap, or enter text with Compose tests.
+* Dates, km and durations: only `domain/usecase/DisplayFormat.kt` (docs/03 "Display conventions"); never
+  `String.format(Locale.US, …)` in `ui/`. The theme is light-only, so `MainActivity` forces the light
+  system-bar style; a screen with a dark background (photo viewer) flips the status-bar icons itself.
 * `adb shell input text` into a Compose field: wait ~1.5 s after tapping it, select all with
   `input keycombination 113 29`, then type.
 * Test JPEGs with GPS/date: write the EXIF with a small script (APP1 with IFD0 + Exif + GPS IFDs),

@@ -143,18 +143,3 @@ object StopSuggestions {
     fun localMinute(epochMs: Long, zone: ZoneId): LocalDateTime =
         LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMs), zone).truncatedTo(ChronoUnit.MINUTES)
 }
-
-/** Display formats of a suggestion (docs/03-screens.md "Gợi ý điểm dừng"). */
-object StopFormat {
-    /** "35 phút" under an hour, "1 giờ" / "2 giờ 05 phút" above (whole minutes, rounded down). */
-    fun duration(ms: Long): String {
-        val min = ms.coerceAtLeast(0) / 60_000
-        val h = min / 60
-        val m = min % 60
-        return when {
-            h == 0L -> "$m phút"
-            m == 0L -> "$h giờ"
-            else -> "$h giờ ${m.toString().padStart(2, '0')} phút"
-        }
-    }
-}

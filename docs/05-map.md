@@ -240,7 +240,7 @@ tracks, which the fit already includes). Screenshot: `img/stop-suggest/05-trip-m
 
 ## Static map for sharing (R18, `map/StaticTripMap.kt`, `map/MapFit.kt`)
 
-The "Ảnh tóm tắt" and "Trang tóm tắt" (04-business-rules.md R18) need the trip map as a bitmap,
+The "Ảnh dọc cho mạng xã hội" and "Trang xem offline" (04-business-rules.md R18) need the trip map as a bitmap,
 without a visible map view. Two steps:
 
 1. **Basemap** — MapLibre `MapSnapshotter` with `MapConfig.STYLE_URL`, size 960 × 980 logical
