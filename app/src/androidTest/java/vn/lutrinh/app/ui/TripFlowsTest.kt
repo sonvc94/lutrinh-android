@@ -3,9 +3,6 @@ package vn.lutrinh.app.ui
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.or
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -15,6 +12,10 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.onRoot
@@ -138,7 +139,8 @@ class TripFlowsTest {
         waitForText("Gợi ý điểm dừng (3)")
         clickable("Thêm điểm dừng").onFirst().performClick()
         waitForText("Điểm dừng mới")
-        clickable("Lưu").onFirst().performClick()
+        // The bottom "Lưu" (first in the tree) is below the fold since R19's section: scroll to it.
+        clickable("Lưu").onFirst().performScrollTo().performClick()
 
         waitForText("Kéo dài chuyến đi")
         clickable("Hủy").onFirst().performClick()
@@ -148,7 +150,7 @@ class TripFlowsTest {
             assertEquals(1, container().steps.getSteps(tripId).size)
         }
 
-        clickable("Lưu").onFirst().performClick()
+        clickable("Lưu").onFirst().performScrollTo().performClick()
         waitForText("Kéo dài chuyến đi")
         clickable("Kéo dài và lưu").onFirst().performClick()
         rule.waitUntil(TIMEOUT) { runBlocking { container().steps.getSteps(tripId).size } == 2 }
@@ -180,10 +182,12 @@ class TripFlowsTest {
 
         waitForText("Gợi ý điểm dừng (3)")
         waitForText("ảnh trong máy") // R19 count on the card, only shown with access
-        clickable("Thêm điểm dừng").onFirst().performClick()
+        // The card's button can lie under the "Thêm điểm dừng" FAB (same text, AGENTS.md): a touch
+        // would hit the FAB, so run the button's own click action.
+        clickable("Thêm điểm dừng").onFirst().performSemanticsAction(SemanticsActions.OnClick)
         waitForText("Điểm dừng mới")
-        rule.onNode(hasScrollAction()).performScrollToNode(hasText("Ảnh chụp trong lúc dừng"))
         waitForText("Ảnh chụp trong lúc dừng")
+        rule.onNodeWithText("Ảnh chụp trong lúc dừng").performScrollTo().assertIsDisplayed()
         rule.waitUntil(TIMEOUT) {
             rule.onAllNodes(hasText("Không có ảnh nào", substring = true) or hasText("Đã chọn", substring = true))
                 .fetchSemanticsNodes().isNotEmpty()
