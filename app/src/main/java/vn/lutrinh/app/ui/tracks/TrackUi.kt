@@ -2,6 +2,7 @@ package vn.lutrinh.app.ui.tracks
 
 import android.Manifest
 import vn.lutrinh.app.ui.theme.TopoIcons
+import vn.lutrinh.app.ui.theme.Lift
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -23,11 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
@@ -50,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
@@ -68,7 +63,6 @@ import vn.lutrinh.app.ui.theme.Palette
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
-import vn.lutrinh.app.ui.theme.hairline
 
 /** Colour of recorded tracks in the UI, same as the map line: ink (docs/05, docs/08). */
 val TrackInk: Color = Palette.Track
@@ -155,11 +149,12 @@ fun RecordTrackControl(
 
     val mine = active?.takeIf { it.tripId == tripId }
     val now = rememberNow(mine?.status == TrackStatus.RECORDING)
-    val shape = MaterialTheme.shapes.large
+    // Over the map ([compact]) the specimen's map chip (card paper, 12 dp, chip shadow); inside
+    // the GPS card a flat block of the same paper.
     Surface(
-        shape = shape,
-        color = if (compact) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.surfaceContainerLow,
-        border = if (compact) hairline else null,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shadowElevation = if (compact) Lift.Chip else 0.dp,
         modifier = modifier,
     ) {
         when {
@@ -173,7 +168,6 @@ fun RecordTrackControl(
                     Text(
                         stringResource(if (recording) R.string.track_recording else R.string.track_paused),
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         "${TrackFormat.duration(mine.durationMs(now))} · ${TrackFormat.distance(mine.distanceM)}",
@@ -182,12 +176,12 @@ fun RecordTrackControl(
                 }
                 Spacer(Modifier.width(8.dp))
                 if (recording) {
-                    FilledTonalIconButton(onClick = onPause) { Icon(Icons.Filled.Pause, stringResource(R.string.track_pause)) }
+                    FilledTonalIconButton(onClick = onPause, shape = MaterialTheme.shapes.small) { Icon(TopoIcons.Pause, stringResource(R.string.track_pause)) }
                 } else {
-                    FilledTonalIconButton(onClick = onResume) { Icon(Icons.Filled.PlayArrow, stringResource(R.string.track_resume)) }
+                    FilledTonalIconButton(onClick = onResume, shape = MaterialTheme.shapes.small) { Icon(TopoIcons.Play, stringResource(R.string.track_resume)) }
                 }
                 FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onStop) {
-                    Icon(Icons.Filled.Stop, null, Modifier.size(18.dp))
+                    Icon(TopoIcons.Stop, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.track_stop))
                 }
@@ -208,7 +202,7 @@ fun RecordTrackControl(
                     )
                 }
                 FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onNewTripAndRecord) {
-                    Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(TopoIcons.Record, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.track_new_trip_and_record))
                 }
@@ -226,7 +220,7 @@ fun RecordTrackControl(
                     )
                 }
                 FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onStart) {
-                    Icon(Icons.Filled.FiberManualRecord, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(TopoIcons.Record, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(6.dp))
                     Text(stringResource(R.string.track_record))
                 }

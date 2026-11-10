@@ -40,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -72,6 +71,10 @@ import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.common.rememberGazetteer
 import vn.lutrinh.app.ui.trips.toMarkers
 import vn.lutrinh.app.ui.theme.hairline
+import vn.lutrinh.app.ui.theme.numerals
+import vn.lutrinh.app.ui.common.TopoCard
+import vn.lutrinh.app.ui.common.Eyebrow
+import androidx.compose.foundation.layout.PaddingValues
 
 /** [number] = timeline number (null for a draft, R20); [index] = position in [tripSteps] (drafts included). */
 data class StepDetail(val step: Step, val number: Int?, val index: Int, val tripSteps: List<Step>)
@@ -144,17 +147,22 @@ fun StepDetailScreen(
                     if (step.photos.isNotEmpty()) {
                         LocalMedia(
                             step.photos.first(),
-                            Modifier.fillMaxWidth().aspectRatio(4f / 3f).clickable { onOpenPhoto(0) },
+                            Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).fillMaxWidth().aspectRatio(4f / 3f)
+                                .clip(MaterialTheme.shapes.medium).clickable { onOpenPhoto(0) },
                         )
                     }
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(step.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
+                        Text(step.title, style = MaterialTheme.typography.headlineMedium)
                         if (step.isDraft) DraftCard(onPublish = vm::publish)
-                        InfoRow(TopoIcons.Time, step.arrivedAt.displayDateTime())
-                        val (place, coords) = placeLines(step.location, s.value.tripSteps, step.id, rememberGazetteer())
-                        InfoRow(TopoIcons.Place, place)
-                        coords?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 26.dp))
+                        // When and where: one card (specimen `.card`), forest icons, muted text.
+                        TopoCard(Modifier.fillMaxWidth()) {
+                            InfoRow(TopoIcons.Time, step.arrivedAt.displayDateTime())
+                            val (place, coords) = placeLines(step.location, s.value.tripSteps, step.id, rememberGazetteer())
+                            Spacer(Modifier.height(8.dp))
+                            InfoRow(TopoIcons.Place, place)
+                            coords?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall.numerals(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 26.dp))
+                            }
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
@@ -163,7 +171,7 @@ fun StepDetailScreen(
                             color = if (step.note.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(200.dp).clip(MaterialTheme.shapes.large)) {
+                    Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(200.dp).clip(MaterialTheme.shapes.medium)) {
                         TripMap(
                             markers = s.value.tripSteps.toMarkers(step.id),
                             interactive = true,
@@ -172,10 +180,9 @@ fun StepDetailScreen(
                         )
                     }
                     if (step.photos.isNotEmpty()) {
-                        Text(
+                        Eyebrow(
                             stringResource(R.string.step_detail_photos, step.photos.size),
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 8.dp),
+                            modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp),
                         )
                         val cell = (LocalConfiguration.current.screenWidthDp.dp - 32.dp - 12.dp) / 3
                         FlowRow(
@@ -229,11 +236,11 @@ private fun StepNeighbours(d: StepDetail, onOpenStep: (String) -> Unit) {
     }
 }
 
-/** R20: what a draft is, and "Đăng" to publish it. */
+/** R20: what a draft is, and "Đăng" to publish it. A card with the "moderate" badge and a forest button. */
 @Composable
 private fun DraftCard(onPublish: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f), shape = MaterialTheme.shapes.large) {
-        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    TopoCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 DraftBadge()
                 Text(

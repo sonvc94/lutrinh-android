@@ -3,7 +3,6 @@ package vn.lutrinh.app.ui.trips
 import androidx.compose.foundation.BorderStroke
 import vn.lutrinh.app.ui.common.MapButton
 import vn.lutrinh.app.ui.theme.TopoIcons
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,8 +24,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalConfiguration
 import kotlin.math.abs
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +32,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.background
+import vn.lutrinh.app.ui.theme.Lift
+import vn.lutrinh.app.ui.common.TopoPanel
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -67,7 +67,6 @@ import vn.lutrinh.app.ui.common.MapStyleButton
 import vn.lutrinh.app.ui.common.MyLocationButton
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.rememberMyLocation
-import vn.lutrinh.app.ui.theme.hairline
 
 private const val CARD_WIDTH_DP = 260
 
@@ -165,12 +164,9 @@ fun TripMapScreen(
                 onOpenBatteryGuide = onOpenBatteryGuide,
             )
             if (detail.steps.isEmpty()) {
-                Surface(
-                    shape = MaterialTheme.shapes.large,
-                    modifier = Modifier.align(Alignment.TopCenter).padding(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    border = hairline,
-                ) { Text(stringResource(R.string.trip_map_empty), Modifier.padding(12.dp)) }
+                TopoPanel(Modifier.align(Alignment.TopCenter).padding(16.dp), floating = true) {
+                    Text(stringResource(R.string.trip_map_empty))
+                }
             }
             // "Vị trí của tôi" above "Xem toàn bộ hành trình" (clears the selection, flies back to the whole route).
             Column(
@@ -198,27 +194,32 @@ fun TripMapScreen(
             ) {
                 itemsIndexed(detail.steps, key = { _, s -> s.id }) { i, step ->
                     val isSel = step.id == selected
-                    Card(
-                        modifier = Modifier.width(CARD_WIDTH_DP.dp).clickable {
-                            if (isSel) onOpenStep(step.id) else selected = step.id
-                        },
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = if (isSel) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else hairline,
+                    // A card over the map (docs/08 §5 "Map cards"): card paper, 18 dp, the chip shadow;
+                    // the selected one has a 2 dp forest edge.
+                    Surface(
+                        onClick = { if (isSel) onOpenStep(step.id) else selected = step.id },
+                        modifier = Modifier.width(CARD_WIDTH_DP.dp).padding(bottom = 6.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        shadowElevation = Lift.Chip,
+                        border = if (isSel) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
                     ) {
-                        Column(Modifier.padding(10.dp)) {
+                        Column(Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 val cover = step.photos.firstOrNull()
                                 if (cover != null) {
                                     LocalPhoto(cover.fileName, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
                                 } else {
-                                    Box(Modifier.size(56.dp), Alignment.Center) { Icon(TopoIcons.Photo, null) }
+                                    Box(
+                                        Modifier.size(56.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant),
+                                        Alignment.Center,
+                                    ) { Icon(TopoIcons.Photo, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                                 }
-                                Column(Modifier.padding(start = 10.dp)) {
+                                Column(Modifier.padding(start = 12.dp)) {
                                     // R20: a draft has no number and says "Nháp".
                                     val n = detail.numbers[step.id]
-                                    Text(if (n != null) "$n. ${step.title}" else step.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    Text(step.arrivedAt.displayDateTime(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(if (n != null) "$n. ${step.title}" else step.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(step.arrivedAt.displayDateTime(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                             // Same row height on every card (F23): the leg that ends here (R12), or "Điểm xuất phát" on the first.

@@ -120,8 +120,8 @@ private val Colors = lightColorScheme(
     inversePrimary = Palette.Sand,
     secondary = Palette.SignalDeep,
     onSecondary = Palette.Card,
-    secondaryContainer = Palette.SignalWash,
-    onSecondaryContainer = Palette.HardInk,
+    secondaryContainer = Palette.Sand,
+    onSecondaryContainer = Palette.Ink,
     tertiary = Palette.Trail,
     onTertiary = Palette.Card,
     tertiaryContainer = Palette.EasyWash,
@@ -160,6 +160,16 @@ object Radii {
     val Chip = 12.dp
     val Card = 18.dp
     val Panel = 22.dp
+}
+
+/**
+ * The specimen's two soft shadows, only for things that float over the map (docs/08 §4):
+ * chips and map buttons (`0 4px 10px`), panels and the FAB (`0 8px 24px`). On paper, cards
+ * have a [ledge] instead and nothing else casts a shadow.
+ */
+object Lift {
+    val Chip = 4.dp
+    val Panel = 8.dp
 }
 
 private val AppShapes = Shapes(

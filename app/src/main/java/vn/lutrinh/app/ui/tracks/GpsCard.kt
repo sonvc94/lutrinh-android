@@ -9,13 +9,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.outlined.BatteryChargingFull
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.PaddingValues
+import vn.lutrinh.app.ui.common.TopoCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -77,11 +74,8 @@ fun GpsCard(
             stringResource(R.string.gps_card_suggestions, suggestions.size).takeIf { suggestions.isNotEmpty() },
         ).joinToString(" · ")
     }
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier.fillMaxWidth(),
-    ) {
+    // A topo card on the trip's paper (docs/08 §5 "Cards"): card paper, 18 dp, ledge.
+    TopoCard(modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
         Column {
             Row(
                 Modifier.fillMaxWidth().clickable { expanded = !expanded; if (expanded) onOpened() }.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -89,17 +83,17 @@ fun GpsCard(
             ) {
                 Icon(TopoIcons.Route, null, tint = TrackInk)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text(stringResource(R.string.gps_card_title), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.gps_card_title), style = MaterialTheme.typography.titleMedium)
                     Text(
                         summary,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = if (mine != null) TrackInk else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Icon(
-                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    if (expanded) TopoIcons.ChevronUp else TopoIcons.ChevronDown,
                     stringResource(if (expanded) R.string.gps_card_collapse else R.string.gps_card_expand),
                 )
             }
@@ -113,7 +107,7 @@ fun GpsCard(
                         onOpenBatteryGuide = onOpenBatteryGuide,
                     )
                     TextButton(onClick = onOpenBatteryGuide) {
-                        Icon(Icons.Outlined.BatteryChargingFull, null, Modifier.size(18.dp))
+                        Icon(TopoIcons.Battery, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(stringResource(R.string.battery_guide_link))
                     }

@@ -43,8 +43,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -53,6 +51,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import vn.lutrinh.app.ui.common.Eyebrow
+import vn.lutrinh.app.ui.common.TopoCard
+import vn.lutrinh.app.ui.common.topoFieldColors
+import vn.lutrinh.app.ui.theme.Radii
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -71,7 +74,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -625,6 +627,7 @@ fun StepEditScreen(
                     singleLine = true,
                     isError = titleError != null,
                     supportingText = titleError?.let { { Text(it) } },
+                    colors = topoFieldColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 LocationCard(f, vm.stepId, onPick = { onPickLocation(f.location ?: f.suggestedLocation) })
@@ -657,6 +660,7 @@ fun StepEditScreen(
                     supportingText = if (StepError.NOTE_TOO_LONG in f.errors) {
                         { Text(stringResource(R.string.err_step_note_long, Limits.STEP_NOTE_MAX)) }
                     } else null,
+                    colors = topoFieldColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 // F3: one grid of what "Lưu" saves; the gallery card below only gives access / re-adds.
@@ -741,11 +745,11 @@ private fun LocationCard(f: StepForm, excludeId: String?, onPick: () -> Unit) {
         StepError.LOCATION_INVALID in f.errors -> stringResource(R.string.err_step_location_invalid)
         else -> null
     }
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    TopoCard(
         modifier = Modifier.fillMaxWidth().let {
             if (error != null) it.border(1.dp, MaterialTheme.colorScheme.error, MaterialTheme.shapes.medium) else it
         },
+        contentPadding = PaddingValues(0.dp),
     ) {
         val loc = f.location
         if (loc != null) {
@@ -756,7 +760,7 @@ private fun LocationCard(f: StepForm, excludeId: String?, onPick: () -> Unit) {
         }
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.step_location), style = MaterialTheme.typography.labelMedium)
+                Eyebrow(stringResource(R.string.step_location))
                 val lines = loc?.let { placeLines(it, f.tripSteps, excludeId, rememberGazetteer()) }
                 Text(
                     lines?.first ?: stringResource(R.string.step_location_none),
@@ -789,7 +793,7 @@ private fun PhotosSection(
     // The first tile of the grid is the cover: a picked file, else the first gallery photo.
     val coverIsGallery = f.photos.isEmpty()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("${stringResource(R.string.step_photos)} (${f.photoCount})", style = MaterialTheme.typography.titleSmall)
+        Eyebrow("${stringResource(R.string.step_photos)} (${f.photoCount})")
         // R28/R29: picker (photos and videos), system camera photo, system camera video.
         val canAdd = !f.importing && f.photoCount < Limits.PHOTOS_PER_STEP_MAX
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -864,7 +868,7 @@ private fun PhotoTile(
     picture: @Composable () -> Unit,
 ) {
     Box(
-        Modifier.size(104.dp).clip(MaterialTheme.shapes.large)
+        Modifier.size(104.dp).clip(MaterialTheme.shapes.small)
             .let { if (onClick != null) it.clickable(onClick = onClick) else it }
             .let { if (moveActions.isNotEmpty()) it.semantics { customActions = moveActions } else it },
     ) {
@@ -874,21 +878,24 @@ private fun PhotoTile(
                 stringResource(R.string.step_photo_cover),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onTertiary,
-                modifier = Modifier.align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiary).padding(horizontal = 6.dp, vertical = 2.dp),
+                modifier = Modifier.align(Alignment.BottomStart).padding(4.dp)
+                    .background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(Radii.Badge)).padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
         if (fromGallery) {
             Text(
                 stringResource(R.string.step_photo_from_gallery),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
-                modifier = Modifier.align(Alignment.TopStart).background(Color.Black.copy(alpha = 0.55f)).padding(horizontal = 6.dp, vertical = 2.dp),
+                color = MaterialTheme.colorScheme.inverseOnSurface,
+                modifier = Modifier.align(Alignment.TopStart).padding(4.dp)
+                    .background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), RoundedCornerShape(Radii.Badge))
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
         IconButton(
             onClick = onRemove,
-            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape),
-        ) { Icon(TopoIcons.Close, stringResource(R.string.step_photo_remove), tint = Color.White, modifier = Modifier.size(16.dp)) }
+            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), CircleShape),
+        ) { Icon(TopoIcons.Close, stringResource(R.string.step_photo_remove), tint = MaterialTheme.colorScheme.inverseOnSurface, modifier = Modifier.size(16.dp)) }
     }
 }
 

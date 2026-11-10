@@ -1,13 +1,15 @@
 package vn.lutrinh.app.ui.common
 
 import vn.lutrinh.app.ui.theme.TopoIcons
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.Radii
+import vn.lutrinh.app.ui.theme.numerals
 import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.LocaleList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import vn.lutrinh.app.domain.model.Photo
@@ -19,8 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -144,19 +145,20 @@ fun LocalMedia(
     }
 }
 
-/** "▶ 0:42" on a dark pill: marks a video thumbnail (R29). */
+/** "▶ 0:42" on a forest badge (specimen dark chip, 8 dp corners): marks a video thumbnail (R29). */
 @Composable
 fun VideoBadge(durationMs: Long, modifier: Modifier = Modifier) {
     val label = stringResource(R.string.video_badge, DisplayFormat.clock(durationMs))
+    val ink = MaterialTheme.colorScheme.inverseOnSurface
     Row(
         modifier
-            .background(Color.Black.copy(alpha = 0.6f), MaterialTheme.shapes.small)
-            .padding(start = 2.dp, end = 5.dp, top = 1.dp, bottom = 1.dp)
+            .background(MaterialTheme.colorScheme.inverseSurface, RoundedCornerShape(Radii.Badge))
+            .padding(start = 3.dp, end = 6.dp, top = 1.dp, bottom = 1.dp)
             .semantics(mergeDescendants = true) { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(TopoIcons.Play, null, tint = Color.White, modifier = Modifier.size(14.dp))
-        Text(DisplayFormat.clock(durationMs), color = Color.White, style = MaterialTheme.typography.labelSmall)
+        Icon(TopoIcons.Play, null, tint = ink, modifier = Modifier.size(14.dp))
+        Text(DisplayFormat.clock(durationMs), color = ink, style = MaterialTheme.typography.labelSmall.numerals())
     }
 }
 
@@ -166,8 +168,9 @@ fun LoadingState(modifier: Modifier = Modifier) {
 }
 
 /**
- * Empty and error states (docs/08-design.md): type only, left-aligned, no icon disc. The title says
- * what is missing, the body says what to do, the button does it.
+ * Empty and error states (docs/08 §5 "Empty states"): a small contour mark in contour brown, the
+ * title (26 bold), the body in muted ink, and a forest button. Left-aligned like the specimen's
+ * screen headings. The title says what is missing, the body says what to do, the button does it.
  */
 @Composable
 fun MessageState(
@@ -182,8 +185,8 @@ fun MessageState(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.Start,
     ) {
-        Box(Modifier.width(32.dp).height(2.dp).background(MaterialTheme.colorScheme.primary))
-        Spacer(Modifier.height(16.dp))
+        Icon(TopoIcons.Atlas, null, tint = Palette.Contour, modifier = Modifier.size(40.dp))
+        Spacer(Modifier.height(12.dp))
         Text(title, style = MaterialTheme.typography.headlineSmall)
         if (body.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
@@ -195,6 +198,11 @@ fun MessageState(
         }
     }
 }
+
+/*
+ * Dialogs (docs/08 §5 "Dialogs"): every AlertDialog takes the theme's card paper, 22 dp panel
+ * corners, a 26 bold title and forest text buttons; a destructive confirm is in the error red.
+ */
 
 @Composable
 fun ConfirmDeleteDialog(title: String, body: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {

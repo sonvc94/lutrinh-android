@@ -12,7 +12,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +32,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.ui.theme.TopoIcons
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.common.Eyebrow
+import vn.lutrinh.app.ui.common.TopoCard
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.Button
 
 /**
  * "Cài đặt": the routing switch (R36). On (default) = routed legs follow the road and their stop
@@ -52,35 +56,35 @@ fun SettingsScreen(onBack: () -> Unit) {
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()) {
-            Text(
+            Eyebrow(
                 stringResource(R.string.settings_section_map),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 8.dp),
             )
-            Row(
-                Modifier.fillMaxWidth()
-                    .toggleable(value = enabled, role = Role.Switch, onValueChange = { settings.setEnabled(it) })
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f).padding(end = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.settings_routing), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        stringResource(if (enabled) R.string.settings_routing_on else R.string.settings_routing_off),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            // One card per setting (specimen `.card`); the row is the toggle.
+            TopoCard(Modifier.padding(horizontal = 16.dp).fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
+                Row(
+                    Modifier.fillMaxWidth()
+                        .toggleable(value = enabled, role = Role.Switch, onValueChange = { settings.setEnabled(it) })
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f).padding(end = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(stringResource(R.string.settings_routing), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            stringResource(if (enabled) R.string.settings_routing_on else R.string.settings_routing_off),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // The row is the toggle (one TalkBack node); the switch only shows the state.
+                    Switch(checked = enabled, onCheckedChange = null)
                 }
-                // The row is the toggle (one TalkBack node); the switch only shows the state.
-                Switch(checked = enabled, onCheckedChange = null)
             }
-            HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
             Text(
                 stringResource(R.string.settings_routing_privacy),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp),
             )
         }
     }
@@ -88,15 +92,17 @@ fun SettingsScreen(onBack: () -> Unit) {
 
 /**
  * The one-time notice (R36), before the first stop position leaves the device: what is sent and
- * to whom. Any answer marks it seen; "Tắt tính đường" also turns routing off.
+ * to whom. Any answer marks it seen; "Tắt tính đường" also turns routing off. Topo dialog: the
+ * route mark in signal orange over the title, the accept as the forest button.
  */
 @Composable
 fun RoutingNoticeDialog(onAccept: () -> Unit, onTurnOff: () -> Unit) {
     AlertDialog(
         onDismissRequest = onAccept,
+        icon = { Icon(TopoIcons.Route, null, tint = Palette.Signal) },
         title = { Text(stringResource(R.string.routing_notice_title)) },
         text = { Text(stringResource(R.string.routing_notice_body)) },
-        confirmButton = { TextButton(onClick = onAccept) { Text(stringResource(R.string.routing_notice_ok)) } },
+        confirmButton = { Button(shape = MaterialTheme.shapes.small, onClick = onAccept) { Text(stringResource(R.string.routing_notice_ok)) } },
         dismissButton = { TextButton(onClick = onTurnOff) { Text(stringResource(R.string.routing_notice_off)) } },
     )
 }

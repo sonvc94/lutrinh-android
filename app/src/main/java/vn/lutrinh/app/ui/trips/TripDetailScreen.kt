@@ -5,11 +5,10 @@ import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.routing.LegMeasure
 import vn.lutrinh.app.domain.routing.LegRoute
 import vn.lutrinh.app.domain.routing.LegRoutes
-import androidx.compose.material3.HorizontalDivider
 import vn.lutrinh.app.ui.common.ReadoutCount
 import vn.lutrinh.app.ui.common.KmReadout
 import vn.lutrinh.app.ui.common.MapButton
-import vn.lutrinh.app.ui.common.FlatFab
+import vn.lutrinh.app.ui.common.ChipFab
 import vn.lutrinh.app.ui.theme.TopoIcons
 import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
@@ -129,6 +128,13 @@ import androidx.compose.material3.SnackbarHostState
 import java.time.temporal.ChronoUnit
 import vn.lutrinh.app.ui.theme.hairline
 import vn.lutrinh.app.ui.theme.numerals
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.common.Eyebrow
+import vn.lutrinh.app.ui.common.ScreenHeading
+import vn.lutrinh.app.ui.common.TopoCard
+import vn.lutrinh.app.ui.common.TopoPanel
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 
 /** LazyColumn item indexes of [TripDetailContent]: map, header, GPS card, then the timeline. */
 private const val ITEM_HEADER = 1
@@ -370,7 +376,7 @@ fun TripDetailScreen(
             // on scroll and opens a menu with the two ways to add a step.
             val fabLabel = stringResource(R.string.trip_fab_add)
             if (detail != null) Box {
-                FlatFab(fabLabel, TopoIcons.Add, onClick = { fabMenu = true }, expanded = fabExpanded)
+                ChipFab(fabLabel, TopoIcons.Add, onClick = { fabMenu = true }, expanded = fabExpanded)
                 DropdownMenu(expanded = fabMenu, onDismissRequest = { fabMenu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.trip_add_step)) },
@@ -470,130 +476,157 @@ private fun TripDetailContent(
                 )
             }
         } else {
+            val lastNumber = d.numbers.values.maxOrNull() ?: 0
             itemsIndexed(d.steps, key = { _, s -> s.id }) { i, step ->
                 val prevDay = d.steps.getOrNull(i - 1)?.arrivedAt?.toLocalDate()
                 val day = step.arrivedAt.toLocalDate()
                 d.legInto(step.id)?.let { leg -> LegRow(leg, d.measure(leg)) { onEditLeg(step.id) } }
                 if (day != prevDay) {
                     val n = ChronoUnit.DAYS.between(d.trip.startDate, day) + 1
-                    Text(
+                    Eyebrow(
                         stringResource(R.string.day_label, n.toInt(), day.displayDay()),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
+                        modifier = Modifier.padding(start = 22.dp, top = 16.dp, bottom = 2.dp),
                     )
                 }
-                StepRow(d.numbers[step.id], step, isLast = i == d.steps.lastIndex) { onOpenStep(step.id) }
+                val number = d.numbers[step.id]
+                StepRow(number, discRole(number, lastNumber), step, isLast = i == d.steps.lastIndex) { onOpenStep(step.id) }
             }
         }
     }
 }
 
 /**
- * The trip's header as an atlas plate (docs/08 §5 "Trip header"): title, dates and description,
- * a hairline, then the km readout (total, scale bar, counts) instead of stat tiles.
+ * The trip's header (docs/08 §5 "Trip header"), like the specimen's profile screen: the dates as
+ * the eyebrow over the 28 bold title, the description, then the stats panel (km total, counts,
+ * scale bar, road time) on card paper.
  */
 @Composable
 private fun TripHeader(d: TripDetail) {
     Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)) {
-        Text(d.trip.title, style = MaterialTheme.typography.headlineMedium)
         val openEnded = stringResource(R.string.trip_open_ended, "%s")
-        Text(
-            dateRange(d.trip.startDate, d.trip.endDate) { openEnded.format(it) },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp),
+        ScreenHeading(
+            title = d.trip.title,
+            eyebrow = dateRange(d.trip.startDate, d.trip.endDate) { openEnded.format(it) },
+            modifier = Modifier.padding(horizontal = 6.dp),
         )
         if (d.trip.description.isNotBlank()) {
-            Spacer(Modifier.height(8.dp))
-            Text(d.trip.description, style = MaterialTheme.typography.bodyMedium)
+            Text(d.trip.description, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp))
         }
-        HorizontalDivider(Modifier.padding(top = 16.dp, bottom = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
-        KmReadout(
-            km = d.stats.distanceKm,
-            kmUnit = stringResource(R.string.stat_km),
-            kmNote = stringResource(
-                when (d.stats.distanceSource) {
-                    DistanceSource.GPS -> R.string.stat_km_gps
-                    DistanceSource.ROAD -> R.string.stat_km_road
-                    DistanceSource.MIXED -> R.string.stat_km_mixed
-                    DistanceSource.STRAIGHT_LINE -> R.string.stat_km_straight
+        TopoPanel(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+            KmReadout(
+                km = d.stats.distanceKm,
+                kmUnit = stringResource(R.string.stat_km),
+                kmNote = stringResource(
+                    when (d.stats.distanceSource) {
+                        DistanceSource.GPS -> R.string.stat_km_gps
+                        DistanceSource.ROAD -> R.string.stat_km_road
+                        DistanceSource.MIXED -> R.string.stat_km_mixed
+                        DistanceSource.STRAIGHT_LINE -> R.string.stat_km_straight
+                    },
+                ),
+                counts = buildList {
+                    add(ReadoutCount(DisplayFormat.count(d.stats.stepCount.toLong()), stringResource(R.string.stat_steps)))
+                    add(ReadoutCount(DisplayFormat.count(d.stats.photoCount.toLong()), stringResource(R.string.stat_photos)))
+                    d.stats.days?.let { add(ReadoutCount(DisplayFormat.count(it.toLong()), stringResource(R.string.stat_days))) }
                 },
-            ),
-            counts = buildList {
-                add(ReadoutCount(DisplayFormat.count(d.stats.stepCount.toLong()), stringResource(R.string.stat_steps)))
-                add(ReadoutCount(DisplayFormat.count(d.stats.photoCount.toLong()), stringResource(R.string.stat_photos)))
-                d.stats.days?.let { add(ReadoutCount(DisplayFormat.count(it.toLong()), stringResource(R.string.stat_days))) }
-            },
-        )
-        // R36: the routers' travel-time estimate of the trip, partial when some legs have no road route.
-        d.stats.durationS?.let { s ->
-            val time = DisplayFormat.approxDuration(s)
-            Text(
-                if (d.stats.legsWithoutTime > 0) stringResource(R.string.stat_time_partial, time, d.stats.legsWithoutTime)
-                else stringResource(R.string.stat_time, time),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
             )
+            // R36: the routers' travel-time estimate of the trip, partial when some legs have no road route.
+            d.stats.durationS?.let { s ->
+                val time = DisplayFormat.approxDuration(s)
+                Text(
+                    if (d.stats.legsWithoutTime > 0) stringResource(R.string.stat_time_partial, time, d.stats.legsWithoutTime)
+                    else stringResource(R.string.stat_time, time),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
     }
 }
 
-/** Between two timeline rows: the connector line continues, with the leg's mode chip beside it. */
+/** Between two timeline rows: the rail continues, with the leg's mode chip beside it. */
 @Composable
 private fun LegRow(leg: Leg, measure: LegMeasure, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(32.dp).height(44.dp), Alignment.Center) {
+        Box(Modifier.width(32.dp).height(48.dp), Alignment.Center) {
             Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
         }
-        LegChip(leg, measure, onClick, Modifier.padding(start = 12.dp))
+        LegChip(leg, measure, onClick, Modifier.padding(start = 10.dp))
     }
 }
 
+/** Which pin a timeline disc repeats: the map's start (trail green), stop (waypoint blue) or end (forest). */
+private enum class DiscRole { Start, Stop, End }
+
+private fun discRole(number: Int?, lastNumber: Int): DiscRole = when {
+    number == null || lastNumber < 2 -> DiscRole.Stop
+    number == 1 -> DiscRole.Start
+    number == lastNumber -> DiscRole.End
+    else -> DiscRole.Stop
+}
+
 /**
- * Timeline row: numbered dot + vertical line, title, time, note excerpt, thumbnails. A draft
- * (R20, [number] null) has a hollow dot, a "Nháp" badge and muted content.
+ * Timeline row: on the rail, a numbered disc in its pin colour (white ring, like the map pins);
+ * beside it a card (specimen `.card`) with title, time, note excerpt and thumbnails. A draft
+ * (R20, [number] null) has a hollow disc, a "Nháp" badge and muted content.
  */
 @Composable
-private fun StepRow(number: Int?, step: Step, isLast: Boolean, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(32.dp)) {
+private fun StepRow(number: Int?, role: DiscRole, step: Step, isLast: Boolean, onClick: () -> Unit) {
+    val rail = MaterialTheme.colorScheme.outlineVariant
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp).drawBehind {
+            // The rail runs from under the disc to the row's bottom, whatever the card's height.
+            if (!isLast) {
+                val x = 16.dp.toPx()
+                drawLine(rail, Offset(x, 30.dp.toPx()), Offset(x, size.height), 2.dp.toPx())
+            }
+        },
+    ) {
+        Box(Modifier.width(32.dp).padding(top = 14.dp), Alignment.TopCenter) {
+            val ring = MaterialTheme.colorScheme.surfaceContainerLowest
             if (number == null) {
                 Box(
-                    Modifier.padding(top = 10.dp).size(28.dp)
-                        .background(MaterialTheme.colorScheme.surface, CircleShape)
-                        .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape),
+                    Modifier.size(28.dp).background(ring, CircleShape).border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
                     Alignment.Center,
-                ) { Icon(TopoIcons.Note, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary) }
-            } else Box(
-                Modifier.padding(top = 10.dp).size(28.dp).background(MaterialTheme.colorScheme.primary, CircleShape),
-                Alignment.Center,
-            ) { Text("$number", color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.labelLarge) }
-            if (!isLast) {
-                Box(Modifier.width(2.dp).height(if (step.photos.isEmpty()) 44.dp else 108.dp).background(MaterialTheme.colorScheme.outlineVariant))
+                ) { Icon(TopoIcons.Note, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+            } else {
+                val fill = when (role) {
+                    DiscRole.Start -> Palette.Trail
+                    DiscRole.Stop -> Palette.Waypoint
+                    DiscRole.End -> Palette.Forest
+                }
+                Box(
+                    Modifier.size(28.dp).background(ring, CircleShape).padding(2.dp).background(fill, CircleShape),
+                    Alignment.Center,
+                ) { Text("$number", color = Palette.Card, style = MaterialTheme.typography.labelLarge.numerals()) }
             }
         }
-        Column(Modifier.padding(start = 12.dp, top = 10.dp, bottom = 12.dp).weight(1f).alpha(if (step.isDraft) 0.6f else 1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(step.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                if (step.isDraft) DraftBadge(Modifier.padding(start = 8.dp))
-            }
-            Text(step.arrivedAt.displayTime(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (step.note.isNotBlank()) {
-                Text(step.note, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-            if (step.photos.isNotEmpty()) {
-                Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.height(64.dp)) {
-                    step.photos.take(4).forEach { p ->
-                        LocalMedia(p, Modifier.size(64.dp).clip(MaterialTheme.shapes.small))
-                    }
-                    if (step.photos.size > 4) {
-                        Box(
-                            Modifier.size(64.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant).fillMaxHeight(),
-                            Alignment.Center,
-                        ) { Text("+${step.photos.size - 4}") }
+        TopoCard(
+            modifier = Modifier.padding(start = 10.dp, top = 6.dp, bottom = 6.dp).weight(1f),
+            onClick = onClick,
+        ) {
+            Column(Modifier.alpha(if (step.isDraft) 0.6f else 1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(step.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (step.isDraft) DraftBadge(Modifier.padding(start = 8.dp))
+                }
+                Text(step.arrivedAt.displayTime(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (step.note.isNotBlank()) {
+                    Text(step.note, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+                }
+                if (step.photos.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.height(56.dp)) {
+                        step.photos.take(4).forEach { p ->
+                            LocalMedia(p, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
+                        }
+                        if (step.photos.size > 4) {
+                            Box(
+                                Modifier.size(56.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant),
+                                Alignment.Center,
+                            ) { Text("+${step.photos.size - 4}", style = MaterialTheme.typography.titleMedium.numerals()) }
+                        }
                     }
                 }
             }

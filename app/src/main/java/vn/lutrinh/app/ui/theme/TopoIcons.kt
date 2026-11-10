@@ -84,6 +84,14 @@ object TopoIcons {
     const val CAMERA = "M4 8h3.5l2-2.5h5l2 2.5H20v11H4zM12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7"
     const val VIDEO = "M5 7h8a1.5 1.5 0 0 1 1.5 1.5v7A1.5 1.5 0 0 1 13 17H5a1.5 1.5 0 0 1-1.5-1.5v-7A1.5 1.5 0 0 1 5 7zM14.5 10.5l6-3.5v10l-6-3.5"
     const val PLAY = "M8 5.5v13l10.5-6.5z"
+    // Recording (R16) and the GPS card.
+    const val CHEVRON_DOWN = "M6 9.5l6 6 6-6"
+    const val CHEVRON_UP = "M6 14.5l6-6 6 6"
+    const val PAUSE = "M9 6v12M15 6v12"
+    const val STOP = "M8 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
+    val RECORD_DOT = dot(12f, 12f, 6f)
+    /** Battery on its side with a charge bolt (R22 "Ghi hành trình ổn định"). */
+    const val BATTERY = "M5 8h12a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM21 10.5v3M11.5 9.5L9.5 12h3l-2 2.5"
     /** "Bản đồ" basemap: a folded sheet. */
     const val MAP = "M3.5 6.5l5.5-2 6 2 5.5-2v13l-5.5 2-6-2-5.5 2zM9 4.5v13M15 6.5v13"
     /** "Vệ tinh" basemap: a satellite body with two panels and a signal arc. */
@@ -144,4 +152,10 @@ object TopoIcons {
     val Train = icon("Train", TRAIN)
     val Plane = icon("Plane", PLANE)
     val Boat = icon("Boat", BOAT)
+    val ChevronDown = icon("ChevronDown", CHEVRON_DOWN)
+    val ChevronUp = icon("ChevronUp", CHEVRON_UP)
+    val Pause = icon("Pause", PAUSE)
+    val Stop = icon("Stop", STOP)
+    val Record = icon("Record", "", RECORD_DOT)
+    val Battery = icon("Battery", BATTERY)
 }

@@ -1,9 +1,7 @@
 package vn.lutrinh.app.ui.trips
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import vn.lutrinh.app.ui.common.FlatFab
+import vn.lutrinh.app.ui.common.ChipFab
 import vn.lutrinh.app.ui.theme.TopoIcons
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +9,16 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import vn.lutrinh.app.domain.usecase.DisplayFormat
+import vn.lutrinh.app.ui.common.BadgeTone
+import vn.lutrinh.app.ui.common.Eyebrow
+import vn.lutrinh.app.ui.common.TopoBadge
+import vn.lutrinh.app.ui.common.TopoCard
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,7 +43,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -62,7 +63,6 @@ import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.TripSummary
 import vn.lutrinh.app.domain.usecase.routeOf
 import vn.lutrinh.app.ui.common.RouteCover
-import vn.lutrinh.app.ui.theme.hairline
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
@@ -122,12 +122,16 @@ fun TripListScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
+            // Specimen list screen: an eyebrow with the count ("3 chuyến đi") over the 28 bold title.
+            val count = (state as? Loadable.Ready)?.value?.size ?: 0
             LargeTopAppBar(
                 title = {
                     Column {
-                        Text(stringResource(R.string.trips_title), fontWeight = FontWeight.SemiBold)
+                        if (count > 0) Eyebrow(DisplayFormat.count(count.toLong()) + " " + stringResource(R.string.my_map_trips))
+                        Text(stringResource(R.string.trips_title))
                     }
                 },
+                colors = TopAppBarDefaults.largeTopAppBarColors(scrolledContainerColor = MaterialTheme.colorScheme.background),
                 actions = {
                     IconButton(onClick = onOpenMyMap) { Icon(TopoIcons.Atlas, stringResource(R.string.my_map_title)) }
                     IconButton(onClick = { menuOpen = true }) {
@@ -172,7 +176,7 @@ fun TripListScreen(
         },
         floatingActionButton = {
             val fabLabel = stringResource(R.string.trips_new)
-            FlatFab(fabLabel, TopoIcons.Add, onClick = onCreate)
+            ChipFab(fabLabel, TopoIcons.Add, onClick = onCreate)
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -194,7 +198,7 @@ fun TripListScreen(
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(s.value, key = { it.trip.id }) { summary ->
@@ -216,30 +220,34 @@ fun TripListScreen(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+/**
+ * The specimen's route card (`.card`): a 96 × 72 thumbnail (cover photo, or the trip's own
+ * [RouteCover]), title 17 bold, dates and counts in muted 14, drafts as a "moderate" badge, and
+ * the options menu. Long press opens the same menu.
+ */
 @Composable
 private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> Unit, onEdit: () -> Unit, onShare: () -> Unit, onExportGpx: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
-    Card(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onOpen, onLongClick = { menu = true }),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = hairline,
+    TopoCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onOpen,
+        onLongClick = { menu = true },
+        contentPadding = PaddingValues(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 2.dp),
     ) {
-        Box(Modifier.fillMaxWidth().height(150.dp)) {
-            val cover = summary.coverPhotoFile
-            if (cover != null) {
-                LocalPhoto(cover, Modifier.fillMaxSize())
-            } else {
-                RouteCover(route, Modifier.fillMaxSize())
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(width = 96.dp, height = 72.dp).clip(MaterialTheme.shapes.small)) {
+                val cover = summary.coverPhotoFile
+                if (cover != null) {
+                    LocalPhoto(cover, Modifier.fillMaxSize())
+                } else {
+                    RouteCover(route, Modifier.fillMaxSize())
+                }
             }
-        }
-        Row(Modifier.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+            Column(Modifier.weight(1f).padding(start = 14.dp)) {
                 Text(
                     summary.trip.title,
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 val openEnded = stringResource(R.string.trip_open_ended, "%s")
@@ -247,14 +255,16 @@ private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> 
                     dateRange(summary.trip.startDate, summary.trip.endDate) { openEnded.format(it) },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
-                val counts = stringResource(R.string.trip_counts, summary.stepCount, summary.photoCount)
-                val drafts = if (summary.draftCount > 0) " · " + stringResource(R.string.trip_drafts, summary.draftCount) else ""
                 Text(
-                    counts + drafts,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    stringResource(R.string.trip_counts, summary.stepCount, summary.photoCount),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (summary.draftCount > 0) {
+                    TopoBadge(stringResource(R.string.trip_drafts, summary.draftCount), BadgeTone.Moderate, Modifier.padding(top = 6.dp))
+                }
             }
             Box {
                 IconButton(onClick = { menu = true }) {
