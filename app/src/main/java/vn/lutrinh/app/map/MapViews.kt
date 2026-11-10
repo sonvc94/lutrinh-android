@@ -64,17 +64,20 @@ fun rememberShownBasemap(): BasemapProvider {
 fun MapAttribution(basemap: BasemapProvider, modifier: Modifier = Modifier, routing: List<RoutingCredit> = emptyList()) {
     // Fixed 9 dp (not sp): the credit must not grow with the font scale and cover a small map (F25).
     val size = with(LocalDensity.current) { 9.dp.toSp() }
+    // The line height is fixed too: the default text style is ~20 sp tall and made two lines a 55 dp slab (a pin under it was hidden).
+    val line = with(LocalDensity.current) { 12.dp.toSp() }
     val uri = LocalUriHandler.current
     Column(modifier.background(Palette.Card.copy(alpha = 0.8f)).padding(horizontal = 4.dp, vertical = 1.dp), horizontalAlignment = Alignment.End) {
         routing.forEach { credit ->
             Text(
                 text = credit.text + " · " + stringResource(R.string.routing_fix_map),
                 fontSize = size,
+                lineHeight = line,
                 color = Palette.MapCredit,
                 modifier = Modifier.clickable { runCatching { uri.openUri(credit.fixUrl) } },
             )
         }
-        Text(text = basemap.attribution, fontSize = size, color = Palette.MapCredit)
+        Text(text = basemap.attribution, fontSize = size, lineHeight = line, color = Palette.MapCredit)
     }
 }
 
@@ -168,6 +171,9 @@ fun TripMap(
     fitPaddingDp: Int = 56,
     /** Extra room at the bottom for UI drawn over the map (e.g. a card carousel), in dp. */
     fitExtraBottomDp: Int = 0,
+    /** Extra room at the top / right for buttons drawn over the map (the trip preview's "expand"), in dp. */
+    fitExtraTopDp: Int = 0,
+    fitExtraRightDp: Int = 0,
     /** Id of the marker where the selected leg ends (its mode sheet is open), or null. */
     selectedLegTo: String? = null,
     onMarkerClick: ((String) -> Unit)? = null,
@@ -214,7 +220,7 @@ fun TripMap(
         presenter.showTravelled = showTravelledLeg
         presenter.reducedMotion = reduced
         map.setRouteColors(routeColors)
-        presenter.render(map, fitPaddingDp, fitExtraBottomDp, interactive)
+        presenter.render(map, fitPaddingDp, fitExtraBottomDp, interactive, fitExtraTopDp, fitExtraRightDp)
     }
 }
 

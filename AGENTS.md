@@ -236,7 +236,7 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   `routing_notice_seen` from `shared_prefs/lutrinh_prefs.xml`. FOSSGIS Valhalla answers from this
   network (curl `POST https://valhalla1.openstreetmap.de/route` ≤ 1/s with a User-Agent).
   Valhalla `motor_scooter` has no path to Lũng Cú (error 442; the car fallback draws the sample's leg 3→4 as "tuyến ô tô"),
-  and Tràng An snaps 713 m off-road (its legs stay straight by the 500 m guard): data, not bugs.
+  and the park's centre (20.2546, 105.8954) snaps 713 m off-road (500 m guard, `LegRoutesTest`): the sample's Tràng An stop therefore sits on the wharf road (20.2560, 105.9150, legs 4.4 / 4.7 km, all three Ninh Bình legs `ok`); a user stop placed in the karst stays straight, data not a bug.
   `NetworkMonitor.onLost` sets offline directly (asking `activeNetwork` there still returned the
   lost network, so the queue tried to fetch in airplane mode).
 * Offline limit (R31): OpenFreeMap allows ≤ 3 000 tiles / 50 MB per offline download;

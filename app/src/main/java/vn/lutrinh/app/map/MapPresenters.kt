@@ -69,7 +69,7 @@ internal class TripMapPresenter(private val icons: MapIcons) {
 
     private var fittedAllSignal = 0
     private var shownMyLocationSignal = 0
-    private var fittedKey: Pair<List<GeoPoint>, Int>? = null
+    private var fittedKey: Pair<List<GeoPoint>, List<Int>>? = null
     private var padding = MapInsets.NONE
     private var focusedStep: String? = null
     private var focusedLeg: String? = null
@@ -85,7 +85,7 @@ internal class TripMapPresenter(private val icons: MapIcons) {
         }
     }
 
-    fun render(map: MapController, paddingDp: Int, extraBottomDp: Int, interactive: Boolean) {
+    fun render(map: MapController, paddingDp: Int, extraBottomDp: Int, interactive: Boolean, extraTopDp: Int = 0, extraRightDp: Int = 0) {
         // R20: drafts are pins, not route points.
         val route = markers.filterNot { it.draft }
         val routed = showRoute && route.size >= 2
@@ -138,13 +138,13 @@ internal class TripMapPresenter(private val icons: MapIcons) {
         // must not move the camera under the user's finger).
         val routePoints = if (paths.isEmpty()) markers.map { it.point } else paths.flatten() + markers.filter { it.draft }.map { it.point }
         val points = routePoints + tracks.filterNot { it.live }.flatMap { it.points }
-        val key = points to extraBottomDp
+        val key = points to listOf(extraTopDp, extraRightDp, extraBottomDp)
         val selectedStep = focusStep
         if (key != fittedKey) {
             val routeChanged = key.first != fittedKey?.first
             fittedKey = key
             val p = (paddingDp * density).toInt()
-            padding = MapInsets(p, p, p, p + (extraBottomDp * density).toInt())
+            padding = MapInsets(p, p + (extraTopDp * density).toInt(), p + (extraRightDp * density).toInt(), p + (extraBottomDp * density).toInt())
             // A new route always re-fits; a new bottom overlay height (the carousel is measured, or
             // changes height while scrolling) only until the user has selected something.
             if (routeChanged || !userFocused) {

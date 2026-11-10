@@ -1134,8 +1134,11 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
   road. The answer is kept as `too_far` and the leg stays **straight** when either stop is more than
   **500 m** from where the road line starts/ends, or the road is more than **5×** the straight
   distance. Otherwise the line is drawn stop → (straight connector) → road → (connector) → stop.
-  Example: Tràng An (20.2546, 105.8954) snaps 713 m away; its legs stay straight (6.1 km, not
-  25–29 km).
+  Example: a stop at the Tràng An park centre (20.2546, 105.8954) snaps 713 m away; its legs stay
+  straight (6.1 km, not 25–29 km). The **sample** "Tràng An" stop is therefore on the road by the
+  wharf approach (20.2560, 105.9150): Hoa Lư → Tràng An 4.4 km (Ô tô), Tràng An → Hang Múa 4.7 km
+  (Xe máy), Hang Múa → Tam Cốc 5.0 km (Đi bộ), all three drawn along the road (docs/img/road-routing/16).
+  Stops of existing trips are never rewritten.
 * **No route.** `no_route` (the router found none, e.g. Valhalla 442) is stored and the leg stays
   straight; it is not asked again until its inputs change. Exception, the car fallback below.
 * **Car fallback ("tuyến ô tô").** A Xe máy or "Chưa chọn" leg (profile motorbike) for which the
@@ -1185,8 +1188,10 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
 `MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`,
 `MigrationTest.version8UpgradesWithUsedProfileAndKeepsStoredRoutes`. Screens: docs/img/road-routing/
 (`13`–`15-lung-cu-car-route-*.png` = the Lũng Cú leg with "tuyến ô tô").
+The trip-detail preview keeps every pin inside its frame, clear of the credit and the expand button
+(`PreviewFrameTest`; `16`–`18` = Ninh Bình all routed, both previews).
 *Changed from the study* (docs/routing-feasibility.md): snap limit 500 m instead of 1 km, because
-the Tràng An sample snaps 713 m away with a 4.1–4.8× detour, which 1 km / 5× would have accepted.
+a stop at the Tràng An park centre snaps 713 m away with a 4.1–4.8× detour, which 1 km / 5× would have accepted.
 
 ## R37 — Trip-map motion (camera between steps, travelled leg, day counter)
 

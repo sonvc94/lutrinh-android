@@ -63,7 +63,9 @@ object SampleData {
             TripInput("Ninh Bình thơ mộng", "Cuối tuần chèo đò Tràng An, leo Hang Múa.", LocalDate.of(year, 6, 7), LocalDate.of(year, 6, 8)),
             listOf(
                 S("Cố đô Hoa Lư", 20.2862, 105.9063, "$year-06-07T09:00", "Đền vua Đinh, vua Lê.", 1, key = "hoa-lu"),
-                S("Tràng An", 20.2546, 105.8954, "$year-06-07T13:00", "Chèo đò 3 tiếng qua 9 hang.", 2, TransportMode.CAR, key = "trang-an"),
+                // On the Tràng An road by the wharf approach: the park's own centre (20.2546, 105.8954) is
+                // 714 m from any road, so both legs would fail the off-road guard and stay straight (R36).
+                S("Tràng An", 20.2560, 105.9150, "$year-06-07T13:00", "Chèo đò 3 tiếng qua 9 hang.", 2, TransportMode.CAR, key = "trang-an"),
                 S("Hang Múa", 20.2299, 105.9327, "$year-06-08T06:00", "Ngắm bình minh trên đỉnh, 500 bậc đá.", 1, TransportMode.MOTORBIKE, key = "hang-mua"),
                 S("Tam Cốc", 20.2163, 105.9370, "$year-06-08T10:00", "Lúa chín vàng hai bên sông Ngô Đồng.", 0, TransportMode.WALK),
             ),

@@ -109,6 +109,7 @@ import vn.lutrinh.app.domain.usecase.inTimelineOrder
 import vn.lutrinh.app.domain.usecase.legsOf
 import vn.lutrinh.app.domain.usecase.statsOf
 import vn.lutrinh.app.map.MapMarker
+import vn.lutrinh.app.map.PreviewFrame
 import vn.lutrinh.app.map.TrackLine
 import vn.lutrinh.app.map.TripMap
 import vn.lutrinh.app.ui.tracks.GpsCard
@@ -455,8 +456,11 @@ private fun TripDetailContent(
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
-            Box(Modifier.fillMaxWidth().height(180.dp)) {
-                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, legPaths = d.legPaths, routedBy = d.routedBy, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize(), tracks = d.trackLines,
+            Box(Modifier.fillMaxWidth().height(PreviewFrame.HEIGHT_DP.dp)) {
+                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, legPaths = d.legPaths, routedBy = d.routedBy, interactive = false, fitPaddingDp = PreviewFrame.PADDING_DP,
+                    // Credit at the bottom and the expand button at the top right must not hide a pin.
+                    fitExtraBottomDp = PreviewFrame.EXTRA_BOTTOM_DP, fitExtraRightDp = PreviewFrame.EXTRA_RIGHT_DP,
+                    modifier = Modifier.fillMaxSize(), tracks = d.trackLines,
                     stopSuggestions = d.stopMarkers(),
                 )
                 Box(Modifier.fillMaxSize().clickable(onClick = onOpenMap))

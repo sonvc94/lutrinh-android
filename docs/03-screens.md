@@ -146,7 +146,7 @@ The picker returns its result to the step form through the previous screen's sav
 ## 3. Trip detail
 
 * **Purpose:** one trip as a timeline.
-* **Order (top to bottom):** header map preview (180 dp, numbered pins, route R3, expand button);
+* **Order (top to bottom):** header map preview (180 dp, numbered pins, route R3, expand button; every pin is kept clear of the credit strip at the bottom and the expand button, see docs/05 "Camera rules");
   title, date range, description, a hairline and the km readout; the collapsed **"Hành trình GPS" card** (§3b);
   then the timeline, so "Ngày 1" is on the first screen without scrolling.
 * **Content:** the km readout (docs/08 §5): the km total in large numerals with "km" and its
@@ -970,7 +970,9 @@ EXIF photos), 27–28 (a historical upgrade from the v1 build).
 | road-routing/09-airplane-new-leg-chim-bay.png | airplane mode: the leg just set to Đi bộ shows "4,1 km chim bay" and is queued |
 | road-routing/10-airplane-stored-routes-draw.png | airplane mode: stored routes still draw ("Không có mạng" banner), the new leg straight |
 | road-routing/11-online-leg-fetched.png | back online: the queued leg is fetched, "Đi bộ · 9,1 km · ~2 giờ 56 phút" |
-| road-routing/12-ninhbinh-partial-trangan-straight.png | Ninh Bình: Tràng An legs stay straight (off-road guard, "Ô tô · 3,7 km chim bay"), partial time |
+| road-routing/16-ninhbinh-all-legs-routed.png | Ninh Bình sample: all three legs along the road ("Ô tô · 4,4 km · ~11 phút", "Xe máy · 4,7 km · ~16 phút", "Đi bộ · 5,0 km · ~1 giờ 03 phút"), no "chim bay" |
+| road-routing/17-ninhbinh-preview-all-pins.png | trip detail header map of Ninh Bình: pins 1–4 and the route inside the frame, clear of the credit and the expand button |
+| road-routing/18-hagiang-preview-all-pins.png | the same for Hà Giang (10 pins) |
 | road-routing/13-lung-cu-car-route-chip.png | Yên Minh → Lũng Cú: no motorbike route, the car route is drawn and measured, chip "Xe máy · 59 km · ~1 giờ 43 phút · tuyến ô tô" |
 | road-routing/14-lung-cu-car-route-sheet.png | the same leg's sheet: "(59 km theo đường đi, ~1 giờ 43 phút · tuyến ô tô)" |
 | road-routing/15-lung-cu-car-route-trip-map.png | trip map: the Lũng Cú leg follows the road (car route) |
