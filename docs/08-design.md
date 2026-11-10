@@ -222,7 +222,7 @@ docs/09 (guard: `topoIconsAndTypeWeights`). Path data (SVG, 24 × 24):
 | Snackbar | the specimen's dark callout: Forest, Card text, 12 dp | `SnackbarHost` (theme) |
 | Inputs | outlined, 12 dp, Card fill, Outline edge, Forest when focused, label InkMuted | `topoFieldColors()` |
 | Switch / radio / checkbox | Forest when on; off = CardDim track with an Outline edge | theme |
-| Segmented control | 12 dp outer corners, selected Sand + Forest check | theme (`ShareTripScreen`, later batch) |
+| Segmented control | 12 dp outer corners, selected Sand + Forest check | theme (`ShareTripScreen`) |
 | Empty state | Contour target mark (40 dp), 22 bold title, bodyLarge text, one filled button | `MessageState` |
 | Timeline (trip detail) | numbered discs (Trail start, Waypoint stops, Forest end, white ring, Barlow number; draft hollow Outline) on a Grid rail; each step a `TopoCard`; day labels as eyebrows; leg chips between | `StepRow`, `LegRow` |
 | Trip cover | the cover photo; without one, `RouteCover`: Sand ground, three Contour ovals, the route in Signal on a Card casing, Trail/Waypoint/Forest pins | `RouteCover` |
@@ -246,8 +246,12 @@ tokens.
 * **Share image (R18, `share/SummaryImage.kt`)**: Parchment page, Card panels with a Ledge, the
   static map with the Signal route and the pins of §2, Barlow numbers over bold InkMuted labels,
   the Route mark before "Lữ Trình" in Signal with a Forest end dot.
-* **HTML trip page (R18, `domain/usecase/TripPage.kt`)**: not yet redone (docs/09 batch 4); it must
-  take these same values when it is.
+* **HTML trip page (R18, `domain/usecase/TripPage.kt`)**: the same values as hex in its inline CSS (the
+  file is pure Kotlin, so no `Palette`): Parchment page; dates as an eyebrow (13 px bold, +0.06 em)
+  over a 28 px title; map, stats and each step as Card blocks with a 2 px Ledge shadow (22 / 18 px
+  corners); stats and step numbers in Barlow Condensed; step discs Trail (first) / Waypoint /
+  Forest (last) with a white ring; no Signal text, no gradients, no links. Fonts by name only
+  (`"Noto Sans"`, `"Barlow Condensed"` then system sans / condensed): the CSP forbids loading any.
 * App icon: the Route mark in Card on a Moss square; window background Parchment.
 
 ## 9. Do / don't

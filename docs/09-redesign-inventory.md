@@ -31,7 +31,7 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | S11 | Offline maps "Bản đồ offline" | `ui/offline/OfflineMapsScreen.kt` | on spec | 3 |
 | S12 | Battery guide "Ghi hành trình ổn định" | `ui/tracks/BatteryGuideScreen.kt` | on spec | 3 |
 | S13 | Photo viewer (black, full screen) | `ui/photos/PhotoViewerScreen.kt` | on spec | 3 |
-| S14 | Share trip "Chia sẻ" | `ui/share/ShareTripScreen.kt` | tokens only | 4 |
+| S14 | Share trip "Chia sẻ" | `ui/share/ShareTripScreen.kt` | on spec | 4 |
 
 ## Dialogs and popups
 
@@ -46,10 +46,10 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | D7 | Time picker "Giờ đến" | `ui/steps/StepEditScreen.kt` (`TimePickDialog`) | theme (on spec) | 1 |
 | D8 | Date picker (trip dates, "Ngày đến") | `ui/trips/TripEditScreen.kt` (`DatePickDialog`) | theme (on spec) | 1 |
 | D9 | Picker location permission | `ui/picker/LocationPickerScreen.kt` (`locate`) | on spec | 2 |
-| D10 | GPX export choice | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | theme | 4 |
-| D11 | Busy (export/backup progress) | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | theme | 4 |
-| D12 | Restore confirm | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | theme | 4 |
-| D13 | Transfer error | `ui/transfer/TransferUi.kt` (`ErrorDialog`) | theme | 4 |
+| D10 | GPX export choice | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec | 4 |
+| D11 | Busy (export/backup progress) | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec | 4 |
+| D12 | Restore confirm | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec | 4 |
+| D13 | Transfer error | `ui/transfer/TransferUi.kt` (`ErrorDialog`) | on spec | 4 |
 
 ## Bottom sheets
 
@@ -89,8 +89,8 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 
 | # | Output | File | Status | Batch |
 | --- | --- | --- | --- | --- |
-| X1 | Summary image PNG (R18) | `share/SummaryImage.kt`, `map/StaticTripMap.kt` | tokens only (new palette and fonts; layout not rechecked) | 4 |
-| X2 | HTML trip page (R18) | `domain/usecase/TripPage.kt` | not yet: old limestone/chàm hex in its CSS | 4 |
+| X1 | Summary image PNG (R18) | `share/SummaryImage.kt`, `map/StaticTripMap.kt` | on spec (stats row, ledge map, photos fit above the mark) | 4 |
+| X2 | HTML trip page (R18) | `domain/usecase/TripPage.kt` | on spec (topo hex in its CSS) | 4 |
 | X3 | GPX / backup files | `domain/usecase/Gpx.kt`, `data/BackupManager.kt` | no visual | — |
 | X4 | Launcher icon, splash | `res/drawable/ic_launcher_foreground.xml`, `res/values/colors.xml` | on spec | 1 |
 
@@ -108,7 +108,7 @@ Each batch is a contained set of files; shared components (`ui/common/`, `ui/the
 * **Batch 3: maps and tools (done, on spec).** `ui/trips/MyMapScreen.kt`, `ui/offline/OfflineMapsScreen.kt`,
   `ui/tracks/BatteryGuideScreen.kt`, `ui/photos/PhotoViewerScreen.kt` (S10–S13).
 * **Batch 4: share and transfer.** `ui/share/ShareTripScreen.kt`, `share/SummaryImage.kt`,
-  `domain/usecase/TripPage.kt`, `ui/transfer/TransferUi.kt` (S14, D10–D13, X1, X2).
+  `domain/usecase/TripPage.kt`, `ui/transfer/TransferUi.kt` (S14, D10–D13, X1, X2). Done (branch `mate/lutrinh-topo-b4`).
 
 Count: 14 screens + 13 dialogs + 4 sheets + 4 menus + 3 messages + 3 map overlays + 4 share
 outputs = 45 entries.

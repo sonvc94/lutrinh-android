@@ -10,6 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,8 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,8 +64,11 @@ import vn.lutrinh.app.R
 import vn.lutrinh.app.share.TripExporter
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.MessageState
+import vn.lutrinh.app.ui.common.TopoCard
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatBytes
+import vn.lutrinh.app.ui.theme.Radii
+import vn.lutrinh.app.ui.theme.ledge
 
 /** "Chia sẻ chuyến đi" (R18, docs/03-screens.md §3d): pick an output, preview it, share or save it. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -130,13 +133,13 @@ fun ShareTripScreen(
             }
             Text(
                 stringResource(if (kind == ShareKind.IMAGE) R.string.share_kind_image_body else R.string.share_kind_page_body),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
             )
             Box(
-                Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp)
-                    .clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.surfaceContainer),
+                Modifier.weight(1f).fillMaxWidth().padding(top = 12.dp, bottom = 14.dp)
+                    .ledge(Radii.Card).clip(RoundedCornerShape(Radii.Card)).background(MaterialTheme.colorScheme.surfaceVariant),
                 Alignment.Center,
             ) {
                 when (val s = current) {
@@ -151,8 +154,9 @@ fun ShareTripScreen(
                             Image(
                                 bmp.asImageBitmap(), stringResource(R.string.share_kind_image),
                                 contentScale = ContentScale.Fit,
-                                modifier = Modifier.fillMaxHeight().aspectRatio(bmp.width.toFloat() / bmp.height).padding(8.dp)
-                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.fillMaxHeight().aspectRatio(bmp.width.toFloat() / bmp.height).padding(12.dp)
+                                    .clip(RoundedCornerShape(Radii.Chip))
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(Radii.Chip)),
                             )
                         }
                     } else {
@@ -170,23 +174,28 @@ fun ShareTripScreen(
             }
             if (kind == ShareKind.PAGE) {
                 val label = stringResource(R.string.share_hide_notes)
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 4.dp)
-                        .toggleable(value = hideNotes, role = Role.Switch, onValueChange = { vm.hideNotes.value = it }),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(label, style = MaterialTheme.typography.titleSmall)
-                        Text(stringResource(R.string.share_hide_notes_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // One card, the row is the toggle (as in "Cài đặt"); the switch only shows the state.
+                TopoCard(Modifier.fillMaxWidth().padding(top = 8.dp), contentPadding = PaddingValues(0.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .toggleable(value = hideNotes, role = Role.Switch, onValueChange = { vm.hideNotes.value = it })
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f).padding(end = 16.dp)) {
+                            Text(label, style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.share_hide_notes_body), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = hideNotes, onCheckedChange = null)
                     }
-                    Switch(checked = hideNotes, onCheckedChange = null)
                 }
             }
-            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.Top) {
-                Icon(Icons.Outlined.Info, null, Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.share_privacy), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Text(
+                stringResource(R.string.share_privacy),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(shape = MaterialTheme.shapes.small,
                     onClick = {

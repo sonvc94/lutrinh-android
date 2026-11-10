@@ -10,7 +10,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -54,6 +56,8 @@ import vn.lutrinh.app.domain.usecase.GpxFormat
 import vn.lutrinh.app.domain.usecase.GpxParser
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatBytes
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.TopoIcons
 import java.io.File
 import java.io.FilterOutputStream
 import java.io.OutputStream
@@ -286,10 +290,11 @@ fun rememberTransfer(snackbar: SnackbarHostState, onOpenTrip: ((String) -> Unit)
         }
         AlertDialog(
             onDismissRequest = { exportChoice = false; exportTrip = null },
+            icon = { Icon(TopoIcons.Route, null, tint = Palette.Signal) },
             title = { Text(stringResource(R.string.gpx_export_title)) },
             text = { Text(stringResource(R.string.gpx_export_body, title)) },
             confirmButton = {
-                TextButton(onClick = { exportChoice = false; saveGpx.launch(fileName.ifBlank { "chuyen-di.gpx" }) }) {
+                Button(shape = MaterialTheme.shapes.small, onClick = { exportChoice = false; saveGpx.launch(fileName.ifBlank { "chuyen-di.gpx" }) }) {
                     Text(stringResource(R.string.gpx_export_save))
                 }
             },
@@ -317,6 +322,8 @@ fun rememberTransfer(snackbar: SnackbarHostState, onOpenTrip: ((String) -> Unit)
                                 TransferViewModel.Work.RESTORE -> R.string.restore_working
                             },
                         ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             },
@@ -329,6 +336,7 @@ fun rememberTransfer(snackbar: SnackbarHostState, onOpenTrip: ((String) -> Unit)
             }.getOrDefault(m.createdAt)
             AlertDialog(
                 onDismissRequest = vm::dismiss,
+                icon = { Icon(TopoIcons.Restore, null, tint = Palette.Signal) },
                 title = { Text(stringResource(R.string.restore_confirm_title)) },
                 text = {
                     Column {

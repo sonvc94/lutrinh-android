@@ -32,7 +32,7 @@ object SummaryImage {
 
     /** The map area; the map is rendered at this size with [MAP_PIXEL_RATIO]. */
     const val MAP_WIDTH = WIDTH - 2 * MARGIN
-    const val MAP_HEIGHT = 980
+    const val MAP_HEIGHT = 820
     const val MAP_PIXEL_RATIO = 2.5f
     const val MAP_PADDING = 70
 
@@ -41,7 +41,6 @@ object SummaryImage {
     private val INK = Palette.Ink.toArgb()
     private val MUTED = Palette.InkMuted.toArgb()
     private val SIGNAL = Palette.Signal.toArgb()
-    private val LINE = Palette.Grid.toArgb()
     private val CARD = Palette.Card.toArgb()
     private val LEDGE = Palette.Ledge.toArgb()
     private val FOREST = Palette.Forest.toArgb()
@@ -84,7 +83,7 @@ object SummaryImage {
         c.drawText(TextUtils.ellipsize(input.dates, datePaint, contentW.toFloat(), TextUtils.TruncateAt.END).toString(), MARGIN.toFloat(), y - datePaint.ascent(), datePaint)
         y += datePaint.descent() - datePaint.ascent() + 36f
 
-        // Map as a panel: 22 dp corners and a grid line.
+        // Map as a panel: 22 dp corners and the 2 dp ledge.
         val mapRect = RectF(MARGIN.toFloat(), y, (MARGIN + MAP_WIDTH).toFloat(), y + MAP_HEIGHT)
         val shader = BitmapShader(input.map, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply {
             setLocalMatrix(Matrix().apply {
@@ -92,65 +91,64 @@ object SummaryImage {
                 postTranslate(mapRect.left, mapRect.top)
             })
         }
+        c.drawRoundRect(RectF(mapRect).apply { offset(0f, 6f) }, PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = LEDGE })
         c.drawRoundRect(mapRect, PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { this.shader = shader })
-        c.drawRoundRect(mapRect, PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2f; color = LINE })
         y = mapRect.bottom + 40f
 
-        // Stats as a readout panel (docs/08 §5, the specimen's `.pan`): a Card panel with a solid
-        // ledge; the km total large, the counts on its baseline to the right (or under it when they
-        // do not fit), then a signal-orange scale bar of the total.
+        // Stats as a readout panel (docs/08 §5, the specimen's `.pan` / `.stats`): a Card panel with
+        // a solid ledge; four numbers (Barlow, km first) over bold muted labels, spread across the
+        // panel, then the signal-orange scale bar of the total.
         val s = input.stats
         val pad = 48f
         val panelTop = y
         val panelX = MARGIN.toFloat()
         val panelW = contentW.toFloat()
         val gap = 20f
-        val num = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 112f; typeface = input.fonts.numerals; fontFeatureSettings = "tnum" }
-        val unit = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 44f; typeface = input.fonts.title }
-        val countNum = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 60f; typeface = input.fonts.numerals; fontFeatureSettings = "tnum" }
-        val lab = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = MUTED; textSize = 32f; typeface = input.fonts.text }
-        val kmText = DisplayFormat.kmNumber(s.distanceKm.toLong())
+        val num = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 120f; typeface = input.fonts.numerals; fontFeatureSettings = "tnum" }
+        val lab = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = MUTED; textSize = 33f; typeface = input.fonts.title; letterSpacing = 0.06f }
         val inL = panelX + pad
         val inR = panelX + panelW - pad
-        val baseline = y + pad - num.ascent() * 0.86f
-        val kmEnd = inL + num.measureText(kmText) + 14f
-        val counts = listOf(
+        val stats = listOf(
+            DisplayFormat.kmNumber(s.distanceKm.toLong()) to "km",
             DisplayFormat.count(s.stepCount.toLong()) to "điểm dừng",
             DisplayFormat.count(s.photoCount.toLong()) to "ảnh",
             DisplayFormat.count(s.days.toLong()) to "ngày",
         )
-        val countW = counts.map { (v, l) -> countNum.measureText(v) + 10f + lab.measureText(l) }
-        val countsW = countW.sum() + 36f * (counts.size - 1)
-        val countsFit = kmEnd + unit.measureText("km") + 48f + countsW <= inR
-        var countsY = baseline
-        var cx = inR - countsW
-        if (!countsFit) {
-            countsY = baseline + 84f
-            cx = inL
-        }
+        // Column starts: each stat is as wide as its number or label; the spare width is shared out evenly.
+        val widths = stats.map { (v, l) -> maxOf(num.measureText(v), lab.measureText(l)) }
+        val spare = ((inR - inL) - widths.sum()).coerceAtLeast(0f) / (stats.size - 1)
+        val numBase = panelTop + pad - num.ascent() * 0.86f
+        val labBase = numBase + 16f - lab.ascent()
         val scale = KmScale.of(s.distanceKm.toDouble())
-        val panelBottom = countsY + 28f + (if (scale != null) 16f + 12f + 4f + 40f else 0f) + pad
+        val panelBottom = labBase + lab.descent() + (if (scale != null) 36f + 16f + 12f + 4f + 40f else 0f) + pad
         c.drawRoundRect(RectF(panelX, panelTop + 6f, panelX + panelW, panelBottom + 6f), PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = LEDGE })
         c.drawRoundRect(RectF(panelX, panelTop, panelX + panelW, panelBottom), PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = CARD })
-        c.drawText(kmText, inL, baseline, num)
-        c.drawText("km", kmEnd, baseline, unit)
-        counts.forEachIndexed { i, (v, l) ->
-            c.drawText(v, cx, countsY, countNum)
-            c.drawText(l, cx + countNum.measureText(v) + 10f, countsY, lab)
-            cx += countW[i] + 36f
+        var sx = inL
+        stats.forEachIndexed { i, (v, l) ->
+            c.drawText(v, sx, numBase, num)
+            c.drawText(l, sx, labBase, lab)
+            sx += widths[i] + spare
         }
-        y = countsY + 28f
-        drawScaleBar(c, scale, inL, y, inR - inL, input.fonts.numerals)
+        drawScaleBar(c, scale, inL, labBase + lab.descent() + 36f, inR - inL, input.fonts.numerals)
         y = panelBottom + 6f + 36f
 
-        // Photos: one row of up to four squares, centre-cropped.
+        // Brand mark, bottom centre (drawn after the photos so the row can be sized to fit above it).
+        val brandGlyph = 52f
+        val brandTop = HEIGHT - 112f
+
+        // Photos: one row of up to four squares, centre-cropped; they shrink to the room left above
+        // the brand mark (a two-line title or a long readout pushes them down) and are left out
+        // when less than 110 px of room is left.
         if (input.photos.isNotEmpty()) {
-            val size = (contentW - gap * 3) / 4
-            val rowW = input.photos.size * size + (input.photos.size - 1) * gap
-            var x = MARGIN + (contentW - rowW) / 2
-            input.photos.take(4).forEach { bmp ->
-                drawCropped(c, bmp, RectF(x, y, x + size, y + size), THUMB_R)
-                x += size + gap
+            val n = minOf(input.photos.size, 4)
+            val size = minOf((contentW - gap * 3) / 4, brandTop - 40f - y)
+            if (size >= 110f) {
+                val rowW = n * size + (n - 1) * gap
+                var x = MARGIN + (contentW - rowW) / 2
+                input.photos.take(4).forEach { bmp ->
+                    drawCropped(c, bmp, RectF(x, y, x + size, y + size), THUMB_R)
+                    x += size + gap
+                }
             }
         }
 
@@ -159,7 +157,7 @@ object SummaryImage {
         val brand = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 40f; typeface = input.fonts.title }
         val name = "Lữ Trình"
         val nameW = brand.measureText(name)
-        val glyph = 52f
+        val glyph = brandGlyph
         val total = glyph + 18f + nameW
         val bx = (WIDTH - total) / 2
         val by = HEIGHT - 112f

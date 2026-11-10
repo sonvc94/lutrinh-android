@@ -83,8 +83,8 @@ object TripPage {
         sb.append("<meta name=\"generator\" content=\"Lữ Trình\">\n")
         sb.append("<title>").append(esc(content.title)).append("</title>\n<style>").append(CSS).append("</style>\n</head>\n<body>\n")
 
-        sb.append("<header>\n<h1>").append(esc(content.title)).append("</h1>\n")
-        sb.append("<p class=\"dates\">").append(esc(content.dates)).append("</p>\n")
+        sb.append("<header>\n<p class=\"dates\">").append(esc(content.dates)).append("</p>\n")
+        sb.append("<h1>").append(esc(content.title)).append("</h1>\n")
         if (content.description.isNotBlank()) sb.append("<p class=\"desc\">").append(text(content.description)).append("</p>\n")
         sb.append("</header>\n")
 
@@ -109,7 +109,8 @@ object TripPage {
                 val n = ChronoUnit.DAYS.between(content.tripStart, d) + 1
                 sb.append("<section class=\"day\">\n<h2>Ngày ").append(n).append(" · ").append(esc(dayLabel(d))).append("</h2>\n")
             }
-            sb.append("<article class=\"step\">\n<div class=\"num\">").append(i + 1).append("</div>\n<div class=\"body\">\n")
+            val place = if (i == 0) " first" else if (i == content.steps.lastIndex) " last" else ""
+            sb.append("<article class=\"step").append(place).append("\">\n<div class=\"num\">").append(i + 1).append("</div>\n<div class=\"body\">\n")
             sb.append("<h3>").append(esc(step.title)).append("</h3>\n")
             sb.append("<p class=\"time\">").append(step.arrivedAt.format(TIME)).append("</p>\n")
             if (!content.hideNotes && step.note.isNotBlank()) sb.append("<p class=\"note\">").append(text(step.note)).append("</p>\n")
@@ -173,35 +174,42 @@ object TripPage {
     }
 
     /**
-     * Lữ Trình tokens (docs/08-design.md): limestone paper #F5F7F8, ink #171E23, muted ink #4F565C,
-     * hairline #CFD5D9, one chàm accent #2A4D80. Hairlines instead of tinted tiles; tabular figures.
+     * Topo-outdoor tokens (docs/08-design.md §2, §8), written as hex because this file is pure
+     * Kotlin: Parchment #EFEBDA page, Card #FBFAF2 panels on a 2 px Ledge #D9D4BE (18/22 px
+     * corners), Ink #2A2A22, InkMuted #6B6A58, Grid #E3DEC8, Sand #E8E3CE, Forest #1F2A24, Trail
+     * #2D7A46 / Waypoint #2B6CB0 / Forest step discs with a 3 px white ring. Signal orange
+     * #E4572E only as a line (the page's route mark), never as text. Fonts: Noto Sans for words and
+     * Barlow Condensed for numbers, by name only: the page may load nothing (CSP), so a phone or
+     * computer without them falls back to its sans and condensed sans. No gradients, no links.
      */
     private const val CSS = """
 *{box-sizing:border-box}
-body{margin:0;background:#F5F7F8;color:#171E23;font:16px/1.55 "Be Vietnam Pro",-apple-system,"Segoe UI",Roboto,"Noto Sans",Arial,sans-serif}
+body{margin:0;background:#EFEBDA;color:#2A2A22;font:16px/1.55 "Noto Sans",-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
 header,main,footer,.stats,.map{max-width:760px;margin-left:auto;margin-right:auto}
-header{padding:28px 20px 8px}
-h1{margin:0 0 4px;font-size:28px;line-height:1.2;font-weight:600;color:#171E23}
-.dates{margin:0;color:#4F565C}
-.desc{margin:12px 0 0}
-.map{margin:16px auto 0;padding:0 20px}
-.map img{display:block;width:100%;height:auto;border-radius:12px;border:1px solid #CFD5D9}
-.map figcaption{font-size:12px;color:#4F565C;text-align:right;margin-top:4px}
-.stats{list-style:none;display:flex;gap:8px;padding:16px 20px;margin-top:0;margin-bottom:0}
-.stats li{flex:1;background:#FBFDFE;border:1px solid #CFD5D9;border-radius:12px;padding:8px 10px}
-.stats b{display:block;font-size:23px;font-weight:600;color:#171E23;font-variant-numeric:tabular-nums}
-.stats span{font-size:12px;color:#4F565C}
-main{padding:0 20px}
-.day h2{font-size:14px;font-weight:600;color:#2A4D80;margin:24px 0 8px;text-transform:none;border-bottom:1px solid #CFD5D9;padding-bottom:4px}
-.step{display:flex;gap:12px;padding:6px 0 14px}
-.num{flex:none;width:30px;height:30px;border-radius:50%;background:#2A4D80;color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;font-size:14px;font-variant-numeric:tabular-nums}
+header{padding:28px 16px 8px}
+.dates{margin:0 0 2px;font-size:13px;line-height:18px;font-weight:700;letter-spacing:.06em;color:#6B6A58}
+h1{margin:0;font-size:28px;line-height:36px;font-weight:700;color:#2A2A22}
+.desc{margin:12px 0 0;font-size:17px;line-height:26px}
+.map{margin:16px auto 0;padding:0 16px}
+.map img{display:block;width:100%;height:auto;border-radius:22px;box-shadow:0 2px 0 #D9D4BE}
+.map figcaption{font-size:12px;color:#6B6A58;text-align:right;margin-top:8px}
+.stats{list-style:none;display:flex;gap:8px;padding:0;margin-top:16px;margin-bottom:0;background:#FBFAF2;border-radius:22px;box-shadow:0 2px 0 #D9D4BE;width:calc(100% - 32px);max-width:728px}
+.stats li{flex:1;padding:16px 10px 14px 18px;min-width:0}
+.stats b{display:block;font:700 34px/38px "Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;letter-spacing:.01em;color:#2A2A22;font-variant-numeric:tabular-nums}
+.stats span{display:block;font-size:13px;line-height:18px;font-weight:700;letter-spacing:.06em;color:#6B6A58}
+main{padding:0 16px}
+.day h2{font-size:13px;line-height:18px;font-weight:700;letter-spacing:.06em;color:#6B6A58;margin:24px 6px 8px}
+.step{display:flex;gap:12px;padding:14px;margin:0 0 12px;background:#FBFAF2;border-radius:18px;box-shadow:0 2px 0 #D9D4BE}
+.num{flex:none;width:32px;height:32px;border-radius:50%;background:#2B6CB0;color:#fff;border:3px solid #fff;box-shadow:0 0 0 1px #D9D4BE;display:flex;align-items:center;justify-content:center;font:700 16px/1 "Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;font-variant-numeric:tabular-nums}
+.first .num{background:#2D7A46}
+.last .num{background:#1F2A24}
 .body{flex:1;min-width:0}
-h3{margin:2px 0 0;font-size:19px;font-weight:600}
-.time{margin:0;color:#4F565C;font-size:14px;font-variant-numeric:tabular-nums}
+h3{margin:2px 0 0;font-size:17px;line-height:24px;font-weight:700}
+.time{margin:0;color:#6B6A58;font-size:14px;line-height:21px;font-variant-numeric:tabular-nums}
 .note{margin:6px 0 0;white-space:normal;overflow-wrap:anywhere}
 .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:10px}
-.photos img{width:100%;height:auto;border-radius:4px;display:block}
-footer{padding:24px 20px 40px;color:#4F565C;font-size:14px}
+.photos img{width:100%;height:auto;border-radius:12px;display:block;background:#E8E3CE}
+footer{padding:20px 22px 40px;color:#6B6A58;font-size:14px}
 footer p{margin:4px 0}
 """
 }

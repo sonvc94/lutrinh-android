@@ -104,9 +104,7 @@ class DesignGuardTest {
      * still use stock Material icons and other font weights; each later batch removes its files
      * here, and a listed file that is already clean fails the test so the list only shrinks.
      */
-    private val notYetTopo = setOf(
-        "ui/share/ShareTripScreen.kt",
-    )
+    private val notYetTopo = emptySet<String>()
 
     private val legacyLook = Regex("""import androidx\.compose\.material\.icons|FontWeight\.(Thin|ExtraLight|Light|SemiBold|ExtraBold|Black)\b""")
 

@@ -294,17 +294,16 @@ The picker returns its result to the step form through the previous screen's sav
   trang không quá 15 MB" when the cap removed photos, and "Không tải được nền bản đồ …" when the map
   had no basemap); for the page only, the row **"Ẩn ghi chú"** with a switch (off by default; the
   whole row toggles it) and "Không đưa ghi chú của các điểm dừng vào trang."; the privacy note
-  (info icon) "Tệp chia sẻ có bản đồ, tên và thời gian các điểm dừng của bạn. Chỉ gửi cho người
+  (plain small text) "Tệp chia sẻ có bản đồ, tên và thời gian các điểm dừng của bạn. Chỉ gửi cho người
   bạn tin."; buttons **"Lưu vào máy"** (outlined, download icon) and **"Chia sẻ"** (filled,
   share icon), both disabled until the file is ready.
 * **Ảnh dọc** — preview of the 1080 × 1920 PNG itself (R18): topo paper background; title (Noto Sans
-  Bold, ink, max 2 lines), dates; the map (960 × 980 px, rounded) with the route, recorded tracks,
-  numbered pins and the attribution; the km readout (km total in large Barlow Condensed, the counts
-  điểm dừng, ảnh, ngày on its baseline or on a line of their own when they do not fit, a signal-orange scale
-  bar); one row of up to four square photos; the app's route mark (docs/08 §5) + "Lữ Trình" at the bottom.
+  Bold, ink, max 2 lines), dates; the map (960 × 820 px, 22 dp-equivalent corners on a 2 dp ledge) with the route, recorded tracks,
+  numbered pins and the attribution; the km readout panel (Card with a ledge; the specimen's stats row: km, điểm dừng, ảnh, ngày as Barlow Condensed numbers over
+  bold muted labels, then a signal-orange scale bar); one row of up to four square photos (they shrink to the room above the mark, left out below 110 px); the app's route mark (docs/08 §5) + "Lữ Trình" at the bottom.
 * **Trang xem offline** — the generated HTML in a WebView (JavaScript and network off): title, dates,
   description, the map, the stats, then the timeline "Ngày N · <weekday>, dd/MM/yyyy" with each
-  step's number, name, time, note (unless hidden) and photos; footer "Tạo bằng Lữ Trình, nhật ký du lịch trên điện thoại." (same tokens as the app).
+  step's number, name, time, note (unless hidden) and photos; footer "Tạo bằng Lữ Trình, nhật ký du lịch trên điện thoại." Topo outdoor like the app (docs/08 §8): Parchment page, the dates as an eyebrow over a 28 px title, the map and the stats in Card panels with a 2 px ledge, one Card per step with a Trail / Waypoint / Forest number disc, Noto Sans and Barlow Condensed by name (nothing is loaded; the CSP stays).
 * **Chia sẻ:** the system share sheet ("Sharing 1 file" + the file name) with the file as a
   `content://` URI (read permission granted to the receiving app).
 * **Lưu vào máy:** Android 10+ saves a copy to `Pictures/LuTrinh` (image) or `Download/LuTrinh`
@@ -709,7 +708,7 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 The current look. Same sample data ("Tạo dữ liệu mẫu"), same scripted flow on a separate vi-VN
 review AVD: `before-*` from main (6b6ad19, "Sổ bản đồ"), `after-*` from the topo-outdoor branch.
 Batch 2 (`b2`) was shot against main d93bbab (batch 1 look) the same way.
-540 px wide. **Every screenshot below this section shows an older look** (atlas, or earlier):
+540 px wide. **Every screenshot below the batch sections shows an older look** (atlas, or earlier):
 they still document behaviour and layout, not colours, type or shapes; a later batch
 (docs/09) replaces them screen by screen.
 
@@ -745,6 +744,21 @@ they still document behaviour and layout, not colours, type or shapes; a later b
 | before-/after-b2-from-photos-intro.png | "Thêm điểm dừng từ ảnh" sheet: signal photo icon, 22 dp padding, forest "Chọn ảnh" |
 | before-/after-b2-from-photos-review.png | Review of photo suggestions: map in an 18 dp ledge card, numbered Waypoint discs, topo suggestion cards, forest "Tạo điểm dừng" bar |
 | after-b2-from-photos-review-2.png | Same review scrolled: the "Ảnh không có vị trí" card and an excluded (dimmed) suggestion |
+
+### Topo outdoor, batch 4: share and transfer (`img/topo/`, docs/09)
+
+Same flow and AVD as above (Hà Giang sample, vi-VN); `before-` = main (d93bbab). 540-720 px wide.
+
+| File | Shows |
+| --- | --- |
+| b4-before-/after-share-image.png | Share screen, "Ảnh dọc": segmented control, preview well (Sand, 18 dp, ledge) with the PNG on a 12 dp frame, no info icon. Before: the old preview shows the brand mark on top of the fourth photo |
+| b4-after-summary.png | The 1080 × 1920 PNG itself (real file from `cacheDir/share`, 960 px): map on a ledge, stats panel (Barlow numbers over bold labels), four photos clear of the mark |
+| b4-before-/after-share-page.png | Share screen, "Trang xem offline": the page in the preview; "Ẩn ghi chú" in a ledge card (the row toggles) |
+| b4-after-page.png | The HTML page itself in desktop Chrome, network off (520 px wide, fonts fall back to the system's) |
+| b4-before-/after-d10.png | "Xuất tệp GPX": Route mark in Signal, forest "Lưu vào tệp…" button, "Chia sẻ…" as text |
+| b4-before-/after-d11.png | Busy dialog "Đang sao lưu…": Ink text (the spinner is frozen by the AVD's animation scale 0) |
+| b4-before-/after-d12.png | "Thay thế toàn bộ dữ liệu?": Restore mark in Signal, destructive "Thay thế" in Error text |
+| b4-before-/after-d13.png | "Không nhập được tệp GPX": error dialog, unchanged (already on the theme) |
 
 ### Design atlas, before/after (`img/design-atlas/`, docs/08)
 

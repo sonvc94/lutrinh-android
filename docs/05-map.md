@@ -241,7 +241,7 @@ Vietnam, so (rule R30):
 | Location picker | full screen | pan + zoom | fixed centre pin, other steps as context pins |
 | Thêm từ ảnh review | 180 dp tall | no | numbered pins of the kept suggestions, no route (R13) |
 | Bản đồ của tôi | full screen | pan + zoom | every trip: one coloured line + stop dots per trip; tap → select, tap the card → open (R14) |
-| Share image / page (R18) | 960 × 980 px bitmap | no (a picture) | pins + legs + recorded tracks + attribution, "Static map for sharing" |
+| Share image / page (R18) | 960 × 820 px bitmap | no (a picture) | pins + legs + recorded tracks + attribution, "Static map for sharing" |
 
 ## Data prep per leg
 
@@ -462,7 +462,7 @@ The "Ảnh dọc" and "Trang xem offline" (04-business-rules.md R18) need the tr
 without a visible map view. Two steps:
 
 1. **Basemap** — `MapEngine.snapshot` of the offline basemap ("Bản đồ", never satellite imagery,
-   whose terms forbid storing it); on Android a MapLibre `MapSnapshotter` with `Positron.STYLE_URL`, size 960 × 980 logical
+   whose terms forbid storing it); on Android a MapLibre `MapSnapshotter` with `Positron.STYLE_URL`, size 960 × 820 logical
    px × pixel ratio 2.5 (`SummaryImage.MAP_*`), logo off, the camera from `MapFit`, and the same
    repaint as the live maps applied once the style loads through `getLayer(id)`
    (`BasemapPlanner.declared`: `Positron.REPAINT` + the Vietnamese-first labels on `Positron.LABEL_LAYER_IDS`). Tiles come from the
