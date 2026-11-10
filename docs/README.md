@@ -18,6 +18,7 @@ Language: English for prose, Vietnamese for the on-screen copy (quoted as it app
 | [07-ios-port.md](07-ios-port.md) | Android choice → Swift/SwiftUI equivalent, per layer, plus a porting checklist |
 | [08-design.md](08-design.md) | Look: "Sổ bản đồ" direction, palette tokens (limestone + one chàm accent), type scale, radii, hairlines, component and imagery rules, anti-"AI look" rules, contrast table, design guard test |
 | [routing-feasibility.md](routing-feasibility.md) | Research (not a rule yet): routed legs — sources and their terms, tests on real legs, proposed data model, adapter and ship outline |
+| [10-place-search-providers.md](10-place-search-providers.md) | Research (Vietnamese, not a rule yet): place/POI search providers for Vietnam (Vietmap, Goong, Map4D, … vs Google/HERE/OSM), the café gap measured, proposed `PlaceSearch` interface + online/offline split |
 | [img/](img/) | Emulator screenshots of each flow (listed in 03-screens.md) |
 
 Source analysis (read-only, not part of this repo): `polarsteps/docs/` — mainly
