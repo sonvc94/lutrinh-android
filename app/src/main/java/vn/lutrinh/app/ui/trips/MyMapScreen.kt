@@ -121,7 +121,11 @@ class MyMapViewModel(c: AppContainer) : ViewModel() {
     val state: StateFlow<Loadable<MyMap>> =
         combine(
             c.trips.observeTripSummaries(), c.steps.observeAllSteps(), trackLines,
-            combine(c.legRoutes.observeAll(), c.routingSettings.enabled) { stored, _ -> c.routingSettings.shown(stored) },
+            combine(c.legRoutes.observeAll(), c.routingSettings.enabled, c.routes.observeLinkedTrips(), c.steps.observeAllSteps()) { stored, _, linked, all ->
+                // D-13: legs of downloaded routes keep their server lines while routing is off.
+                val keep = all.filter { it.tripId in linked }.mapTo(HashSet()) { it.id }
+                c.routingSettings.shown(stored) { it.toStepId in keep }
+            },
         ) { summaries, steps, tracks, routes ->
             val byTrip = steps.published().groupBy { it.tripId } // R20: drafts are not on My map
             val slots = tripColorSlots(summaries.map { it.trip }, TripPalette.size)

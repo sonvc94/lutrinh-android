@@ -26,6 +26,9 @@ class NetworkMonitor(context: Context) {
         })
     }
 
+    /** True when the current network costs data (mobile data): R40 asks before a download over 50 MB. */
+    fun metered(): Boolean = cm.isActiveNetworkMetered
+
     private fun currentlyOnline(): Boolean {
         val caps = cm.activeNetwork?.let { cm.getNetworkCapabilities(it) } ?: return false
         return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)

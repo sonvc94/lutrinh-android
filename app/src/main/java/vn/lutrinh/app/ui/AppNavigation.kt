@@ -59,6 +59,7 @@ import vn.lutrinh.app.ui.steps.StepEditScreen
 import vn.lutrinh.app.ui.tracks.BatteryGuideScreen
 import vn.lutrinh.app.ui.settings.RoutingNoticeDialog
 import vn.lutrinh.app.ui.settings.SettingsScreen
+import vn.lutrinh.app.ui.routes.RouteCodeScreen
 import vn.lutrinh.app.ui.trips.TripDetailScreen
 import vn.lutrinh.app.ui.trips.TripEditScreen
 import vn.lutrinh.app.ui.trips.TripListScreen
@@ -70,7 +71,7 @@ object Routes {
     const val TRIPS = "trips"
     const val MY_MAP = "myMap"
     const val TRIP_EDIT = "tripEdit?tripId={tripId}&record={record}"
-    const val TRIP = "trip/{tripId}?record={record}"
+    const val TRIP = "trip/{tripId}?record={record}&fromRoute={fromRoute}"
     const val TRIP_MAP = "trip/{tripId}/map"
     const val STEP_EDIT =
         "trip/{tripId}/stepEdit?stepId={stepId}&stopTrack={stopTrack}&stopStart={stopStart}&stopEnd={stopEnd}" +
@@ -83,6 +84,7 @@ object Routes {
     const val SHARE = "trip/{tripId}/share"
     const val BATTERY_GUIDE = "batteryGuide"
     const val SETTINGS = "settings"
+    const val ROUTE_CODE = "routeCode?code={code}"
 
     fun tripEdit(tripId: String? = null) = if (tripId == null) "tripEdit" else "tripEdit?tripId=$tripId"
 
@@ -90,6 +92,12 @@ object Routes {
     fun tripEditAndRecord() = "tripEdit?record=true"
     fun trip(tripId: String, record: Boolean = false) = if (record) "trip/$tripId?record=true" else "trip/$tripId"
     fun tripMap(tripId: String) = "trip/$tripId/map"
+
+    /** A trip just downloaded from a route (R40): its snackbar; [withMap] = an offline map is on its way. */
+    fun tripFromRoute(tripId: String, withMap: Boolean) = "trip/$tripId?fromRoute=${if (withMap) "map" else "nomap"}"
+
+    /** "Nhập mã lộ trình" (R40), optionally with the code filled in and looked up. */
+    fun routeCode(code: String? = null) = if (code == null) "routeCode" else "routeCode?code=$code"
     fun share(tripId: String) = "trip/$tripId/share"
     fun stepEdit(tripId: String, stepId: String? = null) =
         if (stepId == null) "trip/$tripId/stepEdit" else "trip/$tripId/stepEdit?stepId=$stepId"
@@ -160,6 +168,7 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
+  val routeServer = (LocalContext.current.applicationContext as LuTrinhApp).container.routeServerConfigured
   val slidePx = with(LocalDensity.current) { Motion.SCREEN_SLIDE_DP.dp.roundToPx() }
   val fade = tween<Float>(Motion.SCREEN_MS, easing = Motion.EaseInOut)
   val slide = tween<IntOffset>(Motion.SCREEN_MS, easing = Motion.EaseInOut)
@@ -184,6 +193,15 @@ private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
                 onOpenMyMap = { nav.navigate(Routes.MY_MAP) },
                 onOpenOffline = { nav.navigate(Routes.offline()) },
                 onOpenSettings = { nav.navigate(Routes.SETTINGS) },
+                onEnterCode = if (routeServer) ({ nav.navigate(Routes.routeCode()) }) else null,
+            )
+        }
+        composable(Routes.ROUTE_CODE, arguments = listOf(optional("code"))) {
+            RouteCodeScreen(
+                onBack = { nav.popBackStack() },
+                onOpenTrip = { id, withMap ->
+                    nav.navigate(Routes.tripFromRoute(id, withMap)) { popUpTo(Routes.TRIPS) { inclusive = false } }
+                },
             )
         }
         composable(Routes.OFFLINE, arguments = listOf(optional("tripId"))) {
@@ -203,7 +221,7 @@ private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
                 onDeleted = { nav.popBackStack(Routes.TRIPS, inclusive = false) },
             )
         }
-        composable(Routes.TRIP, arguments = listOf(required("tripId"), optional("record"))) { entry ->
+        composable(Routes.TRIP, arguments = listOf(required("tripId"), optional("record"), optional("fromRoute"))) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!
             TripDetailScreen(
                 onBack = { nav.popBackStack() },
@@ -217,6 +235,9 @@ private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
                 onNewTripAndRecord = { nav.navigate(Routes.tripEditAndRecord()) },
                 onOpenBatteryGuide = { nav.navigate(Routes.BATTERY_GUIDE) },
                 autoRecord = entry.arguments?.getString("record") == "true",
+                fromRoute = entry.arguments?.getString("fromRoute"),
+                onOpenOffline = { nav.navigate(Routes.offline(tripId)) },
+                onEnterCode = { nav.navigate(Routes.routeCode(it)) },
             )
         }
         composable(Routes.SHARE, arguments = listOf(required("tripId"))) {

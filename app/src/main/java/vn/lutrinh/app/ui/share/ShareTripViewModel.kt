@@ -87,7 +87,9 @@ class ShareTripViewModel(private val c: AppContainer, handle: SavedStateHandle) 
 
     private val source: Flow<Source?> = combine(
         c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observePoints(tripId),
-        combine(c.legRoutes.observeForTrip(tripId), c.routingSettings.enabled) { stored, _ -> c.routingSettings.shown(stored) },
+        combine(c.legRoutes.observeForTrip(tripId), c.routingSettings.enabled, c.routes.observeLink(tripId)) { stored, _, link ->
+            c.routingSettings.shown(stored) { link != null } // D-13: a downloaded route keeps its lines
+        },
     ) { trip, steps, points, routes ->
         // R20: drafts are never shared (map, image and page).
         trip?.let { Source(it, TripShare.sharedSteps(steps), TrackMath.displayLines(points), routes) }

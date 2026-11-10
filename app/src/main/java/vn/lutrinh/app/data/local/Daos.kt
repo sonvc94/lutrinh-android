@@ -171,3 +171,28 @@ interface LegRouteDao {
     @Upsert
     suspend fun upsert(route: LegRouteEntity)
 }
+
+@Dao
+interface RouteLinkDao {
+    @Query("SELECT * FROM route_links WHERE trip_id = :tripId")
+    fun observe(tripId: String): Flow<RouteLinkEntity?>
+
+    @Query("SELECT * FROM route_links WHERE trip_id = :tripId")
+    suspend fun get(tripId: String): RouteLinkEntity?
+
+    @Query("SELECT * FROM route_links")
+    suspend fun all(): List<RouteLinkEntity>
+
+    @Query("SELECT trip_id FROM route_links")
+    fun observeTripIds(): Flow<List<String>>
+
+    @Upsert
+    suspend fun upsert(link: RouteLinkEntity)
+
+    /** D-4: any change of the user to a downloaded trip ends "Thay bản trong máy". */
+    @Query("UPDATE route_links SET edited = 1 WHERE trip_id = :tripId AND edited = 0")
+    suspend fun markEdited(tripId: String): Int
+
+    @Query("UPDATE route_links SET edited = 1 WHERE edited = 0 AND trip_id = (SELECT trip_id FROM steps WHERE id = :stepId)")
+    suspend fun markEditedByStep(stepId: String): Int
+}

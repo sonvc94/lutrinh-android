@@ -240,9 +240,10 @@ class BackupManager(
 
         /**
          * User tables, parents first (insert order; deletes go in reverse). `leg_routes` (R36) is
-         * copied too, but not counted in the manifest (routes can always be fetched again).
+         * copied too, but not counted in the manifest (routes can always be fetched again); so is
+         * `route_links` (R40, DB v10: which trips came from a route code).
          */
-        val TABLES = listOf("trips", "steps", "leg_routes", "photos", "tracks", "track_points", "stop_decisions")
+        val TABLES = listOf("trips", "route_links", "steps", "leg_routes", "photos", "tracks", "track_points", "stop_decisions")
 
         fun counts(d: SupportSQLiteDatabase): BackupCounts {
             fun n(t: String) = d.query("SELECT COUNT(*) FROM `$t`").use { c -> c.moveToFirst(); c.getInt(0) }

@@ -95,7 +95,12 @@ fun ScreenHeading(title: String, modifier: Modifier = Modifier, eyebrow: String?
 }
 
 /** Badge tones: the specimen's three difficulty pairs, reused as neutral / attention / alert. */
-enum class BadgeTone { Easy, Moderate, Hard }
+enum class BadgeTone {
+    Easy, Moderate, Hard,
+
+    /** Ink on Sand: a plain label that is not a status ("Lộ trình HG4N-7KQE · v3", R40). */
+    Neutral,
+}
 
 /** The specimen's `.dif`: 13 bold on a tinted 8 dp block. Short status words only ("Nháp"). */
 @Composable
@@ -104,6 +109,7 @@ fun TopoBadge(text: String, tone: BadgeTone, modifier: Modifier = Modifier) {
         BadgeTone.Easy -> Palette.EasyWash to Palette.EasyInk
         BadgeTone.Moderate -> Palette.ModerateWash to Palette.ModerateInk
         BadgeTone.Hard -> Palette.HardWash to Palette.HardInk
+        BadgeTone.Neutral -> Palette.Sand to Palette.Ink
     }
     Text(
         text,

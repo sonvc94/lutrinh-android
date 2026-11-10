@@ -25,9 +25,16 @@ class RoomTripRepository(private val db: AppDatabase) : TripRepository {
 
     override suspend fun getTrip(id: String): Trip? = dao.get(id)?.toDomain()
 
-    override suspend fun upsertTrip(trip: Trip) = dao.upsert(trip.toEntity())
+    // R40/D-4: every change of the user to a downloaded trip sets route_links.edited (no-op otherwise).
+    override suspend fun upsertTrip(trip: Trip) = db.withTransaction {
+        dao.upsert(trip.toEntity())
+        db.routeLinkDao().markEdited(trip.id)
+        Unit
+    }
 
-    override suspend fun setCover(tripId: String, photoId: String?, now: Long): Boolean = dao.setCover(tripId, photoId, now) > 0
+    override suspend fun setCover(tripId: String, photoId: String?, now: Long): Boolean = db.withTransaction {
+        (dao.setCover(tripId, photoId, now) > 0).also { if (it) db.routeLinkDao().markEdited(tripId) }
+    }
 
     override suspend fun deleteTrip(id: String): List<String> = db.withTransaction {
         val files = dao.photoFiles(id)
@@ -63,6 +70,7 @@ class RoomStepRepository(private val db: AppDatabase) : StepRepository {
     }
 
     private suspend fun writeStep(step: Step): List<String> {
+        db.routeLinkDao().markEdited(step.tripId)
         val before = dao.photoFiles(step.id)
         dao.upsert(step.toEntity())
         dao.deletePhotos(step.id)
@@ -72,6 +80,7 @@ class RoomStepRepository(private val db: AppDatabase) : StepRepository {
     }
 
     override suspend fun deleteStep(id: String): List<String> = db.withTransaction {
+        db.routeLinkDao().markEditedByStep(id)
         val files = dao.photoFiles(id)
         dao.delete(id)
         files
@@ -80,8 +89,11 @@ class RoomStepRepository(private val db: AppDatabase) : StepRepository {
     override fun observeAllSteps(): Flow<List<Step>> =
         dao.observeAll().map { rows -> rows.map { it.toDomain() } }
 
-    override suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean =
-        dao.setTransportMode(stepId, mode?.code, now) > 0
+    override suspend fun setArrivalTransport(stepId: String, mode: TransportMode?, now: Long): Boolean = db.withTransaction {
+        (dao.setTransportMode(stepId, mode?.code, now) > 0).also { if (it) db.routeLinkDao().markEditedByStep(stepId) }
+    }
 
-    override suspend fun setDraft(stepId: String, draft: Boolean, now: Long): Boolean = dao.setDraft(stepId, draft, now) > 0
+    override suspend fun setDraft(stepId: String, draft: Boolean, now: Long): Boolean = db.withTransaction {
+        (dao.setDraft(stepId, draft, now) > 0).also { if (it) db.routeLinkDao().markEditedByStep(stepId) }
+    }
 }

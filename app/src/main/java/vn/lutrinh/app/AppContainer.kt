@@ -9,6 +9,10 @@ import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
 import vn.lutrinh.app.data.PlaceIndex
 import vn.lutrinh.app.data.RoomLegRouteRepository
+import vn.lutrinh.app.data.RoomRouteRepository
+import vn.lutrinh.app.data.RouteDownloads
+import vn.lutrinh.app.catalog.Catalogs
+import vn.lutrinh.app.domain.catalog.RouteCatalog
 import vn.lutrinh.app.data.RoomStepRepository
 import vn.lutrinh.app.data.RoomTripImportRepository
 import vn.lutrinh.app.data.RoomStopDecisionRepository
@@ -112,6 +116,16 @@ class AppContainer(context: Context) {
         steps.observeAllSteps(), legRoutes, routingSettings, network.online, routers, clock,
         log = { android.util.Log.i("Routing", it) },
     )
+
+    /**
+     * Ready-made routes by code (R40): the route source (the Lữ Trình server, catalog/Catalogs.kt),
+     * downloaded trips + their links, and the background downloads. [routeCatalog] is a var only
+     * so tests can put a fake source in.
+     */
+    var routeCatalog: RouteCatalog = Catalogs.server
+    val routeServerConfigured: Boolean get() = Catalogs.serverConfigured
+    val routes = RoomRouteRepository(db, photos.photoDir) { photos.delete(it) }
+    val routeDownloads = RouteDownloads(context.applicationContext, prefs)
 
     /** Local backup/restore of all user data (R26). */
     val backup = BackupManager(context, db, photos.photoDir, BuildConfig.VERSION_NAME)

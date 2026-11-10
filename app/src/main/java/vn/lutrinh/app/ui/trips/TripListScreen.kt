@@ -102,6 +102,8 @@ fun TripListScreen(
     onOpenOffline: () -> Unit,
     /** "Cài đặt" (R36 routing switch). */
     onOpenSettings: () -> Unit = {},
+    /** "Nhập mã lộ trình" (R40); null = no route server in this build, the entry is hidden. */
+    onEnterCode: (() -> Unit)? = null,
     vm: TripListViewModel = viewModel(factory = factory { c, _ -> TripListViewModel(c) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -149,6 +151,13 @@ fun TripListScreen(
                             leadingIcon = { Icon(TopoIcons.FileOpen, null) },
                             onClick = { menuOpen = false; transfer.importGpx() },
                         )
+                        if (onEnterCode != null) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.route_code_menu)) },
+                                leadingIcon = { Icon(TopoIcons.Route, null) },
+                                onClick = { menuOpen = false; onEnterCode() },
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.backup_title)) },
                             leadingIcon = { Icon(TopoIcons.Upload, null) },
@@ -195,6 +204,8 @@ fun TripListScreen(
                     modifier = Modifier.padding(padding),
                     actionLabel = if (BuildConfig.DEBUG) stringResource(R.string.trips_seed) else stringResource(R.string.trips_new),
                     onAction = if (BuildConfig.DEBUG) seed else onCreate,
+                    secondaryLabel = onEnterCode?.let { stringResource(R.string.route_code_empty_action) },
+                    onSecondary = onEnterCode,
                 )
             } else {
                 LazyColumn(

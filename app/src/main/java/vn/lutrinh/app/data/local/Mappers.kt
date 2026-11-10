@@ -1,5 +1,8 @@
 package vn.lutrinh.app.data.local
 
+import vn.lutrinh.app.domain.catalog.RemoteStatus
+import vn.lutrinh.app.domain.catalog.RouteCode
+import vn.lutrinh.app.domain.catalog.RouteLink
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.MediaType
 import vn.lutrinh.app.domain.model.Photo
@@ -93,4 +96,18 @@ fun LegRouteEntity.toDomain(): LegRoute? {
 fun LegRoute.toEntity() = LegRouteEntity(
     toStepId, from.latitude, from.longitude, to.latitude, to.longitude, profile.id, provider, status.id,
     distanceM, durationS, Polyline.encode6(path), fetchedAt, usedProfile.id,
+)
+
+/** A row with a code that no longer parses (never written by this app) reads as null. */
+fun RouteLinkEntity.toDomain(): RouteLink? {
+    val c = RouteCode.of(code) ?: return null
+    return RouteLink(
+        tripId, routeId, c, version, packageSha256, downloadedAt, checkedAt, RemoteStatus.fromId(remoteStatus), edited,
+        credits, latestVersion, skippedVersion, noticeClosed,
+    )
+}
+
+fun RouteLink.toEntity() = RouteLinkEntity(
+    tripId, routeId, code.value, version, packageSha256, downloadedAt, checkedAt, remoteStatus.id, edited,
+    credits, latestVersion, skippedVersion, noticeClosed,
 )

@@ -127,6 +127,14 @@ import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.transfer.rememberTransfer
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.saveable.rememberSaveable
+import vn.lutrinh.app.domain.catalog.RouteLink
+import vn.lutrinh.app.ui.routes.RouteBadge
+import vn.lutrinh.app.ui.routes.RouteNoticeBanner
+import vn.lutrinh.app.ui.routes.RouteSheet
+import vn.lutrinh.app.ui.routes.TripRouteLink
 import java.time.temporal.ChronoUnit
 import vn.lutrinh.app.ui.theme.hairline
 import vn.lutrinh.app.ui.theme.numerals
@@ -207,9 +215,9 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
         StopSuggestions.build(tracks, points, steps, decisions, ZoneId.systemDefault())
     }.distinctUntilChanged().flowOn(Dispatchers.Default)
 
-    /** R36: the routes this trip is drawn with (none while routing is off). */
-    private val routes = combine(c.legRoutes.observeForTrip(tripId), c.routingSettings.enabled) { stored, _ ->
-        c.routingSettings.shown(stored)
+    /** R36: the routes this trip is drawn with (none while routing is off; D-13: a downloaded route keeps its lines). */
+    private val routes = combine(c.legRoutes.observeForTrip(tripId), c.routingSettings.enabled, c.routes.observeLink(tripId)) { stored, _, link ->
+        c.routingSettings.shown(stored) { link != null }
     }
 
     private val suggestionsAndRoutes = combine(stopSuggestions, routes) { s, r -> s to r }
@@ -232,6 +240,9 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
+
+    /** R40: the route this trip was downloaded from (badge, update sheet, banner); null link = an own trip. */
+    val route = TripRouteLink(c, tripId, viewModelScope)
 
     fun setLegMode(toStepId: String, mode: TransportMode?) = viewModelScope.launch { c.setLegTransport(toStepId, mode) }
 
@@ -300,6 +311,11 @@ fun TripDetailScreen(
     onOpenBatteryGuide: () -> Unit = {},
     /** Opened by "Tạo chuyến mới và ghi": start recording on arrival. */
     autoRecord: Boolean = false,
+    /** R40: opened right after a route download ("map" = an offline map is coming, "nomap" = offer one). */
+    fromRoute: String? = null,
+    onOpenOffline: () -> Unit = {},
+    /** R40 "Tải thành chuyến đi mới" / "Thay bản trong máy": the code screen (with the code), or its download. */
+    onEnterCode: (String) -> Unit = {},
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -318,6 +334,17 @@ fun TripDetailScreen(
     val snackbar = remember { SnackbarHostState() }
     val transfer = rememberTransfer(snackbar)
     LaunchedEffect(deleted) { if (deleted) onBack() }
+    val routeLink by vm.route.link.collectAsStateWithLifecycle()
+    val routeSheet by vm.route.sheet.collectAsStateWithLifecycle()
+    var routeAddedShown by rememberSaveable { mutableStateOf(false) }
+    val addedMsg = stringResource(R.string.route_added)
+    val addedMap = stringResource(R.string.route_added_map)
+    LaunchedEffect(fromRoute) {
+        if (fromRoute == null || routeAddedShown) return@LaunchedEffect
+        routeAddedShown = true
+        val r = snackbar.showSnackbar(addedMsg, actionLabel = if (fromRoute == "nomap") addedMap else null, duration = SnackbarDuration.Long)
+        if (r == SnackbarResult.ActionPerformed) onOpenOffline()
+    }
     val detail = (state as? Loadable.Ready)?.value
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -401,6 +428,7 @@ fun TripDetailScreen(
             is Loadable.Failed -> MessageState(stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
             is Loadable.Ready -> TripDetailContent(
                 s.value, padding, listState, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it },
+                routeLink = routeLink, onRouteBadge = vm.route::openSheet, onCloseRouteNotice = vm.route::closeNotice,
                 gpsCard = {
                     GpsCard(
                         tripId = s.value.trip.id, tracks = s.value.tracks, suggestions = s.value.stopSuggestions,
@@ -429,6 +457,17 @@ fun TripDetailScreen(
         CoverPickerSheet(detail.steps, detail.trip.coverPhotoId, onPick = { vm.setCover(it); pickCover = false }, onDismiss = { pickCover = false })
     }
 
+    routeSheet?.let { sheet ->
+        routeLink?.let { link ->
+            RouteSheet(
+                link, sheet.change,
+                onNewTrip = { vm.route.closeSheet(); onEnterCode(link.code.value) },
+                onReplace = { detail?.let { if (vm.route.replace(it.trip)) onEnterCode(link.code.value) } },
+                onLater = vm.route::later,
+                onDismiss = vm.route::closeSheet,
+            )
+        }
+    }
     if (confirmDelete && detail != null) {
         ConfirmDeleteDialog(
             title = stringResource(R.string.trip_delete_confirm_title),
@@ -449,6 +488,9 @@ private fun TripDetailContent(
     onAddStep: () -> Unit,
     onOpenStep: (String) -> Unit,
     onEditLeg: (toStepId: String) -> Unit,
+    routeLink: RouteLink?,
+    onRouteBadge: () -> Unit,
+    onCloseRouteNotice: () -> Unit,
     gpsCard: @Composable () -> Unit,
 ) {
     LazyColumn(
@@ -468,7 +510,7 @@ private fun TripDetailContent(
                 MapButton(TopoIcons.Expand, stringResource(R.string.trip_open_map), onOpenMap, Modifier.align(Alignment.TopEnd).padding(12.dp))
             }
         }
-        item { TripHeader(d) }
+        item { TripHeader(d, routeLink, onRouteBadge, onCloseRouteNotice) }
         item(key = "gps") { gpsCard() }
         if (d.steps.isEmpty()) {
             item {
@@ -506,7 +548,7 @@ private fun TripDetailContent(
  * scale bar, road time) on card paper.
  */
 @Composable
-private fun TripHeader(d: TripDetail) {
+private fun TripHeader(d: TripDetail, routeLink: RouteLink?, onRouteBadge: () -> Unit, onCloseRouteNotice: () -> Unit) {
     Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)) {
         val openEnded = stringResource(R.string.trip_open_ended, "%s")
         ScreenHeading(
@@ -514,6 +556,9 @@ private fun TripHeader(d: TripDetail) {
             eyebrow = dateRange(d.trip.startDate, d.trip.endDate) { openEnded.format(it) },
             modifier = Modifier.padding(horizontal = 8.dp),
         )
+        // R40: the only thing that sets a downloaded trip apart (page 05 screen 6); tap = credits + update check.
+        routeLink?.let { RouteBadge(it, onRouteBadge, Modifier.padding(start = 8.dp, top = 8.dp)) }
+        routeLink?.let { RouteNoticeBanner(it, onCloseRouteNotice, Modifier.padding(top = 12.dp)) }
         if (d.trip.description.isNotBlank()) {
             Text(d.trip.description, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp))
         }

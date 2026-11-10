@@ -66,6 +66,13 @@ class RoutingSettings(private val store: RoutingStore) {
     /** The routes a screen uses: the stored ones while routing is on, none (straight lines) while it is off. */
     fun shown(stored: List<LegRoute>): Map<String, LegRoute> =
         if (_enabled.value) stored.associateBy { it.toStepId } else emptyMap()
+
+    /**
+     * D-13 (R40): the legs of a downloaded route ([keep]) are drawn with the server's line even
+     * while routing is off (nothing is sent for them); every other leg follows [shown].
+     */
+    fun shown(stored: List<LegRoute>, keep: (LegRoute) -> Boolean): Map<String, LegRoute> =
+        if (_enabled.value) stored.associateBy { it.toStepId } else stored.filter(keep).associateBy { it.toStepId }
 }
 
 /**

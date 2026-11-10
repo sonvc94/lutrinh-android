@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -198,6 +199,9 @@ fun MessageState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     compact: Boolean = false,
+    /** A second, outlined action under the first ("Có mã lộ trình?", R40). */
+    secondaryLabel: String? = null,
+    onSecondary: (() -> Unit)? = null,
 ) {
     if (compact) {
         Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -226,6 +230,10 @@ fun MessageState(
         if (actionLabel != null && onAction != null) {
             Spacer(Modifier.height(24.dp))
             Button(shape = MaterialTheme.shapes.small, onClick = onAction) { Text(actionLabel) }
+        }
+        if (secondaryLabel != null && onSecondary != null) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onSecondary) { Text(secondaryLabel) }
         }
     }
 }

@@ -17,6 +17,17 @@ val esriApiKey: String = (findProperty("esriApiKey") as String?)
         ?.let { f -> Properties().apply { f.inputStream().use { load(it) } }.getProperty("esriApiKey") }
     ?: ""
 
+/**
+ * Base URL of the Lữ Trình route server (R40, docs/05 "Route server"): `lutrinh.routeServerUrl=…`
+ * in local.properties (git-ignored) or `-Plutrinh.routeServerUrl=…`. Release builds accept only
+ * https://; debug builds default to the emulator's view of the Mac's localhost and may also use
+ * cleartext http to 10.0.2.2 / localhost (src/debug network security config). Read only by
+ * catalog/Catalogs.kt (CatalogBoundaryTest).
+ */
+val routeServerUrl: String? = (findProperty("lutrinh.routeServerUrl") as String?)
+    ?: rootProject.file("local.properties").takeIf { it.exists() }
+        ?.let { f -> Properties().apply { f.inputStream().use { load(it) } }.getProperty("lutrinh.routeServerUrl") }
+
 android {
     namespace = "vn.lutrinh.app"
     compileSdk = 35
@@ -32,8 +43,14 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "ROUTE_SERVER_URL", "\"${(routeServerUrl ?: "http://10.0.2.2:8000").replace("\"", "")}\"")
+        }
         release {
             isMinifyEnabled = false
+            // https only: any other address leaves release builds without a server ("Nhập mã lộ trình" is hidden).
+            val url = routeServerUrl?.takeIf { it.startsWith("https://") }.orEmpty()
+            buildConfigField("String", "ROUTE_SERVER_URL", "\"${url.replace("\"", "")}\"")
         }
     }
     compileOptions {
@@ -85,6 +102,7 @@ dependencies {
     implementation(libs.maplibre.android)
     // Only used to give MapLibre's tile requests a proper User-Agent (MapLibre already ships OkHttp).
     implementation(libs.okhttp)
+    implementation(libs.androidx.work.runtime.ktx)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
@@ -93,6 +111,8 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.androidx.work.testing)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

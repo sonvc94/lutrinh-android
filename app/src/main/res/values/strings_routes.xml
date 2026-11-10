@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R40 "Lộ trình theo mã" (docs/03 "Nhập mã lộ trình", design page 05). -->
+<resources>
+    <string name="route_code_menu">Nhập mã lộ trình</string>
+    <string name="route_code_empty_action">Có mã lộ trình?</string>
+    <string name="route_code_title">Nhập mã lộ trình</string>
+    <string name="route_code_eyebrow">LỘ TRÌNH SOẠN SẴN</string>
+    <string name="route_code_heading">Bạn có mã lộ trình?</string>
+    <string name="route_code_body">Nhập mã 8 ký tự để xem trước lộ trình, rồi tải về máy thành một chuyến đi mới. Sau khi tải, mọi thứ dùng được không cần mạng.</string>
+    <string name="route_code_field">Mã lộ trình</string>
+    <string name="route_code_hint">8 ký tự · không có chữ O, I, L, U và số 0, 1</string>
+    <string name="route_code_view">Xem lộ trình</string>
+    <string name="route_code_privacy">Chỉ mã này và địa chỉ mạng của máy được gửi tới máy chủ Lữ Trình để tìm lộ trình. Chuyến đi, ảnh, vị trí của bạn không bao giờ được gửi.</string>
+    <string name="route_code_looking">Đang tìm lộ trình…</string>
+
+    <string name="route_err_format">Mã gồm 8 ký tự, chỉ chữ và số</string>
+    <string name="route_err_confusable">Mã không có chữ O, I, L, U và số 0, 1</string>
+    <string name="route_err_check">Có thể gõ nhầm một ký tự. Hãy kiểm tra lại mã.</string>
+    <string name="route_err_not_found">Không tìm thấy lộ trình với mã này</string>
+    <string name="route_err_revoked">Mã này đã bị thu hồi</string>
+    <string name="route_err_expired">Mã này đã hết hạn</string>
+    <string name="route_err_unpublished">Lộ trình này đã ngừng chia sẻ</string>
+    <string name="route_err_rate_limited">Bạn đã thử quá nhiều lần. Thử lại sau %1$d phút</string>
+    <string name="route_err_rate_limited_later">Bạn đã thử quá nhiều lần. Thử lại sau</string>
+    <string name="route_err_bad_package">Lộ trình tải về bị lỗi. Thử lại sau</string>
+    <string name="route_err_storage">Không ghi được chuyến đi vào máy</string>
+
+    <string name="route_offline_title">Cần có mạng để tải lộ trình</string>
+    <string name="route_offline_body">Bật Wi‑Fi hoặc dữ liệu di động rồi thử lại. Các chuyến đi đã tải trước đây vẫn dùng được khi không có mạng.</string>
+    <string name="route_busy_title">Máy chủ đang bận, thử lại sau</string>
+    <string name="route_busy_body">Máy chủ Lữ Trình chưa trả lời. Mã của bạn vẫn đúng; hãy thử lại sau ít phút.</string>
+    <string name="route_update_app_title">Hãy cập nhật ứng dụng để tải lộ trình này</string>
+    <string name="route_update_app_body">Lộ trình này dùng định dạng mới hơn bản Lữ Trình trong máy.</string>
+    <string name="route_storage_title">Không đủ bộ nhớ trống (cần %1$s)</string>
+    <string name="route_storage_body">Xóa bớt ảnh, video hoặc bản đồ offline không dùng rồi thử lại.</string>
+    <string name="route_metered_title">Tải %1$s bằng dữ liệu di động?</string>
+    <string name="route_metered_body">Lộ trình này lớn hơn 50 MB. Có thể chờ Wi‑Fi rồi tải sau.</string>
+    <string name="route_metered_ok">Vẫn tải</string>
+
+    <string name="route_preview_title">Xem trước</string>
+    <string name="route_preview_eyebrow">MÃ %1$s · PHIÊN BẢN %2$d</string>
+    <string name="route_stat_stops">điểm dừng</string>
+    <string name="route_stat_days">ngày</string>
+    <string name="route_stat_media">ảnh · video</string>
+    <string name="route_start_date">Ngày bắt đầu</string>
+    <string name="route_offline_map">Tải luôn bản đồ offline %1$s (~%2$s)</string>
+    <string name="route_offline_map_trip">vùng của chuyến đi</string>
+    <string name="route_offline_map_area">vùng %1$s</string>
+    <string name="route_size_line">Tải về: %1$s · %2$d tệp · cần %3$s trống</string>
+    <string name="route_download">Tải về máy</string>
+
+    <string name="route_dl_title">Đang tải lộ trình</string>
+    <string name="route_dl_percent">Đang tải %1$d %% · %2$s / %3$s</string>
+    <string name="route_dl_paused">Đã tạm dừng · %1$s đã tải</string>
+    <string name="route_dl_waiting">Đang chờ…</string>
+    <string name="route_dl_route">Lộ trình, %1$d điểm, %2$d chặng</string>
+    <string name="route_dl_route_wait">Lộ trình · đang tải</string>
+    <string name="route_dl_media">Ảnh và video %1$d / %2$d</string>
+    <string name="route_dl_map">Bản đồ offline %1$s · sau khi tải xong</string>
+    <string name="route_dl_pause">Tạm dừng</string>
+    <string name="route_dl_resume">Tiếp tục</string>
+    <string name="route_dl_cancel">Hủy tải</string>
+    <string name="route_dl_note">Có thể rời màn hình này: tải tiếp trong nền và tự tải tiếp khi có mạng lại. Chuyến đi chỉ xuất hiện khi mọi tệp đã về đủ.</string>
+    <string name="route_dl_offline">Mất mạng · %1$d/%2$d tệp · sẽ tự tải tiếp khi có mạng</string>
+    <string name="route_dl_failed">Chưa tải được lộ trình</string>
+
+    <string name="route_added">Đã thêm chuyến đi từ lộ trình</string>
+    <string name="route_added_map">Tải bản đồ</string>
+    <string name="route_badge">Lộ trình %1$s · v%2$d</string>
+    <string name="route_badge_new">Lộ trình %1$s · v%2$d · có bản mới</string>
+    <string name="route_info_eyebrow">LỘ TRÌNH SOẠN SẴN · PHIÊN BẢN %1$d</string>
+    <string name="route_info_credits">Nguồn ảnh và dữ liệu</string>
+    <string name="route_info_current">Đây là bản mới nhất đã biết.</string>
+    <string name="route_update_eyebrow">CÓ BẢN MỚI · PHIÊN BẢN %1$d</string>
+    <string name="route_update_eyebrow_date">CÓ BẢN MỚI · PHIÊN BẢN %1$d · %2$s</string>
+    <string name="route_update_title">Lộ trình đã được cập nhật</string>
+    <string name="route_update_added">Thêm %1$d điểm: %2$s</string>
+    <string name="route_update_removed">Bỏ %1$d điểm: %2$s</string>
+    <string name="route_update_edited">Sửa %1$d điểm</string>
+    <string name="route_update_media">+%1$d ảnh · %2$s</string>
+    <string name="route_update_new_trip">Tải thành chuyến đi mới</string>
+    <string name="route_update_replace">Thay bản trong máy</string>
+    <string name="route_update_later">Để sau</string>
+    <string name="route_update_edited_note">Không thay được: bạn đã sửa chuyến đi này.</string>
+    <string name="route_unpublished_title">Lộ trình này đã ngừng chia sẻ</string>
+    <string name="route_unpublished_body">Bản trong máy vẫn đầy đủ và dùng được như mọi chuyến đi khác.</string>
+</resources>

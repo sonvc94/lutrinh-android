@@ -20,11 +20,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *      photos.media_type (TEXT NOT NULL DEFAULT 'photo') + photos.duration_ms (nullable INTEGER): short videos (R29)
  *  8 - leg_routes: stored road route per leg, keyed by the arrival step (R36)
  *  9 - leg_routes.used_profile (nullable TEXT): the profile that answered; `car` on a Xe máy leg = car-route fallback (R36)
+ * 10 - route_links: the route (code + version) a downloaded trip came from (R40)
  */
 @Database(
     entities = [
         TripEntity::class, StepEntity::class, PhotoEntity::class, TrackEntity::class, TrackPointEntity::class,
-        StopDecisionEntity::class, LegRouteEntity::class,
+        StopDecisionEntity::class, LegRouteEntity::class, RouteLinkEntity::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
@@ -36,10 +37,11 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun trackDao(): TrackDao
     abstract fun stopDecisionDao(): StopDecisionDao
     abstract fun legRouteDao(): LegRouteDao
+    abstract fun routeLinkDao(): RouteLinkDao
 
     companion object {
         const val NAME = "lutrinh.db"
-        const val VERSION = 9
+        const val VERSION = 10
 
         /** Adds the nullable leg transport column; existing rows read as "not set". */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -160,8 +162,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds `route_links` (R40); no other table changes, every existing trip has no link. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `route_links` (`trip_id` TEXT NOT NULL, `route_id` TEXT NOT NULL, " +
+                        "`code` TEXT NOT NULL, `version` INTEGER NOT NULL, `package_sha256` TEXT NOT NULL, " +
+                        "`downloaded_at` INTEGER NOT NULL, `checked_at` INTEGER, `remote_status` TEXT NOT NULL, " +
+                        "`edited` INTEGER NOT NULL, `credits` TEXT NOT NULL, `latest_version` INTEGER, " +
+                        "`skipped_version` INTEGER, `notice_closed` INTEGER NOT NULL, PRIMARY KEY(`trip_id`), " +
+                        "FOREIGN KEY(`trip_id`) REFERENCES `trips`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+            }
+        }
+
         /** Every migration, oldest first. Never use destructive fallback: user data is local only. */
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)

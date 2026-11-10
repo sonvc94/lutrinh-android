@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Release: https only (R40 route server, maps, routing). Debug builds replace this file
+     (src/debug/res/xml) to also allow cleartext http to the emulator's host and localhost. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

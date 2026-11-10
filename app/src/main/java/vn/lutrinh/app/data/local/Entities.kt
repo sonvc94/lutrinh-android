@@ -226,3 +226,43 @@ data class LegRouteEntity(
      */
     @ColumnInfo(name = "used_profile") val usedProfile: String? = null,
 )
+
+/**
+ * R40: the route a trip was downloaded from (DB version 10, docs/02 "route_links"). One row per
+ * downloaded trip; deleting the trip deletes the row (R7). Nothing here is sent anywhere except
+ * code + route_id + version in the update check.
+ */
+@Entity(
+    tableName = "route_links",
+    foreignKeys = [
+        ForeignKey(
+            entity = TripEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["trip_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class RouteLinkEntity(
+    @PrimaryKey @ColumnInfo(name = "trip_id") val tripId: String,
+    @ColumnInfo(name = "route_id") val routeId: String,
+    /** The 8 characters without the dash, e.g. HG4N7KQE. */
+    val code: String,
+    val version: Int,
+    /** sha256 of the downloaded route.json. */
+    @ColumnInfo(name = "package_sha256") val packageSha256: String,
+    @ColumnInfo(name = "downloaded_at") val downloadedAt: Long,
+    @ColumnInfo(name = "checked_at") val checkedAt: Long?,
+    /** RemoteStatus.id: active | unpublished | revoked */
+    @ColumnInfo(name = "remote_status") val remoteStatus: String,
+    /** 1 once the user changed the trip: "Thay bản trong máy" is no longer offered (D-4). */
+    val edited: Boolean,
+    /** route.credits, one per line. */
+    val credits: String,
+    /** Newest version the last check reported (null = none newer known). */
+    @ColumnInfo(name = "latest_version") val latestVersion: Int?,
+    /** Version answered "Để sau": its sheet does not open by itself again. */
+    @ColumnInfo(name = "skipped_version") val skippedVersion: Int?,
+    /** 1 = the "ngừng chia sẻ" banner was closed. */
+    @ColumnInfo(name = "notice_closed") val noticeClosed: Boolean,
+)

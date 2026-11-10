@@ -31,10 +31,16 @@ class LocalPrefs(context: Context) : MapStyleStore, RoutingStore {
         get() = prefs.getBoolean(KEY_ROUTING_NOTICE_SEEN, false)
         set(value) = prefs.edit().putBoolean(KEY_ROUTING_NOTICE_SEEN, value).apply()
 
+    /** R40: the route download in progress or paused ("code|start|offline|replace|paused"), null = none. */
+    var routeDownload: String?
+        get() = prefs.getString(KEY_ROUTE_DOWNLOAD, null)
+        set(value) = prefs.edit().apply { if (value == null) remove(KEY_ROUTE_DOWNLOAD) else putString(KEY_ROUTE_DOWNLOAD, value) }.apply()
+
     private companion object {
         const val KEY_BATTERY_GUIDE_SEEN = "battery_guide_seen"
         const val KEY_MAP_STYLE = "map_style"
         const val KEY_ROUTING_ENABLED = "routing_enabled"
         const val KEY_ROUTING_NOTICE_SEEN = "routing_notice_seen"
+        const val KEY_ROUTE_DOWNLOAD = "route_download"
     }
 }
