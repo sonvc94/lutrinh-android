@@ -22,11 +22,13 @@ ported 1:1 from `DisplayFormatTest`); no screen formats km, durations or in-trip
 | Distance (trip, leg, totals) | Vietnamese decimal comma, one decimal under 10 km, whole above, "." for thousands; never "10,0" | "9,3 km", "51 km", "1.234 km" |
 | Recorded track distance | "N m" under 1 km, one decimal under 100 km, whole above | "850 m", "51,5 km" |
 | Duration (finished track, stop) | words, whole minutes rounded down | "35 phút", "6 giờ 45 phút", "1 giờ" |
+| Travel-time estimate (leg, trip, R36) | "~" + the duration rule, rounded to whole minutes (at least 1); only from a stored road route | "~1 giờ 33 phút", "~18 phút" |
+| Leg distance (chip, sheet, R12/R36) | road: "N km · ~T"; no road route: "N km chim bay" | "48 km · ~1 giờ 33 phút", "4,1 km chim bay" |
 | Live timer (recording panel, notification) | clock | "0:45", "2:05:09" |
 | Day inside a trip (timeline, suggestions, tracks, step detail, trip map cards) | weekday + dd/MM | "Thứ Hai, 20/10"; with the time "Thứ Hai, 20/10 · 08:10" |
 | Trip dates (list, header, pickers, errors) | "d MMM, yyyy" with year | "20 thg 10 – 23 thg 10, 2025" |
 | Shared page (leaves the app) | weekday + dd/MM/yyyy | "Thứ Hai, 20/10/2025" |
-| Km readout (trip detail, share image) | the total large, "km" and its source on the same line: "đường chim bay" (straight line through the steps) or "đã ghi GPS" (sum of the finished tracks, used when it is at least the straight line, R10) | "139 km đường chim bay" over a 0 · 50 · 100 scale bar |
+| Km readout (trip detail, share image) | the total large, "km" and its source on the same line: "đường chim bay" (straight line through the steps), "theo đường đi" (every leg along the road, R36), "theo đường đi, có chặng chim bay" (some), or "đã ghi GPS" (sum of the finished tracks, used when it is at least the leg total, R10). The share image shows the number only | "139 km đường chim bay" over a 0 · 50 · 100 scale bar; "264 km theo đường đi, có chặng chim bay" |
 | Place without a name (step detail, step form, from-photos card) | "gần <điểm dừng gần nhất của chuyến>, <km>" (the km rule above; "gần <điểm dừng>" alone under 50 m); coordinates `lat, lng` as a smaller second line; no other step → coordinates only. No gazetteer (`PlaceLabel`, Swift: same pure function) | "gần TP Hà Giang, 9,7 km" / "22.91042, 104.97814" |
 | Default step name (from photos, stop suggestion) | "Điểm dừng HH:mm" of the step's arrival (`DisplayFormat.defaultStepTitle`, one function for both) | "Điểm dừng 09:05" |
 | Stat order | trip detail and share image: the km readout first (number + scale bar, docs/08 §5), then điểm dừng, ảnh, ngày as one line of type; share page: điểm dừng, ảnh, km, ngày; My map: km, then chuyến đi, điểm dừng on the same line | |
@@ -64,6 +66,7 @@ Trip list ──FAB "Chuyến đi mới"─────────────�
    ├─ ⋮ "Nhập tệp GPX" ─▶ file picker ─▶ new Trip detail
    ├─ ⋮ "Sao lưu dữ liệu" ─▶ save as ─▶ snackbar
    ├─ ⋮ "Khôi phục từ bản sao lưu" ─▶ file picker ─▶ confirm ─▶ list reloads
+   ├─ ⋮ "Cài đặt" ─▶ Settings (§13)
    └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │
                                                  │  tap step ─▶ Step detail
                                                  │  suggestion "Tạo điểm dừng ở đây" ─▶ Step form (prefilled)
@@ -83,7 +86,8 @@ Share trip ── "Chia sẻ" ─▶ system share sheet │ "Lưu vào máy" ─
 Route strings (Android, kept for deep links later): `trips`, `tripEdit?tripId=&record=` (`record=true` after "Tạo chuyến mới và ghi": the saved trip opens and starts recording), `trip/{tripId}?record=`,
 `trip/{tripId}/map`, `trip/{tripId}/stepEdit?stepId=&stopTrack=&stopStart=&stopEnd=&lat=&lng=&title=` (the stop-suggestion arguments are optional, R17), `trip/{tripId}/step/{stepId}`,
 `trip/{tripId}/pick?stepId=&lat=&lng=`, `trip/{tripId}/step/{stepId}/photos?index=`, `myMap`,
-`trip/{tripId}/fromPhotos`, `offline?tripId=`, `trip/{tripId}/share`, `batteryGuide`. The leg mode sheet is a bottom sheet, not a route.
+`trip/{tripId}/fromPhotos`, `offline?tripId=`, `trip/{tripId}/share`, `batteryGuide`, `settings`.
+The one-time routing notice (R36) is a dialog at the navigation root, over whatever screen is open. The leg mode sheet is a bottom sheet, not a route.
 The picker returns its result to the step form through the previous screen's saved state
 (`picked_location` = `"lat,lng"`); on iOS use a binding or a callback closure.
 
@@ -96,7 +100,7 @@ The picker returns its result to the step form through the previous screen's sav
   when open-ended), "N điểm dừng · M ảnh" (published steps, R20) and "· K nháp" when the trip has drafts.
 * **Actions:** tap → Trip detail; the card ⋮ (label "Tùy chọn: <tên chuyến đi>") or long-press → Sửa / Chia sẻ chuyến đi (§3d) / Xuất GPX (§12) / Xóa; FAB "Chuyến đi mới"; globe icon
   in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Tùy chọn khác") →
-  "Bản đồ offline", "Nhập tệp GPX", "Sao lưu dữ liệu", "Khôi phục từ bản sao lưu" (§12, all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
+  "Bản đồ offline", "Nhập tệp GPX", "Sao lưu dữ liệu", "Khôi phục từ bản sao lưu" (§12), "Cài đặt" (§13, R36) (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
 * **Empty:** no icon (docs/08 "Empty states"): a short chàm rule, "Chưa có chuyến đi nào" +
   invitation text, left-aligned; in debug builds a
   "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip; the
@@ -145,11 +149,14 @@ The picker returns its result to the step form through the previous screen's sav
 * **Content:** the km readout (docs/08 §5): the km total in large numerals with "km" and its
   source ("đường chim bay", or "đã ghi GPS" when finished tracks cover the trip, R10), a chàm scale
   bar of that length with round ticks (0 · 50 · 100 for 139 km), then "10 điểm dừng  12 ảnh  4 ngày"
-  as one line of type (no tiles).
+  as one line of type (no tiles). When at least one leg has a road route (R36), a line under it:
+  "~10 giờ 20 phút di chuyển (ước tính)", or "… (ước tính, chưa tính 2 chặng)" when other legs
+  have none (R10).
   Timeline grouped by day ("Ngày 2 · Thứ Bảy, 07/11"), each step with its number, time, note
   preview and up to a row of photo thumbnails. Between two steps a **leg chip** (mode icon + name
-  in the mode colour, or "Chọn cách di chuyển" when not set, then "· N km") sits on the timeline
-  connector (R12); the header map draws the legs per mode (05-map.md) and the recorded tracks
+  in the mode colour, or "Chọn cách di chuyển" when not set, then "· 48 km · ~1 giờ 33 phút" along
+  the road or "· 4,1 km chim bay", R12/R36) sits on the timeline connector; the header map draws
+  the legs per mode, routed legs along the road (05-map.md), and the recorded tracks
   (ink, 05-map.md "Recorded tracks").
 * **Top bar:** back, share icon ("Chia sẻ chuyến đi") and ⋮. The trip title appears in the bar only
   after the header has scrolled away (it is not shown twice); there is one entry to the Trip map
@@ -383,7 +390,8 @@ The picker returns its result to the step form through the previous screen's sav
 
 * **Opened from:** a leg chip on the Trip detail timeline or the Trip map cards, or a mode badge on
   the Trip map.
-* **Content:** title "Từ <step> đến <step>", "Bạn di chuyển bằng gì? (N km đường chim bay)", one
+* **Content:** title "Từ <step> đến <step>", "Bạn di chuyển bằng gì? (N km đường chim bay)" (or,
+  with a road route, "(N km theo đường đi, ~T)", R36), one
   row per mode (icon in its colour + name: Đi bộ, Xe máy, Ô tô, Xe buýt/xe khách, Tàu hỏa, Máy
   bay, Thuyền) and "Chưa chọn"; the current choice is marked. Tap → saved at once (R12), sheet
   closes; swipe down/outside → no change.
@@ -671,6 +679,20 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 * **Inspired by:** Polarsteps has no GPX import or local backup (its data lives on its server);
   this is Lữ Trình's way out while it is local-only.
 
+## 13. Settings — "Cài đặt" and the routing notice (R36)
+
+* **Opened from:** trip list top ⋮ → "Cài đặt" (settings icon).
+* **Content:** section "Bản đồ và chặng đi"; one row "Tính đường đi theo đường thực tế" with a
+  switch (the whole row toggles; one TalkBack node) and its state text: on "Bật: chặng Xe máy, Ô
+  tô, Xe buýt, Đi bộ (và chặng chưa chọn) được vẽ theo đường, km và thời gian là ước tính theo
+  đường đi." / off "Tắt: mọi chặng là đường thẳng (chim bay), không gửi gì lên mạng."; under a
+  hairline the privacy text (what is sent, to FOSSGIS in Germany, © OpenStreetMap ODbL).
+* **Notice:** the first time a leg needs a road route while routing is on, a dialog "Vẽ chặng
+  theo đường đi?" explains what is sent (stop positions and travel mode only; no names, notes or
+  photos) and where; "Đã hiểu" keeps routing on, "Tắt tính đường" turns it off; either answer (or
+  dismissing it) means it never shows again. Nothing is sent before it was shown.
+* **Screens:** `img/road-routing/01-notice.png`, `05-settings-on.png`, `06-settings-off.png`.
+
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
 
 ### Design atlas, before/after (`img/design-atlas/`, docs/08)
@@ -843,6 +865,18 @@ EXIF photos), 27–28 (a historical upgrade from the v1 build).
 | photo-video/09-step-detail-videos.png | step detail "Ảnh & video (n)" with video cells |
 | photo-video/10-viewer-video-playing.png | a video playing full screen, controls at 00:03 / 00:08 |
 | photo-video/11-restore-with-videos.png | restoring a v7 backup with videos: "Thay thế toàn bộ dữ liệu?" 19 vs 18 ảnh (R26) |
+| road-routing/01-notice.png | R36 one-time notice "Vẽ chặng theo đường đi?" right after the sample data was seeded |
+| road-routing/02-hagiang-detail-road-km.png | Hà Giang trip: "264 km theo đường đi, có chặng chim bay", "~10 giờ 20 phút di chuyển (ước tính, chưa tính 2 chặng)", leg chip "Xe máy · 48 km · ~1 giờ 33 phút" (27 km straight) |
+| road-routing/03-hagiang-trip-map-roads.png | trip map: legs follow the roads, GPS track (ink) on top, router credit "Đường đi: Valhalla · FOSSGIS · © OpenStreetMap (ODbL) · Sửa bản đồ"; 3→4 (Lũng Cú) stays straight: Valhalla has no motor_scooter path there |
+| road-routing/04-share-image-roads.png | share image: road legs and the router credit with the fixthemap address |
+| road-routing/05-settings-on.png | "Cài đặt", routing on |
+| road-routing/06-settings-off.png | "Cài đặt", routing off |
+| road-routing/07-routing-off-straight.png | routing off: every leg straight, no router credit, 0 requests |
+| road-routing/08-not-chosen-routed-as-motorbike.png | a "Chưa chọn" leg: "Chọn cách di chuyển · 9,1 km · ~35 phút" (routed like Xe máy) |
+| road-routing/09-airplane-new-leg-chim-bay.png | airplane mode: the leg just set to Đi bộ shows "4,1 km chim bay" and is queued |
+| road-routing/10-airplane-stored-routes-draw.png | airplane mode: stored routes still draw ("Không có mạng" banner), the new leg straight |
+| road-routing/11-online-leg-fetched.png | back online: the queued leg is fetched, "Đi bộ · 9,1 km · ~2 giờ 56 phút" |
+| road-routing/12-ninhbinh-partial-trangan-straight.png | Ninh Bình: Tràng An legs stay straight (off-road guard, "Ô tô · 3,7 km chim bay"), partial time |
 | sovereignty/before-hoang-sa-z8.png | before R30 (main APK), "Bản đồ của tôi" at z8 over the Paracels: Chinese admin labels "Tam Sa", "Yongle Qundao" |
 | sovereignty/before-truong-sa-z7.png | before R30, z7 over the Spratlys: "Quận Nam Sa", "Zhubi" |
 | sovereignty/after-hoang-sa-z8.png | R30: same view, Chinese admin labels hidden, "Quần đảo Hoàng Sa" drawn |

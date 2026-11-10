@@ -3,12 +3,14 @@
 Lữ Trình (`vn.lutrinh.app`) is a local-only travel journal for Vietnam: trips → steps (place on an
 OpenStreetMap map, date/time, note, photos) shown as a timeline and a route map. Native Android
 now (Kotlin, Compose M3, Room, MapLibre, Coil 3); an iOS/Swift port will follow, built from `docs/`.
-No server, login or API in this phase.
+No server or login in this phase. One exception (R36): while "Tính đường đi" is on (default,
+one-time notice, switch in "Cài đặt") the two stop positions + travel mode of each road leg go to
+the OpenStreetMap routing server (FOSSGIS Valhalla, OSRM car fallback); nothing else leaves the device.
 
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R35 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R36 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -30,6 +32,13 @@ app/src/main/java/vn/lutrinh/app/
             camera rules, engine-neutral), MapViews.kt (TripMap/PickerMap/AllTripsMap), MapConfig.kt
             (User-Agent, zooms, background), SovereigntyLabels.kt (R30, pure), OfflineConfig.kt (the
             ONLY place for offline areas/zooms/limits), Pins.kt, StaticTripMap.kt
+  domain/routing/  routing interface (R36, pure): RoutingProvider + RouteProfile ("Chưa chọn" =
+            motorbike), LegRoutes (stored answer, input match, off-road guard 500 m / 5×), RouteSync
+            (fetch queue: notice first, online, ≤ 1 req/s, retry, OSRM car fallback), RoutingSettings
+  routing/  router adapters: Routers.kt (ONLY place for router URLs, User-Agent, registry),
+            valhalla/ValhallaRouter (primary, `motor_scooter` for Xe máy), osrm/OsrmRouter (car only);
+            RoutingBoundaryTest keeps router words/hosts inside; stored per leg in Room `leg_routes`
+  ui/settings/  "Cài đặt" (routing switch) + RoutingNoticeDialog (shown once from AppNavigation)
   map/basemap/   basemap providers (R32-R34): one adapter per provider (OpenFreeMap.kt = "Bản đồ"
             + Positron style ids/repaint/label ids, EsriWorldImagery.kt = "Vệ tinh"), registered in
             Basemaps.registry; BasemapPlanner (pure: hide/repaint/R30 filter per style)
@@ -53,7 +62,7 @@ app/src/main/java/vn/lutrinh/app/
             (pure), data/MediaCapture.kt, data/VideoMeta.kt, PhotoStorage.importVideo,
             ui/steps/MediaStrip.kt (drag strip + camera contract); videos are `photos` rows (media_type)
   data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22;
-            `map_style` = `light`|`satellite`, R32)
+            `map_style` = `light`|`satellite`, R32; `routing_enabled`, `routing_notice_seen`, R36)
   ui/theme/ design tokens (docs/08): Theme.kt (Palette, Radii, hairline), Type.kt (scale, numerals())
             + AtlasIcons.kt (own icons); ui/common/Buttons.kt (FlatFab, MapButton), Readout.kt (km readout
             + scale bar, maths in domain/usecase/KmScale.kt)
@@ -209,6 +218,16 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   gives; quick-scales and `sendevent` pinches were unreliable). The camera centre is the fix, and
   the blue dot sits on it: offset the fix 0.1–0.2° from what you want to see. Tile logs do not
   show zoom; measure px/deg from two known labels (z10 ≈ 3 823 px/deg on the 1080-px screen).
+* Road routing (R36) on an AVD: `logcat -s Routing` prints each queue size, request and stored
+  answer (`stored ok 48.5 km 5564 s -> <step id>`); rows: `run-as vn.lutrinh.app sqlite3
+  databases/lutrinh.db "select to_step_id,status,profile,round(distance_m) from leg_routes"`.
+  Nothing is sent before the one-time notice; to see it again `am force-stop` and remove
+  `routing_notice_seen` from `shared_prefs/lutrinh_prefs.xml`. FOSSGIS Valhalla answers from this
+  network (curl `POST https://valhalla1.openstreetmap.de/route` ≤ 1/s with a User-Agent).
+  Valhalla `motor_scooter` has no path to Lũng Cú (error 442, the sample's leg 3→4 stays straight),
+  and Tràng An snaps 713 m off-road (its legs stay straight by the 500 m guard): data, not bugs.
+  `NetworkMonitor.onLost` sets offline directly (asking `activeNetwork` there still returned the
+  lost network, so the queue tried to fetch in airplane mode).
 * Offline limit (R31): OpenFreeMap allows ≤ 3 000 tiles / 50 MB per offline download;
   `OfflineConfig.estimateTiles` (vector z0–14 + relief raster z0–6) matched the store (Hà Giang
   1 764 estimated vs 1 763 in `mbgl-offline.db` `region_tiles`). Never raise the caps without the

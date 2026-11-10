@@ -21,9 +21,11 @@ shown in the UI ("1", "2", …) are positions in this order, not stored values.
 
 ## R3 — Route
 
-The route line joins step locations in R2 order with straight segments (straight on the
-Web-Mercator map). Zero or one step → no line.
-*Test:* `OrderingTest.routeFollowsTimelineNotInsertionOrder`.
+The route line joins step locations in R2 order, one leg (R12) after another. A leg with a usable
+stored road route (R36) follows that road; every other leg is a straight segment (straight on the
+Web-Mercator map; flights are arcs, 05-map.md). Zero or one step → no line.
+*Tests:* `OrderingTest.routeFollowsTimelineNotInsertionOrder`,
+`LegRoutesTest.roadLineIsJoinedToTheStopsByShortConnectors`.
 
 ## R4 — Trip dates
 
@@ -113,11 +115,17 @@ storage only holds files referenced by a row.
 ## R10 — Stats
 
 *Tests:* `OrderingTest.haversineHaGiangToNinhBinh`, `OrderingTest.statsCountDaysInclusive`,
-`OrderingTest.distanceIsTheStraightLineUnlessGpsTracksCoverTheRoute`.
+`OrderingTest.distanceIsTheStraightLineUnlessGpsTracksCoverTheRoute`,
+`LegRoutesTest.tripTotalsUseRoadKmAndTimeAndMarkPartialTotals`.
 
-Shown on Trip detail: number of steps, number of photos, distance = sum of great-circle
-(haversine, Earth radius 6371.0088 km) distances between consecutive route points (R3), labelled
-"km" with the second line "đường chim bay" because it is not a road distance. When the **ended
+Shown on Trip detail: number of steps, number of photos, distance = sum of the legs (R12): the
+road distance of a leg with a usable stored route (R36), otherwise the great-circle (haversine,
+Earth radius 6371.0088 km) distance between its two steps. The second line says where the number
+comes from (`TripStats.distanceSource`): "đường chim bay" (no leg along the road), "theo đường
+đi" (every leg along the road), "theo đường đi, có chặng chim bay" (some). Below the counts, when
+at least one leg has a road route: "~T di chuyển (ước tính)" = the sum of those legs' router
+estimates; when other legs have none, "~T di chuyển (ước tính, chưa tính N chặng)"
+(`TripStats.durationS`, `.legsWithoutTime`). When the **ended
 tracks** of the trip add up to at least that straight-line distance (and more than 0), the tile
 shows the track total instead, second line "đã ghi GPS" (`TripStats.distanceSource`); a shorter
 track total (a partial recording) never lowers the figure. Days = `endDate − startDate + 1` (only
@@ -153,8 +161,11 @@ treated as upright`). Decoding/encoding itself is checked on a device (06-photos
   The app never guesses a mode.
 * Saving a step from the step form keeps its mode (the form does not edit it). Setting the mode
   updates the step's `updatedAt`.
-* A leg's distance is the haversine distance (R10) between its two steps, shown as "· N km".
-* Drawing per mode (stroke kind, great-circle flight arc, badge): 05-map.md. No road snapping/routing.
+* A leg's distance is its road distance and estimated time when a usable route is stored (R36):
+  "Xe máy · 48 km · ~1 giờ 33 phút"; otherwise the haversine distance (R10) between its two steps,
+  marked "chim bay": "Thuyền · 4,1 km chim bay".
+* Drawing per mode (stroke kind, great-circle flight arc, badge): 05-map.md. Road-following lines
+  for Đi bộ, Xe máy, Ô tô, Xe buýt and "Chưa chọn": R36.
 
 *Tests:* `LegsTest.legsFollowTimelineOrderAndTakeTheModeOfTheArrivalStep`,
 `LegsTest.codesRoundTripAndUnknownCodesReadAsNotSet`, `LegsTest.onlyFlightsAreDrawnAsArcs`,
@@ -162,7 +173,7 @@ treated as upright`). Decoding/encoding itself is checked on a device (06-photos
 simplification, badge midpoint), `CameraMathTest`,
 `MigrationTest.version1UpgradesToCurrentWithoutDataLoss`; UI: `TripFlowsTest.setLegTransport_fromTheTimeline_showsAndStoresTheMode`.
 *Inspired by* polarsteps docs/22 (transport mode per leg). *Changed:* own mode list (xe máy,
-xe buýt/xe khách for Vietnam), no automatic mode guess, no routed lines.
+xe buýt/xe khách for Vietnam), no automatic mode guess; routed lines come from an OSM router (R36).
 
 ## R13 — Steps from photos ("Thêm từ ảnh")
 
@@ -1095,6 +1106,70 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
 `.tripMap_myLocationFliesOncePerSignal`, `.allTrips_linesDotsAndTaps`,
 `.picker_startsOnce_andEasesToEachMove`; hybrid style: `BasemapTest.hybrid_imageryUnderRoadsAndLabels`,
 `.hybrid_withoutBackgroundLayer_imageryGoesToTheBottom`.
+
+## R36 — Legs along the road ("Tính đường đi theo đường thực tế")
+
+* **Which legs.** Profile per leg mode (R12): Xe máy and **"Chưa chọn" → motorbike** (the most
+  common way to travel in Vietnam), Ô tô → car, Xe buýt/xe khách → bus, Đi bộ → walk. Tàu hỏa,
+  Máy bay and Thuyền are never routed (straight / arc / dotted as before).
+* **Router.** Routing goes through the app's routing interface (`RoutingProvider`, like R35 for
+  maps). Primary: Valhalla on the FOSSGIS OpenStreetMap server (keyless, ≤ 1 request/s);
+  motorbike → Valhalla `motor_scooter`, the only profile that keeps off expressways (motorbikes are
+  not allowed on them). Fallback for **car only** when the primary is unavailable: OSRM
+  (FOSSGIS `routed-car`). The server addresses live in one registry, never in screens.
+* **What is sent.** Per leg: the two stop positions and the profile, nothing else (no names,
+  notes, photos, dates, account). It is the only data that leaves the device in this phase.
+* **Switch and notice.** Routing is **on by default**. Before the first request the app shows a
+  one-time notice ("Vẽ chặng theo đường đi?", what is sent, to FOSSGIS in Germany; "Đã hiểu" or
+  "Tắt tính đường"); no request goes out before it was shown. "Cài đặt" (trip list menu) has the
+  switch "Tính đường đi theo đường thực tế". Off = every leg straight, stored routes are not used
+  (but kept), no request. Both flags are on-device preferences (`routing_enabled`,
+  `routing_notice_seen`) and are not part of a backup.
+* **Stored per leg** (table `leg_routes`, 02-data-model.md), keyed by the arrival step: the inputs
+  (from/to position, profile), the answer (`ok`, `no_route`, `too_far`), road metres, seconds, the
+  line (simplified to about 10 m) and the router id. A stored row is **usable only while its inputs
+  match** the leg (both positions within 1e-4°, same profile): moving a stop, reordering or
+  changing the mode makes that leg pending again; nothing else is refetched.
+* **Off-road guard.** A stop far from any road (a cave, a boat landing) would snap to a distant
+  road. The answer is kept as `too_far` and the leg stays **straight** when either stop is more than
+  **500 m** from where the road line starts/ends, or the road is more than **5×** the straight
+  distance. Otherwise the line is drawn stop → (straight connector) → road → (connector) → stop.
+  Example: Tràng An (20.2546, 105.8954) snaps 713 m away; its legs stay straight (6.1 km, not
+  25–29 km).
+* **No route.** `no_route` (the router found none, e.g. Valhalla 442) is stored and the leg stays
+  straight; it is not asked again until its inputs change.
+* **Queue.** Pending legs of all trips are fetched one at a time, at most one request per second,
+  only while routing is on, the notice was shown and the device is online. Offline or server
+  failure: the leg stays straight ("chim bay") and is retried later (30 s, doubling, at most
+  10 min; HTTP 429 pauses the whole queue 60 s); going online again restarts the queue. Every
+  request carries the app's User-Agent (`LuTrinh/<version> (Android; vn.lutrinh.app)`).
+* **Shown.** Leg chip and leg sheet: road km + "~" time, or "N km chim bay" (R12). Trip numbers:
+  R10. Lines: trip map, Trip detail mini map, "Bản đồ của tôi", the share image and page.
+  Everywhere a routed line is drawn the router's credit is shown: "Đường đi: Valhalla · FOSSGIS ·
+  © OpenStreetMap (ODbL) · Sửa bản đồ" (opens https://www.openstreetmap.org/fixthemap); the share
+  image and page print the address instead of a link.
+* **Unchanged.** GPS tracks (R16) still draw separately on top; GPX export (R25) has no `rte`;
+  backup (R26) includes `leg_routes`; offline basemap (R15/R33) as before.
+
+*Tests:* `LegRoutesTest` (`notChosenIsRoutedExactlyLikeMotorbike`,
+`groundModesAreRoutedTrainPlaneBoatStayStraight`, `haGiangToQuanBaKeepsTheRoadRouteAndShowsRoadKmAndTime`,
+`trangAnOffRoadSampleStaysStraightInsteadOf29Km`, `aDetourOfMoreThanFiveTimesStaysStraight`,
+`storedRouteAppliesOnlyWhileStopsAndProfileMatch`, `roadLineIsJoinedToTheStopsByShortConnectors`,
+`storedLineIsSimplified`, `tripTotalsUseRoadKmAndTimeAndMarkPartialTotals`,
+`approximateDurationsAlwaysCarryATilde`, `polyline6RoundTrips`); `RouteSyncTest`
+(`nothingIsSentBeforeTheNoticeIsShownThenEveryRoutedLegOnce`, `requestsAreAtLeastOneSecondApart`,
+`switchOffMeansNoNetworkCallsAndStraightLines`, `turningOffMidwayStopsTheQueue`,
+`offlineWaitsAndFetchesWhenBackOnline`, `unavailableCarLegFallsBackToOsrmMotorbikeLegIsRetriedLater`,
+`noRouteIsStoredAndNotAskedAgain`, `noticeAndSwitchFlagsArePersisted`); adapters:
+`RouterAdaptersTest` (`valhallaCostingPerProfileNotChosenIsMotorScooter`,
+`valhallaRequestCarriesOnlyTheTwoStopsAndTheCosting`, `valhallaAnswerIsConverted`,
+`osrmIsCarOnlyAndConverted`, `registryHasValhallaFirstAndOsrmAsFallbackWithAUserAgent`,
+`shareImageCreditWrapsAtSeparatorsInsteadOfBeingCut`); boundary: `RoutingBoundaryTest`
+(`valhallaApiOnlyInItsAdapter`, `osrmApiOnlyInItsAdapter`, `routerAddressesOnlyInTheRegistry`,
+`appUsesRoutingOnlyThroughTheDomainInterface`, `httpClientOnlyInAdapters`); storage:
+`MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`. Screens: docs/img/road-routing/.
+*Changed from the study* (docs/routing-feasibility.md): snap limit 500 m instead of 1 km, because
+the Tràng An sample snaps 713 m away with a 4.1–4.8× detour, which 1 km / 5× would have accepted.
 
 ## Text rules
 

@@ -249,8 +249,10 @@ The route source holds **one LineString feature per leg** (R12) with properties 
 `none`), `kind` (stroke kind, below), `selected` (the leg whose mode sheet is open) and `to`
 (arrival step id, for taps).
 
-1. **Geometry** — `LegGeometry.path` (`domain/usecase/Legs.kt`): ground/water/walk legs are a
-   straight segment between the two steps (no routing). A **flight** is
+1. **Geometry** — a leg with a usable stored road route (R36, "Road routing" below) follows the
+   road: `LegRoutes.path` = stop → straight connector → stored road line → connector → stop.
+   Every other leg uses `LegGeometry.path` (`domain/usecase/Legs.kt`): ground/water/walk legs are
+   a straight segment between the two steps. A **flight** is
    * a **great circle** A→B: spherical linear interpolation of the two unit vectors, ends exact,
      longitudes unwrapped (never a 360° jump across the antimeridian); one point per 20 km,
      at least 25, at most 129 (`arcPointCount`);
@@ -260,14 +262,56 @@ The route source holds **one LineString feature per leg** (R12) with properties 
      `0.2 × chord` at mid-leg. Reason: at Vietnam scale a pure great circle is visually a
      straight line, and a flight must read as "by air".
 2. **Simplification** — `Polyline.simplify` (Douglas–Peucker, ε = 2·10⁻⁴°, ≈ 22 m) before
-   drawing; ends always kept, ≤ 2-point lines unchanged. Today it only thins flight arcs; it is
-   there for future GPS/road geometry.
+   drawing; ends always kept, ≤ 2-point lines unchanged. It thins flight arcs and road lines (a
+   road line is also stored already simplified at 1·10⁻⁴°, ≈ 11 m, R36).
 3. **Badge position** — `Polyline.pointAt(path, 0.5)`: the point at half the drawn length
    (length in a cos(lat)-scaled plane), so it sits on the arc, not on the chord.
 
 Tests: `RouteGeometryTest` (great-circle ends/spacing/antimeridian, lift at ends/mid/quarter,
 left side, point count, DP tolerance/corners/short lines, simplified arc, `pointAt`),
-`LegsTest.onlyFlightsAreDrawnAsArcs`.
+`LegsTest.onlyFlightsAreDrawnAsArcs`, `LegRoutesTest.roadLineIsJoinedToTheStopsByShortConnectors`.
+
+## Road routing (R36, `domain/routing/`, `routing/`)
+
+Legs of Đi bộ, Xe máy, Ô tô, Xe buýt/xe khách and "Chưa chọn" (= Xe máy) follow the road; Tàu
+hỏa, Máy bay and Thuyền keep their straight line / arc / dots. The stroke kind and badge stay those
+of the mode (a routed Đi bộ leg is dots along the path). Rules: 04-business-rules.md R36.
+
+**Interface + adapters (same pattern as the map, R35).** The app knows only the routing interface
+in `domain/routing/Routing.kt`:
+
+| Part | Role |
+| --- | --- |
+| `RouteProfile` | `motorbike`, `car`, `bus`, `walk`; `RouteProfile.of(mode)` (null mode → motorbike; train/plane/boat → none) |
+| `RoutingProvider` | `id`, `credit` (`RoutingCredit` text + fix-the-map URL), `supports(profile)`, `suspend route(from, to, profile): RouteResult` |
+| `RouteResult` | `Found(distanceM, durationS, path)`, `NoRoute`, `Unavailable(reason, rateLimited)` |
+| `RoutingProviders` | the registry: `primary` + `fallbacks` (asked only when the primary is unavailable) |
+
+Adapters (Android, `routing/`): `valhalla/ValhallaRouter` — `POST {base}/route` with
+`{"locations":[{lat,lon},{lat,lon}],"costing":…,"directions_type":"none","units":"kilometers"}`;
+costing motorbike `motor_scooter` (the only Valhalla profile that avoids expressways such as
+CT.01, where motorbikes are banned), car `auto`, bus `bus`, walk `pedestrian`; answer
+`trip.summary.length` (km) / `.time` (s) and `trip.legs[*].shape` (polyline6); HTTP 400 → no route,
+429 → rate limited. `osrm/OsrmRouter` — car only, `GET {base}/route/v1/driving/lng,lat;lng,lat?overview=full&geometries=polyline6`;
+`routes[0].distance/duration/geometry`, code `NoRoute`/`NoSegment` → no route. `Routers.kt` is the
+only place with the server addresses (`https://valhalla1.openstreetmap.de`,
+`https://routing.openstreetmap.de/routed-car`), the User-Agent and the registry (Valhalla primary,
+OSRM fallback). A new router = one adapter + registration; no screen changes.
+`RoutingBoundaryTest` fails when a router's words, host or HTTP client leave its adapter.
+
+**Queue and storage.** `RouteSync` (pure) watches all steps and stored routes, and fetches pending
+legs one at a time (≥ 1 s apart, FOSSGIS' limit) while routing is on, the one-time notice was shown
+and `NetworkMonitor.online` is true. Answers go to `leg_routes` (02-data-model.md); the screens
+observe them, so a fetched leg redraws by itself. Off-road guard (500 m / 5×), retry and fallback:
+R36.
+
+**Credit.** Wherever a routed line is drawn (trip map, Trip detail mini map, "Bản đồ của tôi",
+share image/page) the attribution adds a line "Đường đi: Valhalla · FOSSGIS · © OpenStreetMap
+(ODbL) · Sửa bản đồ"; "Sửa bản đồ" opens https://www.openstreetmap.org/fixthemap (the OSM routing
+servers' terms ask for the OSM credit and this link). The share image prints the address instead
+(wrapped at " · " when too wide). With routing off no router line is drawn and no credit shown.
+Screens: `img/road-routing/03-hagiang-trip-map-roads.png`, `04-share-image-roads.png`,
+`07-routing-off-straight.png`, `10-airplane-stored-routes-draw.png` (stored routes draw offline).
 
 ## Layers (bottom → top, `maplibre/OverlayLayers.kt` `addOverlayLayers`, above the basemap)
 
@@ -423,10 +467,11 @@ without a visible map view. Two steps:
    without a basemap (the fallback below needs the drawing anyway) and reuses the pin bitmaps. Points are placed with our own
    Web Mercator projection (`MapFit.project`: world = 512 · 2^zoom px, the MapLibre tile size),
    which matches the snapshot. Order bottom → top: legs (ground: white casing 6.6 + chàm
-   `#2A4D80` 3.8 px per logical px; flight dashed, boat/walk dotted, paths from `LegGeometry`
-   like the live map), recorded tracks (white 4.6 + ink 2.6, `TrackMath.displayLines`),
+   `#2A4D80` 3.8 px per logical px; flight dashed, boat/walk dotted, paths from `LegGeometry` or the
+   stored road route (R36) like the live map), recorded tracks (white 4.6 + ink 2.6, `TrackMath.displayLines`),
    numbered step pins (`Pins.kt` bitmaps at the snapshot's pixel ratio; start and end on top),
-   then the attribution text in a translucent box in the bottom-right corner.
+   then the attribution text in a translucent box in the bottom-right corner (basemap credit,
+   plus the router credit with the fix-the-map address when a leg is routed, R36).
 
 **Fit** (`MapFit.fit`, pure, `TripShareTest`): every step and track point inside the map minus 70
 px padding, zoom capped at `FIT_MAX_ZOOM` (14); one point → `SINGLE_POINT_ZOOM`; none → the
@@ -558,8 +603,8 @@ Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map
 ## Not done (later)
 
 Drawing a custom offline box on the map, background download as a foreground service/WorkManager
-(today downloads stop when the process dies and resume at the next start), dark map, clustering for trips with many steps, satellite imagery offline (Esri's terms forbid it), 3D terrain, road-following routes
-(snap-to-roads / OSRM — legs stay straight or arcs), photo thumbnails inside pins, current-location
+(today downloads stop when the process dies and resume at the next start), dark map, clustering for trips with many steps, satellite imagery offline (Esri's terms forbid it), 3D terrain, on-device routing (road legs need the
+FOSSGIS router, R36; offline new legs stay straight until online), turn-by-turn directions, photo thumbnails inside pins, current-location
 button and following the user on the map (location is used only while recording a track, R16),
 snapping recorded tracks to roads (GPX export/import is done, R25: an imported track is drawn
 like a recorded one), a self-hosted or paid tile source

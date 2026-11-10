@@ -135,6 +135,21 @@ MapLibre.
 | Esri key: `esriApiKey` Gradle/`local.properties` → `BuildConfig.ESRI_API_KEY` (empty = keyless URL) | an `.xcconfig` not in git → `Info.plist` key → `Bundle.main.object(forInfoDictionaryKey:)`; empty = keyless URL |
 | "Kiểu bản đồ": `MapStyleButton` (`MapButton` + `ModalBottomSheet`), `BasemapFallbackNotice` (snackbar "Ảnh vệ tinh cần mạng" when `shown != chosen`) | a square map button + `.sheet` with `.presentationDetents([.height(220)])` listing `registry.providers`; offline fallback from `NWPathMonitor` + a toast/banner with the same text |
 
+## Legs along the road (R36)
+
+Port `domain/routing/` 1:1 (pure) and write one adapter per router; screens never see a router.
+
+| Android | iOS |
+| --- | --- |
+| `domain/routing/Routing.kt`: `RouteProfile` (`of(mode)`: none → motorbike), `RouteResult` (sealed), `RoutingProvider` (`suspend route`), `RoutingProviders`, `RoutingCredit` | `enum RouteProfile`, `enum RouteResult { found(distanceM:durationS:path:), noRoute, unavailable(reason:rateLimited:) }`, `protocol RoutingProvider { func route(from:to:profile:) async -> RouteResult }`, the same registry struct |
+| `LegRoutes.kt` (input match 1e-4°, guard 500 m / 5×, connectors, `measure`), `Polyline.encode6/decode6` | same pure functions; port `LegRoutesTest` 1:1 (Hà Giang→Quản Bạ 48.5 km, Tràng An stays straight, partial totals) |
+| `RouteSync` (coroutines: `combine` of steps, stored routes, switch, notice flag, online; `collectLatest` drain; ≥ 1 s pacing; retry 30 s doubling to 10 min; 429 → 60 s pause) | an `actor RouteSync` with `AsyncStream`s (or Combine) and `Task.sleep`; online from `NWPathMonitor`; port `RouteSyncTest` with a fake clock |
+| `routing/valhalla/ValhallaRouter`, `routing/osrm/OsrmRouter` on OkHttp (`RouterHttp`, User-Agent `Routers.USER_AGENT`), JSON with `org.json` | `URLSession` (`httpAdditionalHeaders["User-Agent"]`), `JSONDecoder` structs for Valhalla `trip.summary`/`trip.legs[].shape` and OSRM `routes[0]`; port `RouterAdaptersTest`; URLs only in `Routers.swift` |
+| Room table `leg_routes` (v8, `RoomLegRouteRepository`), in the backup | SwiftData `@Model LegRouteRecord` (same columns, cascade with its step); the same SQLite table name in a backup |
+| `LocalPrefs` keys `routing_enabled` (default true), `routing_notice_seen` → `RoutingSettings` | `UserDefaults`, same keys; `@Observable RoutingSettings` |
+| "Cài đặt" (`ui/settings/SettingsScreen`, from the trip list menu) + `RoutingNoticeDialog` shown once from the nav root when `RouteSync.noticeDue` | a `Form` with a `Toggle`, and an `.alert` with "Đã hiểu" / "Tắt tính đường" |
+| Router credit in `MapAttribution` (tap "Sửa bản đồ" → `LocalUriHandler`), printed on the share image | the same text; `Link` to https://www.openstreetmap.org/fixthemap |
+
 ## Hoàng Sa / Trường Sa labels and the offline limit (R30, R31)
 
 | Android | iOS |
@@ -173,6 +188,9 @@ MapLibre.
    columns (`MigrationTest.version6UpgradesKeepingPhotoOrderAndAddsMediaType`), the drag strip, the
    camera/video pickers (Info.plist usage strings), stills and the player page; a backup with videos
    restored across platforms.
+4h. Legs along the road (R36): `domain/routing` with `LegRoutesTest`, `RouteSyncTest`, the V7→V8
+   table (`MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`), the adapters with
+   `RouterAdaptersTest`, then the notice, "Cài đặt" and the credit.
 5. Screens in the order of 03-screens.md; check each against its screenshot in `img/`.
 6. Strings: all user-visible text from `strings.xml`, Vietnamese.
 

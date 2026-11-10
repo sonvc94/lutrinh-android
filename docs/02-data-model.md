@@ -137,7 +137,24 @@ overlaps (`startAt..endAt`), so a small change of the detection keeps old decisi
 | stepId | String | yes | the step created (`added` only); not a foreign key: deleting that step brings the suggestion back (R17) |
 | decidedAt | Instant (epoch ms) | no | |
 
-## Storage (Android: SQLite via Room, database `lutrinh.db`, version 7)
+## LegRoute (a leg's road route, "Tính đường đi", R36, stored v8)
+
+The router's answer for one leg, keyed by the leg's arrival step. Used only while its inputs still
+match the leg (both positions within 1e-4°, same profile) and routing is on; otherwise the leg is
+straight and, while routing is on, pending.
+
+| Field | Type | Null | Rule |
+| --- | --- | --- | --- |
+| toStepId | String | no | the leg's arrival step (R12); deleting the step deletes the row |
+| from / to | GeoPoint | no | the stop positions that were sent |
+| profile | RouteProfile | no | `motorbike` (also for "Chưa chọn"), `car`, `bus`, `walk`; unknown codes → the row is ignored |
+| provider | String | no | router id (`valhalla`, `osrm`) for the credit |
+| status | LegRouteStatus | no | `ok` (road line used), `no_route` (router found none), `too_far` (off-road guard: a stop > 500 m from the road or road > 5× straight); only `ok` is drawn and counted |
+| distanceM / durationS | Double | no | road metres and the router's time estimate in seconds (0 for `no_route`) |
+| path | List<GeoPoint> | no | the road line, simplified to about 10 m, without the connectors to the stops; stored as polyline6 text |
+| fetchedAt | Instant (epoch ms) | no | |
+
+## Storage (Android: SQLite via Room, database `lutrinh.db`, version 8)
 
 | Table | Columns | Keys / indexes |
 | --- | --- | --- |
@@ -146,11 +163,12 @@ overlaps (`startAt..endAt`), so a small change of the detection keeps old decisi
 | `photos` | id TEXT PK, step_id TEXT, file_name TEXT, position INTEGER, created_at INTEGER, taken_at TEXT `yyyy-MM-dd'T'HH:mm` nullable (v4), source_id TEXT nullable (v5), source_size INTEGER nullable (v5), media_type TEXT NOT NULL DEFAULT 'photo' (v7), duration_ms INTEGER nullable (v7) | FK step_id → steps.id ON DELETE CASCADE; index (step_id); UNIQUE (file_name) |
 | `tracks` (v3) | id TEXT PK, trip_id TEXT, status TEXT, started_at INTEGER, ended_at INTEGER nullable, active_ms INTEGER, resumed_at INTEGER nullable, segment INTEGER, distance_m REAL, point_count INTEGER, interrupted INTEGER (0/1), created_at, updated_at | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id) |
 | `track_points` (v3) | id INTEGER PK AUTOINCREMENT, track_id TEXT, segment INTEGER, recorded_at INTEGER, latitude REAL, longitude REAL, accuracy_m REAL nullable, altitude_m REAL nullable, speed_mps REAL nullable | FK track_id → tracks.id ON DELETE CASCADE; index (track_id, segment, recorded_at) |
+| `leg_routes` (v8) | to_step_id TEXT PK, from_lat REAL, from_lng REAL, to_lat REAL, to_lng REAL, profile TEXT, provider TEXT, status TEXT, distance_m REAL, duration_s REAL, geometry TEXT (polyline6), fetched_at INTEGER | FK to_step_id → steps.id ON DELETE CASCADE |
 | `stop_decisions` (v4) | track_id TEXT, start_at INTEGER, end_at INTEGER, decision TEXT, step_id TEXT nullable, decided_at INTEGER | PK (track_id, start_at); FK track_id → tracks.id ON DELETE CASCADE; index (track_id) |
 
 Dates are stored as ISO-8601 text so that text order equals time order (used by `ORDER BY` and by
 the step date range query) and the values are readable in any SQLite browser. The exported schemas
-are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 7.json).
+are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 8.json).
 Track times are epoch-millisecond integers (instants, not local times): a recording can cross time
 zones, and only durations and order matter. Each stored point is written in one transaction with
 its track's `distance_m` / `point_count` / `updated_at`, so a process death never leaves them out
@@ -166,6 +184,7 @@ of step.
 | 4 → 5 | gallery photos of a stop (R19) | `ALTER TABLE photos ADD COLUMN source_id TEXT`, `ALTER TABLE photos ADD COLUMN source_size INTEGER` (existing photos: null = origin unknown) |
 | 5 → 6 | draft steps (R20), trip cover (R21) | `ALTER TABLE steps ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0` (existing steps: published), `ALTER TABLE trips ADD COLUMN cover_photo_id TEXT` (existing trips: automatic cover) |
 | 6 → 7 | photo order (R27), videos (R29) | renumber `position` densely per step in the current display order (`position`, then `created_at`, then `id`) through a temp table — a correlated `UPDATE photos SET position = (SELECT COUNT(*) …)` would see rows it already changed —, then `ALTER TABLE photos ADD COLUMN media_type TEXT NOT NULL DEFAULT 'photo'`, `ALTER TABLE photos ADD COLUMN duration_ms INTEGER` (existing rows: photos). Exact SQL: `AppDatabase.MIGRATION_6_7` |
+| 7 → 8 | legs along the road (R36) | `CREATE TABLE leg_routes …` (exact SQL = `8.json`, no index: the key is the primary key); existing tables untouched, every leg starts without a route (straight until fetched). Test: `MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything` |
 
 * There is **no destructive fallback**: a missing migration crashes on open instead of wiping
   the user's trips. Each version bump adds `MIGRATION_x_y` to `AppDatabase.MIGRATIONS`, bumps
@@ -244,7 +263,7 @@ One zip (`application/zip`, default name `LuTrinh-saoluu-<yyyy-MM-dd>.zip`) with
 ```
 manifest.json            what is in the file (below)
 lutrinh.db               SQLite copy of the app database: Room schema `schemaVersion`, user tables
-                         trips, steps, photos, tracks, track_points, stop_decisions (journal mode
+                         trips, steps, photos, tracks, track_points, stop_decisions, leg_routes (v8; journal mode
                          TRUNCATE, no -wal/-shm files)
 photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (bytes as stored, no re-encode)
 ```
@@ -253,7 +272,7 @@ photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (by
 {
   "format": "lutrinh-backup", "formatVersion": 1,
   "appId": "vn.lutrinh.app", "appVersion": "0.1.0",
-  "schemaVersion": 7, "createdAt": "2026-11-09T10:58:31Z",
+  "schemaVersion": 8, "createdAt": "2026-11-09T10:58:31Z",
   "counts": { "trips": 2, "steps": 15, "photos": 19, "tracks": 1, "trackPoints": 359, "stopDecisions": 1 },
   "photoFiles": 19, "missingPhotoFiles": 0
 }
@@ -269,6 +288,8 @@ photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (by
   the same migrations as an app update (MIGRATION_x_y above), e.g. a schema-6 backup made before
   videos existed restores into v7 with its photo order kept (`BackupManagerTest.version6BackupRestoresIntoVersion7`).
   `counts.photos` / `photoFiles` count photos and videos together (videos are rows of `photos`).
+  `leg_routes` rows (R36) travel with the backup but are not counted: they are a cache of the
+  router's answers that the app can fetch again; a backup older than v8 restores without routes.
 
 ## Validation errors (returned by the domain, shown by the UI)
 

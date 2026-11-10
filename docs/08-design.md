@@ -153,7 +153,7 @@ Three weights only: 400 body, 500 labels, 600 titles.
   meant. They replace the stock Material icons on bars, FABs, menus and map buttons: back, more,
   add, share, edit, delete, route (trip map), atlas (My map), my location, layers, expand, fit,
   add step, add from photos, photo, download, upload (backup), file open, restore, page (HTML
-  share), search, close, check, and the picker's centre needle. Path data (SVG, 24 × 24; "dots"
+  share), search, close, check, settings ("Cài đặt", R36), and the picker's centre needle. Path data (SVG, 24 × 24; "dots"
   are filled):
 
   | Icon | Lines | Dots |
@@ -178,6 +178,7 @@ Three weights only: 400 body, 500 labels, 600 titles.
   | File open | `M6 3.5h8l4 4v13H6zM13.5 3.5V8H18M9 14.5h6M12 11.5l3 3-3 3` | |
   | Restore | `M5 12a7 7 0 1 0 2-5M4.5 4v4.5H9M12 8.5V12l2.5 2.5` | |
   | Page | `M6 3.5h12v17H6zM9 8h6M9 11.5h6M9 15h4` | |
+  | Settings (three sliders) | `M4 7h9M17 7h3M15 5v4M4 12h3M11 12h9M9 10v4M4 17h11M19 17h1M17 15v4` | |
   | Needle (picker centre, tip at 12,22) | `M12 12v10M12 2.5a4.5 4.5 0 1 0 0 9a4.5 4.5 0 1 0 0-9` | `M12 5a2 2 0 1 0 0 4a2 2 0 1 0 0-4z` |
   | Search | `M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13M15.5 15.5L20 20` | |
   | Close | `M6 6l12 12M18 6L6 18` | |
