@@ -48,6 +48,8 @@ internal object MapCameraRules {
 internal class TripMapPresenter(private val icons: MapIcons) {
     var markers: List<MapMarker> = emptyList()
     var legModes: List<TransportMode?> = emptyList()
+    /** R36: the line of each leg (road route or straight/arc); a missing entry is drawn straight/arc. */
+    var legPaths: List<List<GeoPoint>> = emptyList()
     var tracks: List<TrackLine> = emptyList()
     var stops: List<StopMarker> = emptyList()
     var showRoute: Boolean = true
@@ -103,7 +105,7 @@ internal class TripMapPresenter(private val icons: MapIcons) {
         legs.forEachIndexed { i, (from, to) ->
             val mode = legModes.getOrNull(i)
             val selected = to.id == selectedLegTo
-            val path = Polyline.simplify(LegGeometry.path(from.point, to.point, mode))
+            val path = Polyline.simplify(legPaths.getOrNull(i)?.takeIf { it.size >= 2 } ?: LegGeometry.path(from.point, to.point, mode))
             paths += path
             lines += MapLeg(to.id, path, mode.legLine(), selected)
             // The selected badge is placed first so it never gives way.
@@ -200,7 +202,7 @@ internal class AllTripsPresenter {
         val lines = ordered.filter { it.points.size >= 2 }.map { t ->
             val path = Polyline.simplify(
                 t.points.zipWithNext().flatMapIndexed { i, (a, b) ->
-                    val leg = LegGeometry.path(a, b, t.legModes.getOrNull(i))
+                    val leg = t.legPath(i, a, b)
                     if (i == 0) leg else leg.drop(1)
                 },
             )
@@ -218,7 +220,7 @@ internal class AllTripsPresenter {
         // Fit the whole drawn route (flight arcs included), not only the steps.
         val points = trips.flatMap { t ->
             if (t.points.size < 2) t.points
-            else t.points.zipWithNext().flatMapIndexed { i, (a, b) -> LegGeometry.path(a, b, t.legModes.getOrNull(i)) }
+            else t.points.zipWithNext().flatMapIndexed { i, (a, b) -> t.legPath(i, a, b) }
         }
         val key = points to padding
         if (key != fittedKey) {
@@ -228,6 +230,10 @@ internal class AllTripsPresenter {
         }
     }
 }
+
+/** R36: the stored road line of leg [i], or its straight segment / flight arc. */
+private fun MapTrip.legPath(i: Int, a: GeoPoint, b: GeoPoint): List<GeoPoint> =
+    legPaths.getOrNull(i)?.takeIf { it.size >= 2 } ?: LegGeometry.path(a, b, legModes.getOrNull(i))
 
 /** PickerMap: starts at the given place, shows the trip's other steps faded, flies to each new [PickerMove]. */
 internal class PickerPresenter(private val icons: MapIcons) {

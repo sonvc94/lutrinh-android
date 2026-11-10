@@ -54,6 +54,13 @@ object DisplayFormat {
         }
     }
 
+    /**
+     * A router's travel-time estimate (R36), always marked with "~": "~35 phút", "~2 giờ 35 phút"
+     * (rounded to the nearest minute, at least 1).
+     */
+    fun approxDuration(seconds: Double): String =
+        "~" + duration(maxOf(1L, Math.round(seconds.coerceAtLeast(0.0) / 60)) * 60_000)
+
     /** Running timer of a live recording: "0:45" (m:ss) under an hour, "2:05:09" (h:mm:ss) above. */
     fun clock(ms: Long): String {
         val s = (ms.coerceAtLeast(0) / 1000)

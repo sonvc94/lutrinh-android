@@ -11,6 +11,7 @@ import android.graphics.RectF
 import android.util.Log
 import kotlinx.coroutines.withTimeoutOrNull
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.routing.RoutingCredit
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.usecase.LegGeometry
 import vn.lutrinh.app.domain.usecase.Polyline
@@ -33,11 +34,24 @@ object StaticTripMap {
     /** Waiting longer than this for tiles falls back to the plain background. */
     const val SNAPSHOT_TIMEOUT_MS = 15_000L
 
-    /** Planned route of a trip: step points in timeline order and legModes[i] = mode of leg i -> i+1. */
-    data class Input(val steps: List<GeoPoint>, val legModes: List<TransportMode?>, val tracks: List<List<GeoPoint>>)
+    /**
+     * Planned route of a trip: step points in timeline order and legModes[i] = mode of leg i -> i+1.
+     * R36: legPaths[i] = the stored road line of leg i (with connectors), empty/missing = straight or
+     * arc; [routing] = the credits of the routers that made them (drawn with the basemap's).
+     */
+    data class Input(
+        val steps: List<GeoPoint>,
+        val legModes: List<TransportMode?>,
+        val tracks: List<List<GeoPoint>>,
+        val legPaths: List<List<GeoPoint>> = emptyList(),
+        val routing: List<RoutingCredit> = emptyList(),
+    )
 
-    /** [attribution] = the credit drawn on the image, for the share page too (R34). */
+    /** [attribution] = the credits drawn on the image (basemap R34, routers R36), for the share page too. */
     data class Output(val bitmap: Bitmap, val withBasemap: Boolean, val attribution: String)
+
+    /** R36: one router's credit as plain text, with the OSM "fix the map" address. */
+    fun routingLine(credit: RoutingCredit): String = "${credit.text} · Sửa bản đồ: ${credit.fixUrl.removePrefix("https://")}"
 
     private val ROUTE = Palette.Cham.toArgb()
     private val END = Palette.Ink.toArgb()
@@ -53,7 +67,9 @@ object StaticTripMap {
         engine: MapEngine = MapEngines.active,
         basemap: BasemapProvider = Basemaps.registry.offline,
     ): Output {
-        val legPaths = input.steps.zipWithNext().mapIndexed { i, (a, b) -> Polyline.simplify(LegGeometry.path(a, b, input.legModes.getOrNull(i))) }
+        val legPaths = input.steps.zipWithNext().mapIndexed { i, (a, b) ->
+            Polyline.simplify(input.legPaths.getOrNull(i)?.takeIf { it.size >= 2 } ?: LegGeometry.path(a, b, input.legModes.getOrNull(i)))
+        }
         val points = (if (legPaths.isEmpty()) input.steps else legPaths.flatten()) + input.tracks.flatten()
         val lw = (width / pixelRatio).toInt()
         val lh = (height / pixelRatio).toInt()
@@ -133,18 +149,44 @@ object StaticTripMap {
             c.drawBitmap(pin, (x * sx).toFloat() - pin.width / 2f, (y * sy).toFloat() - pin.height / 2f, null)
             pin.recycle()
         }
-        drawAttribution(c, basemap.attribution, width, height, r)
-        return Output(out, snapshot != null, basemap.attribution)
+        val routing = input.routing.map(::routingLine)
+        drawAttribution(c, routing + basemapLine(basemap.attribution), width, height, r)
+        return Output(out, snapshot != null, (listOf(basemap.attribution) + routing).joinToString(" · "))
     }
 
-    /** The basemap's required credit (R34), bottom right on a translucent white label. */
-    private fun drawAttribution(c: Canvas, attribution: String, width: Int, height: Int, r: Float) {
+    private fun basemapLine(attribution: String) = "© " + attribution.replace(" © ", " · ").replace("©", "").trim()
+
+    /** The required credits (basemap R34, routers R36), bottom right on a translucent white label, one per line. */
+    private fun drawAttribution(c: Canvas, credits: List<String>, width: Int, height: Int, r: Float) {
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Palette.MapCredit.toArgb(); textSize = 8.5f * r }
-        val label = "© " + attribution.replace(" © ", " · ").replace("©", "").trim()
-        val w = text.measureText(label)
         val pad = 3f * r
-        val box = RectF(width - w - 3 * pad, height - text.textSize - 3 * pad, width - pad, height - pad)
+        // A credit wider than the map wraps at its " · " separators (never cut off).
+        val lines = wrapCredits(credits, width - 6 * pad) { text.measureText(it) }
+        val w = lines.maxOf { text.measureText(it) }
+        val lineH = text.textSize + pad
+        val box = RectF(width - w - 3 * pad, height - lines.size * lineH - 2 * pad, width - pad, height - pad)
         c.drawRoundRect(box, 2f * r, 2f * r, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xCCFFFFFF.toInt() })
-        c.drawText(label, box.left + pad, box.bottom - pad - text.descent() / 2, text)
+        lines.forEachIndexed { i, label ->
+            val right = box.right - pad - text.measureText(label)
+            c.drawText(label, right, box.top + pad + (i + 1) * lineH - pad - text.descent() / 2, text)
+        }
     }
+
+    /** Splits each credit at " · " into lines no wider than [maxWidth] (a single part may still be wider). */
+    internal fun wrapCredits(credits: List<String>, maxWidth: Float, measure: (String) -> Float): List<String> =
+        credits.flatMap { credit ->
+            val out = ArrayList<String>()
+            var line = ""
+            for (part in credit.split(" · ")) {
+                val next = if (line.isEmpty()) part else "$line · $part"
+                if (line.isNotEmpty() && measure(next) > maxWidth) {
+                    out += line
+                    line = part
+                } else {
+                    line = next
+                }
+            }
+            if (line.isNotEmpty()) out += line
+            out
+        }
 }

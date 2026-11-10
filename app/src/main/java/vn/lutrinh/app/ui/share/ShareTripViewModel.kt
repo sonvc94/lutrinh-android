@@ -30,6 +30,8 @@ import vn.lutrinh.app.domain.usecase.TrackMath
 import vn.lutrinh.app.domain.usecase.TripPage
 import vn.lutrinh.app.domain.usecase.TripShare
 import vn.lutrinh.app.domain.usecase.legsOf
+import vn.lutrinh.app.domain.routing.LegRoute
+import vn.lutrinh.app.domain.routing.LegRoutes
 import vn.lutrinh.app.map.StaticTripMap
 import vn.lutrinh.app.share.SummaryImage
 import vn.lutrinh.app.share.TripExporter
@@ -73,13 +75,22 @@ class ShareTripViewModel(private val c: AppContainer, handle: SavedStateHandle) 
     private val _messages = Channel<ShareMessage>(Channel.BUFFERED)
     val messages: Flow<ShareMessage> = _messages.receiveAsFlow()
 
-    private data class Source(val trip: Trip, val steps: List<Step>, val tracks: List<List<vn.lutrinh.app.domain.model.GeoPoint>>)
+    private data class Source(
+        val trip: Trip,
+        val steps: List<Step>,
+        val tracks: List<List<vn.lutrinh.app.domain.model.GeoPoint>>,
+        /** R36: stored leg routes by arrival step id (empty while routing is off). */
+        val routes: Map<String, LegRoute> = emptyMap(),
+    )
 
     private data class Rendered(val source: Source, val map: StaticTripMap.Output)
 
-    private val source: Flow<Source?> = combine(c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observePoints(tripId)) { trip, steps, points ->
+    private val source: Flow<Source?> = combine(
+        c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observePoints(tripId),
+        combine(c.legRoutes.observeForTrip(tripId), c.routingSettings.enabled) { stored, _ -> c.routingSettings.shown(stored) },
+    ) { trip, steps, points, routes ->
         // R20: drafts are never shared (map, image and page).
-        trip?.let { Source(it, TripShare.sharedSteps(steps), TrackMath.displayLines(points)) }
+        trip?.let { Source(it, TripShare.sharedSteps(steps), TrackMath.displayLines(points), routes) }
     }.distinctUntilChanged()
 
     val missing: StateFlow<Boolean> = source.map { it == null }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
@@ -91,7 +102,11 @@ class ShareTripViewModel(private val c: AppContainer, handle: SavedStateHandle) 
         // Exports of an earlier visit are temporary: start clean (before this screen writes any).
         if (!cleaned) { c.exporter.clearCache(); cleaned = true }
         val legs = legsOf(s.steps)
-        val map = c.exporter.map(StaticTripMap.Input(s.steps.map { it.location }, legs.map { it.mode }, s.tracks))
+        val used = legs.map { LegRoutes.usable(it, s.routes) }
+        val credits = used.mapNotNullTo(sortedSetOf()) { it?.provider }.mapNotNull { c.routers.byId(it)?.credit }.distinct()
+        val map = c.exporter.map(
+            StaticTripMap.Input(s.steps.map { it.location }, legs.map { it.mode }, s.tracks, legs.mapIndexed { i, l -> LegRoutes.path(l, used[i]) }, credits),
+        )
         emit(Rendered(s, map))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -102,7 +117,7 @@ class ShareTripViewModel(private val c: AppContainer, handle: SavedStateHandle) 
             attempt {
                 val t = r.source.trip
                 val bmp = c.exporter.summaryImage(
-                    SummaryImage.Input(t.title, c.exporter.datesOf(t), TripShare.stats(t, r.source.steps), r.map.bitmap, emptyList()),
+                    SummaryImage.Input(t.title, c.exporter.datesOf(t), TripShare.stats(t, r.source.steps, r.source.routes), r.map.bitmap, emptyList()),
                     TripShare.imagePhotos(r.source.steps),
                 )
                 val file = c.exporter.writePng(bmp, TripShare.fileName(t.title, t.startDate, "png"))
@@ -127,7 +142,7 @@ class ShareTripViewModel(private val c: AppContainer, handle: SavedStateHandle) 
                         dates = c.exporter.datesOf(t),
                         description = t.description,
                         tripStart = t.startDate,
-                        stats = TripShare.stats(t, r.source.steps),
+                        stats = TripShare.stats(t, r.source.steps, r.source.routes),
                         steps = r.source.steps,
                         hideNotes = hide,
                         mapJpeg = c.exporter.mapJpeg(r.map.bitmap),

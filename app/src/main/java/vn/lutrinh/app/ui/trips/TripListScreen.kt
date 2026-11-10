@@ -99,6 +99,8 @@ fun TripListScreen(
     onShare: (String) -> Unit,
     onOpenMyMap: () -> Unit,
     onOpenOffline: () -> Unit,
+    /** "Cài đặt" (R36 routing switch). */
+    onOpenSettings: () -> Unit = {},
     vm: TripListViewModel = viewModel(factory = factory { c, _ -> TripListViewModel(c) }),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -151,6 +153,11 @@ fun TripListScreen(
                             text = { Text(stringResource(R.string.backup_restore)) },
                             leadingIcon = { Icon(AtlasIcons.Restore, null) },
                             onClick = { menuOpen = false; transfer.restore() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.settings_title)) },
+                            leadingIcon = { Icon(AtlasIcons.Settings, null) },
+                            onClick = { menuOpen = false; onOpenSettings() },
                         )
                         if (BuildConfig.DEBUG) {
                             DropdownMenuItem(

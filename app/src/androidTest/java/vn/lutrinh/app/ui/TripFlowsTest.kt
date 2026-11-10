@@ -26,6 +26,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -52,9 +53,20 @@ class TripFlowsTest {
 
     private val title = "$PREFIX ${System.nanoTime() % 100_000}"
 
+    private var routingWasOn = true
+
+    /** R36: no routing notice over the flows and no test leg sent to the router; restored after. */
+    @Before
+    fun routingOff() {
+        val settings = ApplicationProvider.getApplicationContext<LuTrinhApp>().container.routingSettings
+        routingWasOn = settings.enabled.value
+        settings.setEnabled(false)
+    }
+
     @After
     fun cleanUp() = runBlocking {
         val c = ApplicationProvider.getApplicationContext<LuTrinhApp>().container
+        c.routingSettings.setEnabled(routingWasOn)
         c.trips.observeTripSummaries().first()
             .filter { it.trip.title.startsWith(PREFIX) }
             .forEach { c.deleteTrip(it.trip.id) }

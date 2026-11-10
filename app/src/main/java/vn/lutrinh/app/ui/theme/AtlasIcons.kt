@@ -56,6 +56,8 @@ object AtlasIcons {
     const val UPLOAD = "M12 15V4M7.5 8.5L12 4l4.5 4.5M4.5 19.5h15"
     const val FILE_OPEN = "M6 3.5h8l4 4v13H6zM13.5 3.5V8H18M9 14.5h6M12 11.5l3 3-3 3"
     const val RESTORE = "M5 12a7 7 0 1 0 2-5M4.5 4v4.5H9M12 8.5V12l2.5 2.5"
+    /** Settings: three sliders (lines with a knob stroke each). */
+    const val SETTINGS = "M4 7h9M17 7h3M15 5v4M4 12h3M11 12h9M9 10v4M4 17h11M19 17h1M17 15v4"
     const val PAGE = "M6 3.5h12v17H6zM9 8h6M9 11.5h6M9 15h4"
     /** The location picker's centre needle: a ring head on a line whose end (12, 22) is the picked point. */
     const val NEEDLE = "M12 12v10M12 2.5a4.5 4.5 0 1 0 0 9a4.5 4.5 0 1 0 0-9"
@@ -83,6 +85,7 @@ object AtlasIcons {
     val Upload = icon("Upload", UPLOAD)
     val FileOpen = icon("FileOpen", FILE_OPEN)
     val Restore = icon("Restore", RESTORE)
+    val Settings = icon("Settings", SETTINGS)
     val Page = icon("Page", PAGE)
     val Needle = icon("Needle", NEEDLE, NEEDLE_DOT)
     val Search = icon("Search", SEARCH)

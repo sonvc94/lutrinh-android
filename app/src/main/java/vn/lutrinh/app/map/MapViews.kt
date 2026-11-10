@@ -1,7 +1,9 @@
 package vn.lutrinh.app.map
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,10 +21,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.lutrinh.app.LuTrinhApp
+import vn.lutrinh.app.R
+import vn.lutrinh.app.domain.routing.RoutingCredit
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.map.basemap.BasemapProvider
@@ -49,18 +55,33 @@ fun rememberShownBasemap(): BasemapProvider {
     return app.container.basemaps.registry.shown(chosen, online)
 }
 
-/** The required credit of the basemap shown (R34), on every map. */
+/**
+ * The required credit of the basemap shown (R34), on every map; on a map with road-following legs
+ * also the router's credit (R36: OSM/ODbL), which opens the OSM "fix the map" page when tapped.
+ */
 @Composable
-fun MapAttribution(basemap: BasemapProvider, modifier: Modifier = Modifier) {
-    Text(
-        text = basemap.attribution,
-        // Fixed 9 dp (not sp): the credit must not grow with the font scale and cover a small map (F25).
-        fontSize = with(LocalDensity.current) { 9.dp.toSp() },
-        color = Palette.MapCredit,
-        modifier = modifier
-            .background(Color.White.copy(alpha = 0.75f))
-            .padding(horizontal = 4.dp, vertical = 1.dp),
-    )
+fun MapAttribution(basemap: BasemapProvider, modifier: Modifier = Modifier, routing: List<RoutingCredit> = emptyList()) {
+    // Fixed 9 dp (not sp): the credit must not grow with the font scale and cover a small map (F25).
+    val size = with(LocalDensity.current) { 9.dp.toSp() }
+    val uri = LocalUriHandler.current
+    Column(modifier.background(Color.White.copy(alpha = 0.75f)).padding(horizontal = 4.dp, vertical = 1.dp), horizontalAlignment = Alignment.End) {
+        routing.forEach { credit ->
+            Text(
+                text = credit.text + " · " + stringResource(R.string.routing_fix_map),
+                fontSize = size,
+                color = Palette.MapCredit,
+                modifier = Modifier.clickable { runCatching { uri.openUri(credit.fixUrl) } },
+            )
+        }
+        Text(text = basemap.attribution, fontSize = size, color = Palette.MapCredit)
+    }
+}
+
+/** R36: the credits of the routers that made the shown road lines (by provider id). */
+@Composable
+fun rememberRoutingCredits(providerIds: Set<String>): List<RoutingCredit> {
+    val app = LocalContext.current.applicationContext as? LuTrinhApp ?: return emptyList()
+    return remember(providerIds) { providerIds.sorted().mapNotNull { app.container.routers.byId(it)?.credit }.distinct() }
 }
 
 /** Map images from the theme: numbered pins and transport-mode badges. */
@@ -93,6 +114,7 @@ private fun EngineMap(
     modifier: Modifier,
     listener: (MutableState<GeoPoint?>) -> MapListener,
     indicatorTop: Dp,
+    routing: List<RoutingCredit> = emptyList(),
     render: (MapController) -> Unit,
 ) {
     val engine = LocalMapEngine.current
@@ -112,7 +134,7 @@ private fun EngineMap(
             }
         }
         OfflineIndicator(center.value, Modifier.align(Alignment.TopStart).padding(top = indicatorTop))
-        MapAttribution(basemap, Modifier.align(Alignment.BottomEnd))
+        MapAttribution(basemap, Modifier.align(Alignment.BottomEnd), routing)
     }
 }
 
@@ -135,6 +157,10 @@ fun TripMap(
     markers: List<MapMarker>,
     modifier: Modifier = Modifier,
     legModes: List<TransportMode?> = emptyList(),
+    /** R36: the line of each leg (road route or straight/arc, `TripDetail.legPaths`); empty = straight/arc. */
+    legPaths: List<List<GeoPoint>> = emptyList(),
+    /** R36: ids of the routers whose road lines are shown (their credit is drawn). */
+    routedBy: Set<String> = emptySet(),
     showRoute: Boolean = true,
     interactive: Boolean = true,
     fitPaddingDp: Int = 56,
@@ -166,9 +192,11 @@ fun TripMap(
         modifier = modifier,
         listener = { center -> mapListener(center) { hit -> presenter.onTap(hit, markerClick.value, legClick.value) } },
         indicatorTop = 0.dp,
+        routing = rememberRoutingCredits(if (showRoute) routedBy else emptySet()),
     ) { map ->
         presenter.markers = markers
         presenter.legModes = legModes
+        presenter.legPaths = legPaths
         presenter.tracks = tracks
         presenter.stops = stopSuggestions
         presenter.showRoute = showRoute
@@ -224,6 +252,10 @@ data class MapTrip(
     val points: List<GeoPoint>,
     /** legModes[i] = mode of points[i] -> points[i+1]; only flights change the shape (arc). */
     val legModes: List<TransportMode?>,
+    /** R36: legPaths[i] = stored road line of leg i (with connectors), or empty/missing = straight/arc. */
+    val legPaths: List<List<GeoPoint>> = emptyList(),
+    /** R36: ids of the routers whose lines are in [legPaths]. */
+    val routedBy: Set<String> = emptySet(),
 )
 
 /**
@@ -253,6 +285,7 @@ fun AllTripsMap(
         listener = { center -> mapListener(center) { hit -> presenter.onTap(hit, click.value) } },
         // Below the overlay at the top of the map (e.g. the stats card of "Bản đồ của tôi").
         indicatorTop = if (fitExtraTopDp > 0) (fitExtraTopDp + 16).dp else 0.dp,
+        routing = rememberRoutingCredits(trips.flatMapTo(HashSet()) { it.routedBy }),
     ) { map ->
         val density = map.density
         val p = (fitPaddingDp * density).toInt()

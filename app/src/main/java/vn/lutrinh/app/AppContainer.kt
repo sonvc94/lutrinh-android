@@ -8,6 +8,7 @@ import vn.lutrinh.app.data.MediaCapture
 import vn.lutrinh.app.data.PhotoMetaReader
 import vn.lutrinh.app.data.PhotoStorage
 import vn.lutrinh.app.data.PlaceIndex
+import vn.lutrinh.app.data.RoomLegRouteRepository
 import vn.lutrinh.app.data.RoomStepRepository
 import vn.lutrinh.app.data.RoomTripImportRepository
 import vn.lutrinh.app.data.RoomStopDecisionRepository
@@ -16,6 +17,10 @@ import vn.lutrinh.app.data.RoomTripRepository
 import vn.lutrinh.app.data.local.AppDatabase
 import vn.lutrinh.app.domain.repository.Clock
 import vn.lutrinh.app.domain.repository.IdGenerator
+import vn.lutrinh.app.domain.routing.LegRouteRepository
+import vn.lutrinh.app.domain.routing.RouteSync
+import vn.lutrinh.app.domain.routing.RoutingProviders
+import vn.lutrinh.app.domain.routing.RoutingSettings
 import vn.lutrinh.app.domain.usecase.DeleteStep
 import vn.lutrinh.app.domain.usecase.DeleteTrack
 import vn.lutrinh.app.domain.usecase.DeleteTrip
@@ -33,6 +38,7 @@ import vn.lutrinh.app.map.MapEngines
 import vn.lutrinh.app.map.OfflineMapStore
 import vn.lutrinh.app.map.basemap.BasemapSettings
 import vn.lutrinh.app.map.basemap.Basemaps
+import vn.lutrinh.app.routing.Routers
 import vn.lutrinh.app.share.TripExporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -97,6 +103,15 @@ class AppContainer(context: Context) {
     /** GPX export/import of one trip (R25). */
     val exportGpx = ExportGpx(trips, steps, tracks, clock)
     val importGpx = ImportGpx(RoomTripImportRepository(db), clock, ids)
+
+    /** Road-following legs (R36): stored routes, the switch + notice flag, the routers, the fetch queue. */
+    val legRoutes: LegRouteRepository = RoomLegRouteRepository(db)
+    val routingSettings = RoutingSettings(prefs)
+    val routers: RoutingProviders = Routers.registry
+    val routeSync = RouteSync(
+        steps.observeAllSteps(), legRoutes, routingSettings, network.online, routers, clock,
+        log = { android.util.Log.i("Routing", it) },
+    )
 
     /** Local backup/restore of all user data (R26). */
     val backup = BackupManager(context, db, photos.photoDir, BuildConfig.VERSION_NAME)

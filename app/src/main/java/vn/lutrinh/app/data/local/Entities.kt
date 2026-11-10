@@ -184,3 +184,38 @@ data class StopDecisionEntity(
     @ColumnInfo(name = "step_id") val stepId: String?,
     @ColumnInfo(name = "decided_at") val decidedAt: Long,
 )
+
+/**
+ * The stored road route of one leg (R36, DB version 8), keyed like the leg's mode by the step where
+ * the leg ends. Valid only while from/to/profile equal the leg's current inputs; a stale row is
+ * ignored and replaced on the next fetch. Goes with its step (cascade).
+ */
+@Entity(
+    tableName = "leg_routes",
+    foreignKeys = [
+        ForeignKey(
+            entity = StepEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["to_step_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class LegRouteEntity(
+    @PrimaryKey @ColumnInfo(name = "to_step_id") val toStepId: String,
+    @ColumnInfo(name = "from_lat") val fromLat: Double,
+    @ColumnInfo(name = "from_lng") val fromLng: Double,
+    @ColumnInfo(name = "to_lat") val toLat: Double,
+    @ColumnInfo(name = "to_lng") val toLng: Double,
+    /** RouteProfile.id: motorbike | car | bus | walk */
+    val profile: String,
+    /** RoutingProvider.id that answered, e.g. "valhalla" */
+    val provider: String,
+    /** LegRouteStatus.id: ok | no_route | too_far */
+    val status: String,
+    @ColumnInfo(name = "distance_m") val distanceM: Double,
+    @ColumnInfo(name = "duration_s") val durationS: Double,
+    /** The road line as polyline6 (empty unless ok), simplified to about 10 m. */
+    val geometry: String,
+    @ColumnInfo(name = "fetched_at") val fetchedAt: Long,
+)

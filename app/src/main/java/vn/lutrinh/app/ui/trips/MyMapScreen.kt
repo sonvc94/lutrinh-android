@@ -63,6 +63,10 @@ import vn.lutrinh.app.domain.usecase.Geo
 import vn.lutrinh.app.domain.usecase.OverallStats
 import vn.lutrinh.app.domain.usecase.legsOf
 import vn.lutrinh.app.domain.usecase.overallStatsOf
+import vn.lutrinh.app.domain.usecase.legKmOf
+import vn.lutrinh.app.domain.usecase.inTimelineOrder
+import vn.lutrinh.app.domain.routing.LegRoutes
+import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.usecase.published
 import vn.lutrinh.app.domain.usecase.routeOf
 import vn.lutrinh.app.domain.usecase.tripColorSlots
@@ -91,7 +95,15 @@ import vn.lutrinh.app.ui.theme.numerals
 /** Trip colours on "Bản đồ của tôi" (R14): the 8 data colours of docs/08, chàm first. */
 private val TripPalette = Palette.TripColors
 
-data class MyMapTrip(val summary: TripSummary, val color: Color, val steps: List<Step>, val distanceKm: Double) {
+data class MyMapTrip(
+    val summary: TripSummary,
+    val color: Color,
+    val steps: List<Step>,
+    val distanceKm: Double,
+    /** R36: the line of each leg (road route or straight/arc) and the routers that made them. */
+    val legPaths: List<List<GeoPoint>> = emptyList(),
+    val routedBy: Set<String> = emptySet(),
+) {
     val id: String get() = summary.trip.id
 }
 
@@ -108,14 +120,22 @@ class MyMapViewModel(c: AppContainer) : ViewModel() {
     }.flowOn(Dispatchers.Default)
 
     val state: StateFlow<Loadable<MyMap>> =
-        combine(c.trips.observeTripSummaries(), c.steps.observeAllSteps(), trackLines) { summaries, steps, tracks ->
+        combine(
+            c.trips.observeTripSummaries(), c.steps.observeAllSteps(), trackLines,
+            combine(c.legRoutes.observeAll(), c.routingSettings.enabled) { stored, _ -> c.routingSettings.shown(stored) },
+        ) { summaries, steps, tracks, routes ->
             val byTrip = steps.published().groupBy { it.tripId } // R20: drafts are not on My map
             val slots = tripColorSlots(summaries.map { it.trip }, TripPalette.size)
             val trips = summaries.map { s ->
-                val own = byTrip[s.trip.id].orEmpty()
-                MyMapTrip(s, TripPalette[slots.getValue(s.trip.id)], own, Geo.routeLengthKm(routeOf(own)))
+                val own = byTrip[s.trip.id].orEmpty().inTimelineOrder()
+                val legs = legsOf(own)
+                val used = legs.map { LegRoutes.usable(it, routes) }
+                MyMapTrip(
+                    s, TripPalette[slots.getValue(s.trip.id)], own, legKmOf(own, routes),
+                    legs.mapIndexed { i, leg -> LegRoutes.path(leg, used[i]) }, used.mapNotNullTo(HashSet()) { it?.provider },
+                )
             }
-            Loadable.Ready(MyMap(trips, overallStatsOf(summaries.map { it.trip }, steps), tracks)) as Loadable<MyMap>
+            Loadable.Ready(MyMap(trips, overallStatsOf(summaries.map { it.trip }, steps, routes), tracks)) as Loadable<MyMap>
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Loadable.Loading)
@@ -170,7 +190,7 @@ fun MyMapScreen(
         Box(Modifier.padding(padding).fillMaxSize()) {
             AllTripsMap(
                 trips = data.trips.map { t ->
-                    MapTrip(t.id, t.color, t.steps.map { it.location }, legsOf(t.steps).map { it.mode })
+                    MapTrip(t.id, t.color, routeOf(t.steps), legsOf(t.steps).map { it.mode }, t.legPaths, t.routedBy)
                 },
                 selectedId = selected,
                 onTripClick = { selected = it },

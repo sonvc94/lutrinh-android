@@ -17,7 +17,9 @@ class NetworkMonitor(context: Context) {
     init {
         cm.registerDefaultNetworkCallback(object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) { _online.value = currentlyOnline() }
-            override fun onLost(network: Network) { _online.value = currentlyOnline() }
+            // The default network is gone: offline until the next onAvailable (asking activeNetwork
+            // here can still return the lost network).
+            override fun onLost(network: Network) { _online.value = false }
             override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
                 _online.value = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
             }

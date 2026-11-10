@@ -12,6 +12,10 @@ import vn.lutrinh.app.domain.model.TrackStatus
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.model.TripSummary
+import vn.lutrinh.app.domain.routing.LegRoute
+import vn.lutrinh.app.domain.routing.LegRouteStatus
+import vn.lutrinh.app.domain.routing.RouteProfile
+import vn.lutrinh.app.domain.usecase.Polyline
 
 fun TripEntity.toDomain() = Trip(id, title, description, startDate, endDate, createdAt, updatedAt, coverPhotoId)
 
@@ -75,3 +79,17 @@ fun StopDecisionEntity.toDomain() =
     StopDecision(trackId, startAt, endAt, StopDecisionKind.fromCode(decision), stepId, decidedAt)
 
 fun StopDecision.toEntity() = StopDecisionEntity(trackId, startAt, endAt, kind.code, stepId, decidedAt)
+
+/** A row with an unknown profile (written by a newer app) reads as null and is ignored. */
+fun LegRouteEntity.toDomain(): LegRoute? {
+    val p = RouteProfile.fromId(profile) ?: return null
+    return LegRoute(
+        toStepId, GeoPoint(fromLat, fromLng), GeoPoint(toLat, toLng), p, provider, LegRouteStatus.fromId(status),
+        distanceM, durationS, if (geometry.isEmpty()) emptyList() else Polyline.decode6(geometry), fetchedAt,
+    )
+}
+
+fun LegRoute.toEntity() = LegRouteEntity(
+    toStepId, from.latitude, from.longitude, to.latitude, to.longitude, profile.id, provider, status.id,
+    distanceM, durationS, Polyline.encode6(path), fetchedAt,
+)

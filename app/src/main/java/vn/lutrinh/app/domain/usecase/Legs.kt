@@ -4,6 +4,7 @@ import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.routing.LegRoute
 import kotlin.math.PI
 import kotlin.math.acos
 import kotlin.math.atan
@@ -32,8 +33,8 @@ data class Leg(val from: Step, val to: Step) {
 fun legsOf(steps: List<Step>): List<Leg> = steps.published().inTimelineOrder().zipWithNext { a, b -> Leg(a, b) }
 
 /**
- * Line geometry drawn for a leg (docs/05-map.md "Legs"). No routing: road/rail/water modes are
- * a straight segment; a flight is a great-circle path lifted sideways so it reads as "by air" at
+ * Line geometry drawn for a leg without a stored road route (docs/05-map.md "Legs"; routed legs:
+ * LegRoutes.path, R36): road/rail/water modes are a straight segment; a flight is a great-circle path lifted sideways so it reads as "by air" at
  * any length (a pure great circle looks straight at Vietnam scale).
  */
 object LegGeometry {
@@ -135,13 +136,16 @@ object LegGeometry {
     internal fun unMercY(y: Double): Double = Math.toDegrees(2 * atan(exp(Math.toRadians(y))) - PI / 2)
 }
 
-/** Totals for "Bản đồ của tôi" (R14). Distances are straight lines per trip, never between trips. Drafts are left out (R20). */
+/**
+ * Totals for "Bản đồ của tôi" (R14). Distances are the legs of each trip (road km where a usable
+ * route is stored, R36; straight otherwise), never between trips. Drafts are left out (R20).
+ */
 data class OverallStats(val tripCount: Int, val stepCount: Int, val distanceKm: Double)
 
-fun overallStatsOf(trips: List<Trip>, steps: List<Step>): OverallStats {
+fun overallStatsOf(trips: List<Trip>, steps: List<Step>, routes: Map<String, LegRoute> = emptyMap()): OverallStats {
     val ids = trips.map { it.id }.toSet()
     val mine = steps.published().filter { it.tripId in ids }
-    val km = mine.groupBy { it.tripId }.values.sumOf { Geo.routeLengthKm(routeOf(it)) }
+    val km = mine.groupBy { it.tripId }.values.sumOf { legKmOf(it, routes) }
     return OverallStats(trips.size, mine.size, km)
 }
 

@@ -157,3 +157,15 @@ interface StopDecisionDao {
     @Upsert
     suspend fun upsert(decision: StopDecisionEntity)
 }
+
+@Dao
+interface LegRouteDao {
+    @Query("SELECT * FROM leg_routes")
+    fun observeAll(): Flow<List<LegRouteEntity>>
+
+    @Query("SELECT r.* FROM leg_routes r JOIN steps s ON r.to_step_id = s.id WHERE s.trip_id = :tripId")
+    fun observeForTrip(tripId: String): Flow<List<LegRouteEntity>>
+
+    @Upsert
+    suspend fun upsert(route: LegRouteEntity)
+}

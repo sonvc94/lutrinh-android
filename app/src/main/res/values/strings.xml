@@ -65,6 +65,10 @@
     <string name="stat_km">km</string>
     <string name="stat_km_straight">đường chim bay</string>
     <string name="stat_km_gps">đã ghi GPS</string>
+    <string name="stat_km_road">theo đường đi</string>
+    <string name="stat_km_mixed">theo đường đi, có chặng chim bay</string>
+    <string name="stat_time">%1$s di chuyển (ước tính)</string>
+    <string name="stat_time_partial">%1$s di chuyển (ước tính, chưa tính %2$d chặng)</string>
     <string name="stat_days">ngày</string>
     <string name="day_label">Ngày %1$d · %2$s</string>
 
@@ -88,6 +92,19 @@
     <string name="leg_km">%1$s km</string>
     <string name="leg_sheet_title">Từ %1$s đến %2$s</string>
     <string name="leg_sheet_subtitle">Bạn di chuyển bằng gì? (%1$s km đường chim bay)</string>
+    <string name="leg_sheet_subtitle_road">Bạn di chuyển bằng gì? (%1$s km theo đường đi, %2$s)</string>
+    <string name="settings_title">Cài đặt</string>
+    <string name="settings_section_map">Bản đồ và chặng đi</string>
+    <string name="settings_routing">Tính đường đi theo đường thực tế</string>
+    <string name="settings_routing_on">Bật: chặng Xe máy, Ô tô, Xe buýt, Đi bộ (và chặng chưa chọn) được vẽ theo đường, km và thời gian là ước tính theo đường đi.</string>
+    <string name="settings_routing_off">Tắt: mọi chặng là đường thẳng (chim bay), không gửi gì lên mạng.</string>
+    <string name="settings_routing_privacy">Khi bật, Lữ Trình gửi toạ độ hai điểm dừng của mỗi chặng và cách di chuyển đến máy chủ tính đường OpenStreetMap (FOSSGIS, Đức). Không gửi tên, ghi chú, ảnh hay tài khoản. Dữ liệu đường đi © OpenStreetMap (ODbL).</string>
+    <string name="routing_notice_title">Vẽ chặng theo đường đi?</string>
+    <string name="routing_notice_body">Để vẽ chặng theo đường thực tế và ước tính km, thời gian, Lữ Trình gửi toạ độ các điểm dừng (chỉ vị trí và cách di chuyển, không gửi tên, ghi chú hay ảnh) đến máy chủ tính đường OpenStreetMap (FOSSGIS, Đức).\n\nBạn có thể tắt bất cứ lúc nào trong Cài đặt. Khi tắt, chặng là đường chim bay.</string>
+    <string name="routing_notice_ok">Đã hiểu</string>
+    <string name="routing_notice_off">Tắt tính đường</string>
+    <string name="routing_fix_map">Sửa bản đồ</string>
+    <string name="leg_km_straight">%1$s km chim bay</string>
 
     <!-- Step edit -->
     <string name="step_create_title">Điểm dừng mới</string>

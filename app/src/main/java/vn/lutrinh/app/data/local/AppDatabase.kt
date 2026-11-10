@@ -18,11 +18,12 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  6 - steps.is_draft (INTEGER NOT NULL DEFAULT 0): draft steps (R20) + trips.cover_photo_id (nullable TEXT): chosen cover (R21)
  *  7 - photos.position renumbered 0..n-1 per step in display order (R27 drag order) +
  *      photos.media_type (TEXT NOT NULL DEFAULT 'photo') + photos.duration_ms (nullable INTEGER): short videos (R29)
+ *  8 - leg_routes: stored road route per leg, keyed by the arrival step (R36)
  */
 @Database(
     entities = [
         TripEntity::class, StepEntity::class, PhotoEntity::class, TrackEntity::class, TrackPointEntity::class,
-        StopDecisionEntity::class,
+        StopDecisionEntity::class, LegRouteEntity::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
@@ -33,10 +34,11 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun stepDao(): StepDao
     abstract fun trackDao(): TrackDao
     abstract fun stopDecisionDao(): StopDecisionDao
+    abstract fun legRouteDao(): LegRouteDao
 
     companion object {
         const val NAME = "lutrinh.db"
-        const val VERSION = 7
+        const val VERSION = 8
 
         /** Adds the nullable leg transport column; existing rows read as "not set". */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -133,8 +135,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds the table of stored leg routes (R36), empty; nothing existing is touched. */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // SQL copied from app/schemas/.../8.json (what Room creates on a fresh install).
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `leg_routes` (`to_step_id` TEXT NOT NULL, `from_lat` REAL NOT NULL, " +
+                        "`from_lng` REAL NOT NULL, `to_lat` REAL NOT NULL, `to_lng` REAL NOT NULL, `profile` TEXT NOT NULL, " +
+                        "`provider` TEXT NOT NULL, `status` TEXT NOT NULL, `distance_m` REAL NOT NULL, `duration_s` REAL NOT NULL, " +
+                        "`geometry` TEXT NOT NULL, `fetched_at` INTEGER NOT NULL, PRIMARY KEY(`to_step_id`), " +
+                        "FOREIGN KEY(`to_step_id`) REFERENCES `steps`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+            }
+        }
+
         /** Every migration, oldest first. Never use destructive fallback: user data is local only. */
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)

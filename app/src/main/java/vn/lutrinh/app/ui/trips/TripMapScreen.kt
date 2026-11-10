@@ -138,6 +138,8 @@ fun TripMapScreen(
             TripMap(
                 markers = detail.steps.toMarkers(selected),
                 legModes = detail.legModes,
+                legPaths = detail.legPaths,
+                routedBy = detail.routedBy,
                 modifier = Modifier.fillMaxSize(),
                 fitPaddingDp = 48,
                 // Cards height + their bottom offset, so the fit keeps every pin above the cards.
@@ -222,7 +224,7 @@ fun TripMapScreen(
                             // Same row height on every card (F23): the leg that ends here (R12), or "Điểm xuất phát" on the first.
                             Row(Modifier.fillMaxWidth().height(32.dp).padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                 val leg = detail.legInto(step.id)
-                                if (leg != null) LegChip(leg, onClick = { editLegTo = step.id }, Modifier.height(32.dp))
+                                if (leg != null) LegChip(leg, detail.measure(leg), onClick = { editLegTo = step.id }, Modifier.height(32.dp))
                                 else if (step.isDraft) DraftBadge()
                                 else Text(stringResource(R.string.trip_map_start), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.weight(1f))
@@ -243,6 +245,6 @@ fun TripMapScreen(
     }
 
     detail?.legs?.firstOrNull { it.to.id == editLegTo }?.let { leg ->
-        LegModeSheet(leg, onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
+        LegModeSheet(leg, detail.measure(leg), onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
     }
 }

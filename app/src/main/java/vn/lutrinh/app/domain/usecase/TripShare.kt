@@ -3,6 +3,7 @@ package vn.lutrinh.app.domain.usecase
 import vn.lutrinh.app.domain.model.Photo
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.routing.LegRoute
 import java.text.Normalizer
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -25,13 +26,13 @@ object TripShare {
     fun sharedSteps(steps: List<Step>): List<Step> = steps.published().inTimelineOrder()
 
     /**
-     * R18 stats (drafts left out, R20): km and step/photo counts as on the trip screen (R10: straight lines between
-     * steps, rounded); days = the trip's dates inclusive, or for an open-ended trip from the start
+     * R18 stats (drafts left out, R20): km and step/photo counts as on the trip screen (R10: the legs,
+     * along the road where a usable route is stored (R36), straight otherwise; no GPS here; rounded); days = the trip's dates inclusive, or for an open-ended trip from the start
      * date to the last step's date (at least 1 day).
      */
-    fun stats(trip: Trip, all: List<Step>): ShareStats {
+    fun stats(trip: Trip, all: List<Step>, routes: Map<String, LegRoute> = emptyMap()): ShareStats {
         val steps = all.published()
-        val base = vn.lutrinh.app.domain.usecase.statsOf(trip, steps)
+        val base = vn.lutrinh.app.domain.usecase.statsOf(trip, steps, routes = routes)
         val last = trip.endDate ?: steps.maxOfOrNull { it.arrivedAt.toLocalDate() }?.coerceAtLeast(trip.startDate) ?: trip.startDate
         return ShareStats(
             distanceKm = base.distanceKm.roundToInt(),

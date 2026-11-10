@@ -1,6 +1,8 @@
 package vn.lutrinh.app.domain.usecase
 
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.routing.LegRoute
+import vn.lutrinh.app.domain.routing.LegRoutes
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.Trip
@@ -45,7 +47,19 @@ object Geo {
 }
 
 /** Where [TripStats.distanceKm] comes from. */
-enum class DistanceSource { STRAIGHT_LINE, GPS }
+enum class DistanceSource {
+    /** Every leg is a straight line ("đường chim bay"): no stored road route (R10). */
+    STRAIGHT_LINE,
+
+    /** Every leg is measured along the road (R36, "theo đường đi"). */
+    ROAD,
+
+    /** Some legs along the road, the others straight (R36). */
+    MIXED,
+
+    /** The ended GPS tracks (R10, "đã ghi GPS"). */
+    GPS,
+}
 
 data class TripStats(
     val stepCount: Int,
@@ -53,24 +67,44 @@ data class TripStats(
     val distanceKm: Double,
     val days: Long?,
     val distanceSource: DistanceSource = DistanceSource.STRAIGHT_LINE,
+    /** R36: sum of the road routes' travel-time estimates, in seconds; null when no leg has a road route. */
+    val durationS: Double? = null,
+    /** R36: legs whose time is not in [durationS] (no road route): the total time is partial when > 0. */
+    val legsWithoutTime: Int = 0,
 )
 
+/** Planned km of the legs (R10/R36): road km where a usable route is stored, straight elsewhere. */
+fun legKmOf(steps: List<Step>, routes: Map<String, LegRoute>): Double =
+    legsOf(steps).sumOf { LegRoutes.measure(it, LegRoutes.usable(it, routes)).km }
+
 /**
- * Trip numbers, of published steps only (R20: drafts are left out). The distance is the straight line between steps (R3), unless the ended GPS tracks
- * together are at least as long as that line: then they cover the trip and their length (the
- * real road) is shown instead (docs/03 "Trip detail"). Open tracks are not counted.
+ * Trip numbers, of published steps only (R20: drafts are left out). The distance is the sum of the
+ * legs (R10): along the road for a leg with a usable stored route (R36, [routes] by arrival step
+ * id; pass none when routing is off), the straight line otherwise. When the ended GPS tracks
+ * together are at least as long, they cover the trip and their length (the real road) is shown
+ * instead (docs/03 "Trip detail"). Open tracks are not counted.
  */
-fun statsOf(trip: Trip, all: List<Step>, tracks: List<Track> = emptyList()): TripStats {
+fun statsOf(trip: Trip, all: List<Step>, tracks: List<Track> = emptyList(), routes: Map<String, LegRoute> = emptyMap()): TripStats {
     val steps = all.published()
-    val straightKm = Geo.routeLengthKm(routeOf(steps))
+    val measures = legsOf(steps).map { LegRoutes.measure(it, LegRoutes.usable(it, routes)) }
+    val legKm = measures.sumOf { it.km }
+    val road = measures.count { it.byRoad }
     val gpsKm = tracks.filter { !it.isOpen }.sumOf { it.distanceM } / 1000
-    val useGps = gpsKm > 0 && gpsKm >= straightKm
+    val useGps = gpsKm > 0 && gpsKm >= legKm
+    val source = when {
+        useGps -> DistanceSource.GPS
+        road == 0 -> DistanceSource.STRAIGHT_LINE
+        road == measures.size -> DistanceSource.ROAD
+        else -> DistanceSource.MIXED
+    }
     return TripStats(
         stepCount = steps.size,
         photoCount = steps.sumOf { it.photos.size },
-        distanceKm = if (useGps) gpsKm else straightKm,
+        distanceKm = if (useGps) gpsKm else legKm,
         days = trip.endDate?.let { ChronoUnit.DAYS.between(trip.startDate, it) + 1 },
-        distanceSource = if (useGps) DistanceSource.GPS else DistanceSource.STRAIGHT_LINE,
+        distanceSource = source,
+        durationS = if (road == 0) null else measures.sumOf { it.durationS ?: 0.0 },
+        legsWithoutTime = if (road == 0) 0 else measures.size - road,
     )
 }
 

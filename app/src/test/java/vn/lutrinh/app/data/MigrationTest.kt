@@ -26,6 +26,9 @@ import vn.lutrinh.app.domain.model.Track
 import vn.lutrinh.app.domain.model.TrackPoint
 import vn.lutrinh.app.domain.model.TrackStatus
 import vn.lutrinh.app.domain.model.TransportMode
+import vn.lutrinh.app.domain.routing.LegRoute
+import vn.lutrinh.app.domain.routing.LegRouteStatus
+import vn.lutrinh.app.domain.routing.RouteProfile
 import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -276,6 +279,32 @@ class MigrationTest {
         steps.saveStep(steps.getStep("s2")!!.copy(photos = listOf(video) + s2.drop(1)))
         val stored = steps.getStep("s2")!!.photos.first()
         assertEquals(MediaType.VIDEO to 12_345L, stored.mediaType to stored.durationMs)
+    }
+
+    @Test fun version7UpgradesWithLegRoutesAndKeepsEverything() = runTest {
+        createVersion(7)
+        SQLiteDatabase.openDatabase(ctx.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("UPDATE steps SET transport_mode = 'motorbike', latitude = 23.0688, longitude = 104.993 WHERE id = 's2'")
+        }
+        val db = open()
+        val trip = RoomTripRepository(db).getTrip("t1")!!
+        assertEquals("Vòng cung Hà Giang", trip.title)
+        val steps = RoomStepRepository(db)
+        assertEquals(listOf("s1", "s2"), steps.getSteps("t1").map { it.id })
+        assertEquals(TransportMode.MOTORBIKE, steps.getStep("s2")!!.arrivalTransport)
+        assertEquals(listOf("a.jpg"), steps.getStep("s2")!!.photos.map { it.fileName })
+
+        // The new table starts empty, stores a route and goes with its step.
+        val routes = RoomLegRouteRepository(db)
+        assertEquals(emptyList<LegRoute>(), routes.observeAll().first())
+        val path = listOf(GeoPoint(22.82, 104.98), GeoPoint(22.95, 104.97), GeoPoint(23.0688, 104.993))
+        val route = LegRoute("s2", GeoPoint(22.82, 104.98), GeoPoint(23.0688, 104.993), RouteProfile.MOTORBIKE, "valhalla", LegRouteStatus.OK, 48_500.0, 5520.0, path, 9L)
+        routes.save(route)
+        val back = routes.observeForTrip("t1").first().single()
+        assertEquals(route.copy(path = emptyList()), back.copy(path = emptyList()))
+        assertEquals(3, back.path.size)
+        steps.deleteStep("s2")
+        assertEquals(emptyList<LegRoute>(), routes.observeAll().first())
     }
 
     private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)

@@ -1,6 +1,10 @@
 package vn.lutrinh.app.ui.trips
 
 import vn.lutrinh.app.domain.model.Dwell
+import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.routing.LegMeasure
+import vn.lutrinh.app.domain.routing.LegRoute
+import vn.lutrinh.app.domain.routing.LegRoutes
 import androidx.compose.material3.HorizontalDivider
 import vn.lutrinh.app.ui.common.ReadoutCount
 import vn.lutrinh.app.ui.common.KmReadout
@@ -145,6 +149,8 @@ data class TripDetail(
     val stopSuggestions: List<StopSuggestion> = emptyList(),
     /** R16: false for a trip that ended before today (no "Ghi hành trình", only "Tạo chuyến mới và ghi"). */
     val canRecord: Boolean = true,
+    /** R36: stored leg routes by arrival step id (empty while routing is off). */
+    val routes: Map<String, LegRoute> = emptyMap(),
 ) {
     /** legs[i] = i-th published step -> the next published one (R12; drafts have no legs, R20). */
     val legs: List<Leg> = legsOf(steps)
@@ -155,6 +161,15 @@ data class TripDetail(
 
     /** The leg that ends at [stepId], or null (first published step, or a draft). */
     fun legInto(stepId: String): Leg? = legs.firstOrNull { it.to.id == stepId }
+
+    /** R36: the line drawn per leg (road route or straight/arc), same order as [legs]. */
+    val legPaths: List<List<GeoPoint>> = legs.map { LegRoutes.path(it, LegRoutes.usable(it, routes)) }
+
+    /** R36: km (road or straight) and estimated time of [leg]. */
+    fun measure(leg: Leg): LegMeasure = LegRoutes.measure(leg, LegRoutes.usable(leg, routes))
+
+    /** R36: ids of the routers whose road lines are drawn (the map credits them). */
+    val routedBy: Set<String> = legs.mapNotNullTo(HashSet()) { LegRoutes.usable(it, routes)?.provider }
 }
 
 /** Stop suggestions as map markers (R17, docs/05-map.md "Stop suggestions"). */
@@ -187,15 +202,27 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
         StopSuggestions.build(tracks, points, steps, decisions, ZoneId.systemDefault())
     }.distinctUntilChanged().flowOn(Dispatchers.Default)
 
+    /** R36: the routes this trip is drawn with (none while routing is off). */
+    private val routes = combine(c.legRoutes.observeForTrip(tripId), c.routingSettings.enabled) { stored, _ ->
+        c.routingSettings.shown(stored)
+    }
+
+    private val suggestionsAndRoutes = combine(stopSuggestions, routes) { s, r -> s to r }
+
     val state: StateFlow<Loadable<TripDetail>> =
         combine(
-            c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observeTracks(tripId), trackLines, stopSuggestions,
-        ) { trip, steps, tracks, lines, suggestions ->
+            c.trips.observeTrip(tripId), c.steps.observeSteps(tripId), c.tracks.observeTracks(tripId), trackLines, suggestionsAndRoutes,
+        ) { trip, steps, tracks, lines, (suggestions, routes) ->
             if (trip == null) {
                 Loadable.Missing
             } else {
                 val ordered = steps.inTimelineOrder()
-                Loadable.Ready(TripDetail(trip, ordered, statsOf(trip, ordered, tracks), tracks, lines, suggestions, TrackRules.canRecordOn(trip, c.clock.today())))
+                Loadable.Ready(
+                    TripDetail(
+                        trip, ordered, statsOf(trip, ordered, tracks, routes), tracks, lines, suggestions,
+                        TrackRules.canRecordOn(trip, c.clock.today()), routes,
+                    ),
+                )
             }
         }
             .catch { emit(Loadable.Failed(it.message ?: it.javaClass.simpleName)) }
@@ -390,7 +417,7 @@ fun TripDetailScreen(
     }
 
     detail?.legs?.firstOrNull { it.to.id == editLegTo }?.let { leg ->
-        LegModeSheet(leg, onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
+        LegModeSheet(leg, detail.measure(leg), onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
     }
 
     if (pickCover && detail != null) {
@@ -426,7 +453,7 @@ private fun TripDetailContent(
     ) {
         item {
             Box(Modifier.fillMaxWidth().height(180.dp)) {
-                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize(), tracks = d.trackLines,
+                TripMap(markers = d.steps.toMarkers(), legModes = d.legModes, legPaths = d.legPaths, routedBy = d.routedBy, interactive = false, fitPaddingDp = 40, modifier = Modifier.fillMaxSize(), tracks = d.trackLines,
                     stopSuggestions = d.stopMarkers(),
                 )
                 Box(Modifier.fillMaxSize().clickable(onClick = onOpenMap))
@@ -449,7 +476,7 @@ private fun TripDetailContent(
             itemsIndexed(d.steps, key = { _, s -> s.id }) { i, step ->
                 val prevDay = d.steps.getOrNull(i - 1)?.arrivedAt?.toLocalDate()
                 val day = step.arrivedAt.toLocalDate()
-                d.legInto(step.id)?.let { leg -> LegRow(leg) { onEditLeg(step.id) } }
+                d.legInto(step.id)?.let { leg -> LegRow(leg, d.measure(leg)) { onEditLeg(step.id) } }
                 if (day != prevDay) {
                     val n = ChronoUnit.DAYS.between(d.trip.startDate, day) + 1
                     Text(
@@ -488,24 +515,42 @@ private fun TripHeader(d: TripDetail) {
         KmReadout(
             km = d.stats.distanceKm,
             kmUnit = stringResource(R.string.stat_km),
-            kmNote = stringResource(if (d.stats.distanceSource == DistanceSource.GPS) R.string.stat_km_gps else R.string.stat_km_straight),
+            kmNote = stringResource(
+                when (d.stats.distanceSource) {
+                    DistanceSource.GPS -> R.string.stat_km_gps
+                    DistanceSource.ROAD -> R.string.stat_km_road
+                    DistanceSource.MIXED -> R.string.stat_km_mixed
+                    DistanceSource.STRAIGHT_LINE -> R.string.stat_km_straight
+                },
+            ),
             counts = buildList {
                 add(ReadoutCount(DisplayFormat.count(d.stats.stepCount.toLong()), stringResource(R.string.stat_steps)))
                 add(ReadoutCount(DisplayFormat.count(d.stats.photoCount.toLong()), stringResource(R.string.stat_photos)))
                 d.stats.days?.let { add(ReadoutCount(DisplayFormat.count(it.toLong()), stringResource(R.string.stat_days))) }
             },
         )
+        // R36: the routers' travel-time estimate of the trip, partial when some legs have no road route.
+        d.stats.durationS?.let { s ->
+            val time = DisplayFormat.approxDuration(s)
+            Text(
+                if (d.stats.legsWithoutTime > 0) stringResource(R.string.stat_time_partial, time, d.stats.legsWithoutTime)
+                else stringResource(R.string.stat_time, time),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
     }
 }
 
 /** Between two timeline rows: the connector line continues, with the leg's mode chip beside it. */
 @Composable
-private fun LegRow(leg: Leg, onClick: () -> Unit) {
+private fun LegRow(leg: Leg, measure: LegMeasure, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(32.dp).height(44.dp), Alignment.Center) {
             Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
         }
-        LegChip(leg, onClick, Modifier.padding(start = 12.dp))
+        LegChip(leg, measure, onClick, Modifier.padding(start = 12.dp))
     }
 }
 

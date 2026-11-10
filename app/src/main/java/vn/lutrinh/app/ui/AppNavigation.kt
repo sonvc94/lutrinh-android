@@ -21,6 +21,7 @@ import vn.lutrinh.app.domain.usecase.StopOutcome
 import vn.lutrinh.app.domain.usecase.TrackFormat
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.collectAsState
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -39,6 +40,8 @@ import vn.lutrinh.app.ui.steps.FromPhotosScreen
 import vn.lutrinh.app.ui.steps.StepDetailScreen
 import vn.lutrinh.app.ui.steps.StepEditScreen
 import vn.lutrinh.app.ui.tracks.BatteryGuideScreen
+import vn.lutrinh.app.ui.settings.RoutingNoticeDialog
+import vn.lutrinh.app.ui.settings.SettingsScreen
 import vn.lutrinh.app.ui.trips.TripDetailScreen
 import vn.lutrinh.app.ui.trips.TripEditScreen
 import vn.lutrinh.app.ui.trips.TripListScreen
@@ -62,6 +65,7 @@ object Routes {
     const val OFFLINE = "offline?tripId={tripId}"
     const val SHARE = "trip/{tripId}/share"
     const val BATTERY_GUIDE = "batteryGuide"
+    const val SETTINGS = "settings"
 
     fun tripEdit(tripId: String? = null) = if (tripId == null) "tripEdit" else "tripEdit?tripId=$tripId"
 
@@ -124,6 +128,15 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
         NavGraph(nav)
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 16.dp))
     }
+    // R36: once, before the first stop position is sent to the routing server.
+    val container = (context.applicationContext as LuTrinhApp).container
+    val noticeDue by container.routeSync.noticeDue.collectAsStateWithLifecycle()
+    if (noticeDue) {
+        RoutingNoticeDialog(
+            onAccept = { container.routingSettings.markNoticeSeen() },
+            onTurnOff = { container.routingSettings.setEnabled(false); container.routingSettings.markNoticeSeen() },
+        )
+    }
 }
 
 @Composable
@@ -137,6 +150,7 @@ private fun NavGraph(nav: NavHostController) {
                 onShare = { nav.navigate(Routes.share(it)) },
                 onOpenMyMap = { nav.navigate(Routes.MY_MAP) },
                 onOpenOffline = { nav.navigate(Routes.offline()) },
+                onOpenSettings = { nav.navigate(Routes.SETTINGS) },
             )
         }
         composable(Routes.OFFLINE, arguments = listOf(optional("tripId"))) {
@@ -186,6 +200,7 @@ private fun NavGraph(nav: NavHostController) {
             )
         }
         composable(Routes.BATTERY_GUIDE) { BatteryGuideScreen(onBack = { nav.popBackStack() }) }
+        composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
         composable(
             Routes.STEP_EDIT,
             arguments = listOf(required("tripId"), optional("stepId")) +

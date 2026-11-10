@@ -22,6 +22,8 @@ class LuTrinhApp : Application(), SingletonImageLoader.Factory {
         TrackNotifications.createChannel(this)
         // A fresh process has no recording: an open track was left by a process that died (R16).
         container.appScope.launch { container.recorder.recoverInterrupted() }
+        // Road routes for legs (R36): fetched in the background while on, noticed and online.
+        container.routeSync.start(container.appScope)
     }
 
     /** Coil for local files only; video files draw a still frame (R29 thumbnails). */

@@ -75,6 +75,68 @@ object Polyline {
         return points.last()
     }
 
+    /**
+     * Encoded polyline with 6 decimals ("polyline6", the format Valhalla and OSRM answer in and
+     * `leg_routes.geometry` stores): per point the lat/lng deltas × 10^6, zig-zag, 5-bit chunks + 63.
+     */
+    fun encode6(points: List<GeoPoint>): String {
+        val sb = StringBuilder()
+        var lastLat = 0L
+        var lastLng = 0L
+        for (p in points) {
+            val lat = Math.round(p.latitude * 1e6)
+            val lng = Math.round(p.longitude * 1e6)
+            encodeValue(lat - lastLat, sb)
+            encodeValue(lng - lastLng, sb)
+            lastLat = lat
+            lastLng = lng
+        }
+        return sb.toString()
+    }
+
+    /** Inverse of [encode6]; a damaged string yields the points read so far. */
+    fun decode6(encoded: String): List<GeoPoint> {
+        val out = ArrayList<GeoPoint>()
+        var i = 0
+        var lat = 0L
+        var lng = 0L
+        while (i < encoded.length) {
+            val dLat = decodeValue(encoded, i) ?: break
+            i = dLat.second
+            val dLng = decodeValue(encoded, i) ?: break
+            i = dLng.second
+            lat += dLat.first
+            lng += dLng.first
+            out += GeoPoint(lat / 1e6, lng / 1e6)
+        }
+        return out
+    }
+
+    private fun encodeValue(v: Long, sb: StringBuilder) {
+        var n = if (v < 0) (v shl 1).inv() else v shl 1
+        while (n >= 0x20) {
+            sb.append(((0x20 or (n and 0x1f).toInt()) + 63).toChar())
+            n = n shr 5
+        }
+        sb.append((n + 63).toInt().toChar())
+    }
+
+    /** One zig-zag value from [start]: (value, index after it), or null when the string ends inside it. */
+    private fun decodeValue(s: String, start: Int): Pair<Long, Int>? {
+        var result = 0L
+        var shift = 0
+        var i = start
+        while (true) {
+            if (i >= s.length) return null
+            val b = s[i++].code - 63
+            result = result or ((b and 0x1f).toLong() shl shift)
+            shift += 5
+            if (b < 0x20) break
+        }
+        val v = if (result and 1L != 0L) (result shr 1).inv() else result shr 1
+        return v to i
+    }
+
     private fun planarLength(a: GeoPoint, b: GeoPoint): Double {
         val k = cos(Math.toRadians((a.latitude + b.latitude) / 2))
         return hypot((b.longitude - a.longitude) * k, b.latitude - a.latitude)

@@ -235,8 +235,11 @@ class BackupManager(
     companion object {
         private const val TAG = "Backup"
 
-        /** User tables, parents first (insert order; deletes go in reverse). */
-        val TABLES = listOf("trips", "steps", "photos", "tracks", "track_points", "stop_decisions")
+        /**
+         * User tables, parents first (insert order; deletes go in reverse). `leg_routes` (R36) is
+         * copied too, but not counted in the manifest (routes can always be fetched again).
+         */
+        val TABLES = listOf("trips", "steps", "leg_routes", "photos", "tracks", "track_points", "stop_decisions")
 
         fun counts(d: SupportSQLiteDatabase): BackupCounts {
             fun n(t: String) = d.query("SELECT COUNT(*) FROM `$t`").use { c -> c.moveToFirst(); c.getInt(0) }
