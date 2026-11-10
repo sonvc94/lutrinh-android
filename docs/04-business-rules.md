@@ -861,7 +861,7 @@ system picker — the app only sees a file).
 `version6BackupRestoresIntoVersion7`). Since v7 the `photos/` entries include videos (R29) and the
 snackbar and the confirmation count them apart ("16 ảnh · 1 video", `BackupCounts.stills` / `videos`,
 `DisplayFormat.mediaCount`): a video is never an "ảnh" (`backupRoundTripKeepsAVideo` asserts the counts and
-the text; `img/small-fixes/01`, `02`). Checked by hand on the captain's data:
+the text; `img/small-fixes/01`, `02`). The same on the trip list ("10 điểm dừng · 10 ảnh · 2 video", `TripSummary.videoCount`), the trip-detail stats (a separate "video" number, `TripStats.videoCount`) and the share stats ("ảnh" without videos): `DisplayFormat.tripMediaCount`, test `tripMediaCount_countsVideosApart`. A 56 dp thumbnail in the trip detail shows only the ▶ (`VideoPlayMark`, `LocalMedia(compactMark)`), the duration badge stays on larger ones (`img/trip-detail-video-count.png`). Checked by hand on the captain's data:
 backup of `2|14|16|1|359|1` (287 717 B, 16 photo files), restored over the same data: every row and
 every photo file byte-identical (`img/gpx-backup/05`, `06`); and a schema-7 backup with two videos
 (`2|15|19|1|359|1`, 454 951 B) restored over 18 files: 19 files md5-identical (`img/photo-video/11`).

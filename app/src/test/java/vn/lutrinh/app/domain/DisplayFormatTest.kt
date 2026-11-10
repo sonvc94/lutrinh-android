@@ -49,6 +49,13 @@ class DisplayFormatTest {
     }
 
     @Test
+    fun tripMediaCount_countsVideosApart() {
+        assertEquals("13 ảnh", DisplayFormat.tripMediaCount(13, 0))
+        assertEquals("13 ảnh · 2 video", DisplayFormat.tripMediaCount(15, 2))
+        assertEquals("0 ảnh · 1 video", DisplayFormat.tripMediaCount(1, 1))
+    }
+
+    @Test
     fun defaultStepTitle_isTheArrivalTime() {
         assertEquals("Điểm dừng 09:05", DisplayFormat.defaultStepTitle(java.time.LocalDateTime.of(2026, 10, 20, 9, 5, 59)))
     }

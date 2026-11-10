@@ -64,6 +64,7 @@ enum class DistanceSource {
 data class TripStats(
     val stepCount: Int,
     val photoCount: Int,
+    val videoCount: Int = 0,
     val distanceKm: Double,
     val days: Long?,
     val distanceSource: DistanceSource = DistanceSource.STRAIGHT_LINE,
@@ -100,6 +101,7 @@ fun statsOf(trip: Trip, all: List<Step>, tracks: List<Track> = emptyList(), rout
     return TripStats(
         stepCount = steps.size,
         photoCount = steps.sumOf { it.photos.size },
+        videoCount = steps.sumOf { s -> s.photos.count { it.isVideo } },
         distanceKm = if (useGps) gpsKm else legKm,
         days = trip.endDate?.let { ChronoUnit.DAYS.between(trip.startDate, it) + 1 },
         distanceSource = source,

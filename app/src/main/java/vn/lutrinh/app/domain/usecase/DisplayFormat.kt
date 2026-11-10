@@ -36,6 +36,10 @@ object DisplayFormat {
     /** "12 ảnh · 3 video": photos and videos counted apart, a video is never an "ảnh" (R26). */
     fun mediaCount(photos: Int, videos: Int): String = "${count(photos.toLong())} ảnh · ${count(videos.toLong())} video"
 
+    /** Trip numbers: [total] counts videos too; "13 ảnh · 2 video", only "13 ảnh" without a video. */
+    fun tripMediaCount(total: Int, videos: Int): String =
+        if (videos <= 0) "${count(total.toLong())} ảnh" else mediaCount(total - videos, videos)
+
     fun km(km: Double): String = "${kmNumber(km)} km"
 
     /** Recorded track distance: "850 m" under 1 km, "2,4 km" under 100 km, "125 km" above. */

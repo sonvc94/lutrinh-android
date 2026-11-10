@@ -125,8 +125,8 @@ fun LocalPhoto(fileName: String, modifier: Modifier = Modifier, contentScale: Co
 
 /** A step media item (R29): a photo, or a video's still frame with a play badge and its length. */
 @Composable
-fun LocalMedia(photo: Photo, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop, badge: Boolean = true) =
-    LocalMedia(photo.fileName, if (photo.isVideo) photo.durationMs ?: 0L else null, modifier, contentScale, badge)
+fun LocalMedia(photo: Photo, modifier: Modifier = Modifier, contentScale: ContentScale = ContentScale.Crop, badge: Boolean = true, compactMark: Boolean = false) =
+    LocalMedia(photo.fileName, if (photo.isVideo) photo.durationMs ?: 0L else null, modifier, contentScale, badge, compactMark)
 
 /** [videoDurationMs] non-null = the file is a video of that length (R29). */
 @Composable
@@ -136,10 +136,15 @@ fun LocalMedia(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     badge: Boolean = true,
+    /** A thumbnail too small for the length ("▶ 0:12" would wrap): the ▶ alone. */
+    compactMark: Boolean = false,
 ) {
     Box(modifier) {
         LocalPhoto(fileName, Modifier.fillMaxSize(), contentScale)
-        if (videoDurationMs != null && badge) VideoBadge(videoDurationMs, Modifier.align(Alignment.BottomEnd).padding(4.dp))
+        if (videoDurationMs != null && badge) {
+            val at = Modifier.align(Alignment.BottomEnd).padding(4.dp)
+            if (compactMark) VideoPlayMark(at) else VideoBadge(videoDurationMs, at)
+        }
     }
 }
 

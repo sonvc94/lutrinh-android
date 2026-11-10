@@ -44,6 +44,8 @@ data class TripSummary(
     /** Draft steps (R20) and their photos; deleting the trip removes them too. */
     val draftCount: Int = 0,
     val draftPhotoCount: Int = 0,
+    /** Videos among [photoCount] (R29 videos are `photos` rows): the screens say "n ảnh · m video". */
+    val videoCount: Int = 0,
 )
 
 data class Step(

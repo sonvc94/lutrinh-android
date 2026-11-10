@@ -531,7 +531,8 @@ private fun TripHeader(d: TripDetail) {
                 ),
                 counts = buildList {
                     add(ReadoutCount(DisplayFormat.count(d.stats.stepCount.toLong()), stringResource(R.string.stat_steps)))
-                    add(ReadoutCount(DisplayFormat.count(d.stats.photoCount.toLong()), stringResource(R.string.stat_photos)))
+                    add(ReadoutCount(DisplayFormat.count((d.stats.photoCount - d.stats.videoCount).toLong()), stringResource(R.string.stat_photos)))
+                    if (d.stats.videoCount > 0) add(ReadoutCount(DisplayFormat.count(d.stats.videoCount.toLong()), "video"))
                     d.stats.days?.let { add(ReadoutCount(DisplayFormat.count(it.toLong()), stringResource(R.string.stat_days))) }
                 },
             )
@@ -624,7 +625,7 @@ private fun StepRow(number: Int?, role: DiscRole, step: Step, isLast: Boolean, o
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(56.dp)) {
                         step.photos.take(4).forEach { p ->
-                            LocalMedia(p, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
+                            LocalMedia(p, Modifier.size(56.dp).clip(MaterialTheme.shapes.small), compactMark = true)
                         }
                         if (step.photos.size > 4) {
                             Box(

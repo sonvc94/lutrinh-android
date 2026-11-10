@@ -31,7 +31,7 @@ class FakeStore : TripRepository, StepRepository {
             val (drafts, pub) = s.partition { it.isDraft }
             TripSummary(
                 t, pub.size, pub.sumOf { it.photos.size }, TripCover.resolve(t.coverPhotoId, s)?.fileName,
-                drafts.size, drafts.sumOf { it.photos.size },
+                drafts.size, drafts.sumOf { it.photos.size }, pub.sumOf { s -> s.photos.count { it.isVideo } },
             )
         }
     }

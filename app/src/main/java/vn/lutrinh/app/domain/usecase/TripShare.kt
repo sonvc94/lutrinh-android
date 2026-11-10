@@ -38,7 +38,7 @@ object TripShare {
             distanceKm = base.distanceKm.roundToInt(),
             days = (ChronoUnit.DAYS.between(trip.startDate, last) + 1).toInt().coerceAtLeast(1),
             stepCount = base.stepCount,
-            photoCount = base.photoCount,
+            photoCount = base.photoCount - base.videoCount, // "ảnh" never counts videos
         )
     }
 

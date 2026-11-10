@@ -24,7 +24,7 @@
     <string name="trips_empty_body">Ghi lại hành trình đầu tiên: mùa lúa chín Hà Giang, sông nước Tràng An hay bất cứ nơi nào bạn đặt chân tới.</string>
     <string name="trips_seed">Tạo dữ liệu mẫu</string>
     <string name="trips_seeded">Đã thêm 2 chuyến đi mẫu</string>
-    <string name="trip_counts">%1$d điểm dừng · %2$d ảnh</string>
+    <string name="trip_counts">%1$d điểm dừng · %2$s</string>
     <string name="trip_open_ended">từ %1$s</string>
 
     <!-- My map (R14) -->

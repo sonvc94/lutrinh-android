@@ -259,7 +259,7 @@ private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> 
                     modifier = Modifier.padding(top = 4.dp),
                 )
                 Text(
-                    stringResource(R.string.trip_counts, summary.stepCount, summary.photoCount),
+                    stringResource(R.string.trip_counts, summary.stepCount, DisplayFormat.tripMediaCount(summary.photoCount, summary.videoCount)),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

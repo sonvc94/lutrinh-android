@@ -91,6 +91,7 @@ data class TripSummaryRow(
     @Embedded val trip: TripEntity,
     @ColumnInfo(name = "step_count") val stepCount: Int,
     @ColumnInfo(name = "photo_count") val photoCount: Int,
+    @ColumnInfo(name = "video_count") val videoCount: Int,
     @ColumnInfo(name = "cover_file") val coverFile: String?,
     @ColumnInfo(name = "draft_count") val draftCount: Int,
     @ColumnInfo(name = "draft_photo_count") val draftPhotoCount: Int,
