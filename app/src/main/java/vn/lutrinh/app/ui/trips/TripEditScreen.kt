@@ -192,7 +192,7 @@ fun TripEditScreen(
             f.missing -> MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
             else -> Column(
                 Modifier.padding(padding).fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 val titleError = when {
                     TripError.TITLE_BLANK in f.errors -> stringResource(R.string.err_trip_title_blank)
@@ -304,7 +304,7 @@ private fun CoverRow(f: TripForm, onChange: () -> Unit) {
                 if (cover != null) LocalPhoto(cover.fileName, Modifier.fillMaxSize())
                 else RouteCover(f.steps.inTimelineOrder().map { it.location }, Modifier.fillMaxSize())
             }
-            Column(Modifier.weight(1f).padding(start = 14.dp)) {
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Eyebrow(stringResource(R.string.trip_cover))
                 Text(
                     stringResource(if (f.coverPhotoId != null) R.string.trip_cover_chosen else R.string.trip_cover_auto),

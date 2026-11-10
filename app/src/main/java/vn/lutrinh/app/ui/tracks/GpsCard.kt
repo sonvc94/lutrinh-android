@@ -108,7 +108,7 @@ fun GpsCard(
                     )
                     TextButton(onClick = onOpenBatteryGuide) {
                         Icon(TopoIcons.Battery, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(stringResource(R.string.battery_guide_link))
                     }
                     TrackList(tracks, onDelete = onDeleteTrack)

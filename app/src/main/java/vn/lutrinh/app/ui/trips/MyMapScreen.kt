@@ -196,6 +196,7 @@ fun MyMapScreen(
                 modifier = Modifier.fillMaxSize(),
                 fitExtraTopDp = statsDp,
                 fitExtraBottomDp = cardsDp,
+                fitExtraRightDp = MAP_BUTTONS_RIGHT_DP - 48, // Q-12: the button column never covers a route
                 tracks = data.tracks,
                 myLocation = me.fix,
                 myLocationSignal = me.signal,
@@ -205,7 +206,7 @@ fun MyMapScreen(
                 Modifier.align(Alignment.TopCenter).padding(12.dp).fillMaxWidth()
                     .onSizeChanged { statsDp = with(density) { it.height.toDp().value.toInt() } },
                 floating = true,
-                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 KmReadout(
                     km = data.stats.distanceKm,
@@ -238,7 +239,7 @@ fun MyMapScreen(
             LazyRow(
                 state = listState,
                 contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.align(Alignment.BottomCenter)
                     .onSizeChanged { cardsDp = with(density) { it.height.toDp().value.toInt() } }
                     .navigationBarsPadding().padding(bottom = 24.dp),
@@ -258,13 +259,13 @@ fun MyMapScreen(
 private fun TripMapCard(t: MyMapTrip, selected: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.width(250.dp).padding(bottom = 6.dp),
+        modifier = Modifier.width(250.dp).padding(bottom = 8.dp),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         shadowElevation = Lift.Chip,
         border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
     ) {
-        Column(Modifier.height(84.dp).padding(horizontal = 14.dp, vertical = 10.dp)) {
+        Column(Modifier.height(84.dp).padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.width(16.dp).height(4.dp).background(t.color, CircleShape))
                 Text(

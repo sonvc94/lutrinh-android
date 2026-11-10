@@ -159,12 +159,12 @@ fun RecordTrackControl(
     ) {
         when {
             mine != null -> Row(
-                Modifier.padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val recording = mine.status == TrackStatus.RECORDING
                 Box(Modifier.size(10.dp).background(if (recording) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline, CircleShape))
-                Column(Modifier.padding(start = 10.dp).then(if (compact) Modifier else Modifier.weight(1f))) {
+                Column(Modifier.padding(start = 8.dp).then(if (compact) Modifier else Modifier.weight(1f))) {
                     Text(
                         stringResource(if (recording) R.string.track_recording else R.string.track_paused),
                         style = MaterialTheme.typography.labelLarge,
@@ -182,7 +182,7 @@ fun RecordTrackControl(
                 }
                 FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onStop) {
                     Icon(TopoIcons.Stop, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.track_stop))
                 }
             }
@@ -203,7 +203,7 @@ fun RecordTrackControl(
                 }
                 FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onNewTripAndRecord) {
                     Icon(TopoIcons.Record, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.track_new_trip_and_record))
                 }
             }
@@ -221,7 +221,7 @@ fun RecordTrackControl(
                 }
                 FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onStart) {
                     Icon(TopoIcons.Record, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.track_record))
                 }
             }

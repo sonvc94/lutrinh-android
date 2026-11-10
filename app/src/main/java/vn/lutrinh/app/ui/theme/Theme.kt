@@ -46,8 +46,6 @@ object Palette {
 
     /** Forest: the dark chip / callout of the specimen (`#1F2A24`). Filled buttons, FAB, selection, end pin. */
     val Forest = Color(0xFF1F2A24)
-    /** Moss: the specimen's page ground (`#2F3B2C`). Pressed Forest and the launcher icon ground. */
-    val Moss = Color(0xFF2F3B2C)
 
     /** Signal orange: the route and the elevation line (specimen `#E4572E`). Lines and fills only, never text. */
     val Signal = Color(0xFFE4572E)
@@ -160,6 +158,28 @@ object Radii {
     val Chip = 12.dp
     val Card = 18.dp
     val Panel = 22.dp
+}
+
+/**
+ * Space scale (docs/08 §4, R39): every padding / gap in `ui/` is one of these (0 = none). Screen edge
+ * and card padding are [L]; gap between cards is [M]; text-to-icon gap is [S]. `DesignGuardTest`
+ * (`spacingOnTheSpaceScale`) fails on any other dp literal in padding / spacedBy / Spacer.
+ */
+object Space {
+    val XS = 4.dp
+    val S = 8.dp
+    val M = 12.dp
+    val L = 16.dp
+    val XL = 24.dp
+    val XXL = 32.dp
+}
+
+/** Icon sizes (docs/08 §5, R39): 18 in a button or chip, 22 in a bar / map button, 24 alone, 40 the mark. */
+object IconSize {
+    val S = 18.dp
+    val M = 22.dp
+    val L = 24.dp
+    val Mark = 40.dp
 }
 
 /**

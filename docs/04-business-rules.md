@@ -1272,6 +1272,23 @@ highlights none), a day counter on the map.
 `TripShareTest` (the url( / CSP assertions of R18). Screenshots: docs/img/topo/.
 *Inspired by* the huashu-design review of the app (captain 2026-11-10, Q-2, Q-4, Q-5, Q-8, Q-9, Q-11).
 
+## R39 — Space scale, icon sizes and screen transition (docs/08 §4, §5, §6a)
+
+* **One space scale.** Every padding, gap and spacer is 0, 4, 8, 12, 16, 24 or 32 dp (`Space`);
+  an icon is 18, 22 or 24 dp (40 for the Atlas mark) (`IconSize`); number discs are 28 dp. Sizes
+  of things (thumbnails, 44 dp map buttons, the 96 dp bottom clearance of a list with a FAB) are
+  not spacing. A value outside the scale needs the scale to change first (docs/08 §4), or an entry
+  in the guard's allow-list with a reason (2 today). No behaviour changes: layouts move by 2 to 4 dp.
+* **One screen transition.** Going to another screen: the new screen fades in (300 ms, ease in-out)
+  while sliding 24 dp in from the right; Back slides it out to the right and the previous one in from
+  the left, fading. Trip map ↔ Step detail only fade (the card's shared bounds, R37, do the moving).
+  `Motion.SCREEN_MS` / `SCREEN_SLIDE_DP`; system animations off = no animation.
+* **"Bản đồ của tôi" fit-all keeps the right edge free** (72 dp, like the trip map, R35 camera padding)
+  so the style / location / fit buttons never cover a trip line.
+
+*Tests:* `DesignGuardTest` (`spacingOnTheSpaceScale`). Screenshots: `docs/img/std-scale/`.
+*Inspired by* the huashu-design review of the app (captain 2026-11-10, Q-1, Q-6, Q-7, Q-10, Q-12).
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

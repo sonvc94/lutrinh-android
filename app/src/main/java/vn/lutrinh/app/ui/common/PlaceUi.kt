@@ -28,7 +28,7 @@ import vn.lutrinh.app.domain.usecase.PlaceLabel
 fun ChangeLocationButton(hasLocation: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     TextButton(onClick = onClick, enabled = enabled, modifier = modifier) {
         Icon(TopoIcons.Place, null, Modifier.size(18.dp))
-        Spacer(Modifier.padding(3.dp))
+        Spacer(Modifier.padding(4.dp))
         Text(stringResource(if (hasLocation) R.string.step_location_change else R.string.step_location_pick))
     }
 }

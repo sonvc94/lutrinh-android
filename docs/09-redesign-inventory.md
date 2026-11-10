@@ -117,6 +117,13 @@ Each batch is a contained set of files; shared components (`ui/common/`, `ui/the
   `MessageState` + `compact` in "Bản đồ của tôi" (S10), place search (S8) and stop photos (S5); Q-11
   data chips 13 (docs/08 §3); Q-9 embedded Barlow digits (X2). Rule R38; guard
   `dialogsUseTheThreeTypesAndTheDialogTitleToken`. Shots `docs/img/topo/std2-*.png`.
+* **Standardisation batch 3 (branch `mate/lutrinh-std-scale`): scale and motion.** Q-10 `Space`
+  token 4/8/12/16/24/32 (every 6 → 8 / 4, 10 → 8 / 12, 14 → 12 / 16, 18 → 16, 20 / 22 → 24, 3 → 4,
+  1 / 2 → 0 / 4 in `ui/` and `map/`), icon sizes 18/22/24 (+40 mark), discs 28; guard
+  `spacingOnTheSpaceScale`. Q-6 screen transition 300 ms fade + 24 dp slide (`Motion.SCREEN_MS`, all
+  screens). Q-12 "Bản đồ của tôi" fit-all keeps the right edge free for its button column.
+  Moss token removed (unused; the launcher ground is Forest). Light-only (Q-1) and the km bar (Q-7)
+  noted in docs/08 §14.
 
 Count: 14 screens + 13 dialogs + 4 sheets + 4 menus + 3 messages + 3 map overlays + 4 share
 outputs = 45 entries.

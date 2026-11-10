@@ -88,7 +88,7 @@ fun PlaceResults(results: List<PlaceHit>, loading: Boolean, tooShort: Boolean, o
                 stringResource(R.string.picker_search_attribution),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
     }

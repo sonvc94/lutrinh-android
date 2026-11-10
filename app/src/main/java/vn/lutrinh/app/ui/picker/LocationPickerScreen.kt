@@ -262,12 +262,12 @@ fun LocationPickerScreen(
             ) {
                 Eyebrow(stringResource(R.string.picker_hint))
                 val here = chosenName(chosen, center)
-                if (here != null) Text(here, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
+                if (here != null) Text(here, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
                 Text(
                     formatCoord(center.latitude, center.longitude),
                     style = (if (here != null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleLarge).numerals(),
                     color = if (here != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                 )
                 Button(shape = MaterialTheme.shapes.small, onClick = { onPicked(center, chosenName(chosen, center)) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
                     Text(stringResource(R.string.picker_confirm))

@@ -10,7 +10,7 @@ the OpenStreetMap routing server (FOSSGIS Valhalla, OSRM car fallback); nothing 
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R38 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R39 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -21,7 +21,7 @@ route, Noto Sans + Barlow Condensed numerals, radii 8/12/18/22 (`Radii`), soft s
 only over the map, `TopoIcons` only, real photos only. Colours only in `ui/theme/` (`Palette`; map
 code uses `Color.rgbHex()`); `DesignGuardTest` (in `testDebugUnitTest`) fails on colour literals,
 gradients, raw corner radii or shadows outside the tokens, FABs outside `Buttons.kt`, other fonts,
-and Material icons / off-scale weights outside its `notYetTopo` list (= the files `docs/09` still
+dp literals off the `Space` scale (padding / gaps 0·4·8·12·16·24·32, icons 18·22·24·40, rule `spacingOnTheSpaceScale`; its allow-list needs a reason per entry), and Material icons / off-scale weights outside its `notYetTopo` list (= the files `docs/09` still
 lists for a later batch: remove a file from it when you redo it). A new token or text/background
 pair goes into the docs/08 contrast table.
 
@@ -68,7 +68,7 @@ app/src/main/java/vn/lutrinh/app/
             ui/steps/MediaStrip.kt (drag strip + camera contract); videos are `photos` rows (media_type)
   data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22;
             `map_style` = `light`|`satellite`, R32; `routing_enabled`, `routing_notice_seen`, R36)
-  ui/theme/ design tokens (docs/08): Theme.kt (Palette, Radii, Lift, ledge(), hairline), Type.kt
+  ui/theme/ design tokens (docs/08): Theme.kt (Palette, Radii, Space, IconSize, Lift, ledge(), hairline), Type.kt
             (Noto Sans scale, numerals() = Barlow) + TopoIcons.kt (own icons); ui/common/Topo.kt
             (TopoCard, TopoPanel, Eyebrow, ScreenHeading, TopoBadge, MapChip, topoFieldColors),
             Buttons.kt (ChipFab, MapButton), Readout.kt (stats panel + scale bar, maths in

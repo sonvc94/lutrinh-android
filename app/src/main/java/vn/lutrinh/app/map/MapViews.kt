@@ -88,7 +88,7 @@ fun MapAttribution(basemap: BasemapProvider, modifier: Modifier = Modifier, rout
         lineHeight = line,
         color = Palette.MapCredit,
         textAlign = TextAlign.End,
-        modifier = modifier.background(Palette.Card.copy(alpha = 0.8f)).padding(horizontal = 4.dp, vertical = 1.dp),
+        modifier = modifier.background(Palette.Card.copy(alpha = 0.8f)).padding(horizontal = 4.dp, vertical = 0.dp),
     )
 }
 
@@ -298,6 +298,8 @@ fun AllTripsMap(
     fitPaddingDp: Int = 48,
     fitExtraBottomDp: Int = 0,
     fitExtraTopDp: Int = 0,
+    /** Room kept at the right edge of the fit for a column of map buttons (Q-12), on top of [fitPaddingDp]. */
+    fitExtraRightDp: Int = 0,
     /** Every recorded GPS track (R16), drawn above the trip lines and below the step dots. */
     tracks: List<TrackLine> = emptyList(),
     /** "Vị trí của tôi": the fix to draw (null = none) and a counter whose change flies the camera to it. */
@@ -321,7 +323,7 @@ fun AllTripsMap(
         presenter.selectedId = selectedId
         presenter.myLocation = myLocation
         presenter.myLocationSignal = myLocationSignal
-        presenter.padding = MapInsets(p, p + (fitExtraTopDp * density).toInt(), p, p + (fitExtraBottomDp * density).toInt())
+        presenter.padding = MapInsets(p, p + (fitExtraTopDp * density).toInt(), p + (fitExtraRightDp * density).toInt(), p + (fitExtraBottomDp * density).toInt())
         presenter.render(map)
     }
 }

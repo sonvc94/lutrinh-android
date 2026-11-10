@@ -193,7 +193,7 @@ private class AreaActions(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Eyebrow(text, modifier = Modifier.padding(start = 6.dp, top = 8.dp))
+    Eyebrow(text, modifier = Modifier.padding(start = 8.dp, top = 8.dp))
 }
 
 @Composable
@@ -257,7 +257,7 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
             }
             if (done) {
                 // A stored area: the specimen's "easy" badge with its check.
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(TopoIcons.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.tertiary)
                     TopoBadge(status, BadgeTone.Easy)
                 }

@@ -89,6 +89,51 @@ class DesignGuardTest {
         assertTrue("corner radii not from Radii/MaterialTheme.shapes:\n" + found.joinToString("\n"), found.isEmpty())
     }
 
+    /** dp literals inside the balanced parentheses of each [keywords] call on a line. */
+    private fun dpInCalls(line: String, keywords: Regex): List<Double> = keywords.findAll(line).flatMap { m ->
+        var depth = 1
+        var i = m.range.last + 1
+        val start = i
+        while (i < line.length && depth > 0) { if (line[i] == '(') depth++ else if (line[i] == ')') depth--; i++ }
+        Regex("""(?<![\w.])(\d+(?:\.\d+)?)\.dp""").findAll(line.substring(start, i)).map { it.groupValues[1].toDouble() }
+    }.toList()
+
+    private val spaceScale = setOf(0.0, 4.0, 8.0, 12.0, 16.0, 24.0, 32.0)
+
+    /** Layout clearances that are sizes, not spacing (docs/08 §4 "Space"); each needs its reason here. */
+    private val spaceAllowed = mapOf(
+        "ui/picker/LocationPickerScreen.kt#124" to "map overlay offset = height of the search field + quick-place chips (a layout size, not spacing)",
+        "ui/trips/TripDetailScreen.kt#2" to "ring thickness of the day disc (2 dp ring around the 24 dp fill), a line weight",
+    )
+
+    @Test
+    fun spacingOnTheSpaceScale() {
+        // docs/08 §4, R39: padding, gaps and spacers are 0/4/8/12/16/24/32 dp (`Space`); icons 18/22/24 (+40 mark).
+        val files = sources().filterNot { rel(it).startsWith("ui/theme/") }
+        val spacing = Regex("""\b(?:padding|PaddingValues|spacedBy|Spacer)\(""")
+        val off = files.flatMap { f ->
+            f.readLines().mapIndexedNotNull { i, line ->
+                val bad = dpInCalls(line, spacing).filter { it !in spaceScale }
+                val left = bad.filter { "${rel(f)}#${it.toInt()}" !in spaceAllowed }
+                if (left.isNotEmpty()) "${rel(f)}:${i + 1}: $left ${line.trim()}" else null
+            }
+        }
+        assertTrue("padding / spacing off the Space scale (${spaceScale.map { it.toInt() }}):\n" + off.joinToString("\n"), off.isEmpty())
+        val iconSizes = setOf(18.0, 22.0, 24.0, 40.0)
+        val icons = files.flatMap { f ->
+            f.readLines().mapIndexedNotNull { i, line ->
+                val bad = if (Regex("""\bIcon\(""").containsMatchIn(line)) dpInCalls(line, Regex("""\bsize\(""")).filter { it !in iconSizes } else emptyList()
+                if (bad.isNotEmpty()) "${rel(f)}:${i + 1}: $bad ${line.trim()}" else null
+            }
+        }
+        assertTrue("icon size off 18/22/24/40:\n" + icons.joinToString("\n"), icons.isEmpty())
+        val stale = spaceAllowed.keys.filter { key ->
+            val (file, v) = key.split("#")
+            files.none { rel(it) == file } || files.first { rel(it) == file }.readLines().none { l -> v.toDouble() in dpInCalls(l, spacing) }
+        }
+        assertTrue("allow-list entries no longer in the source: $stale", stale.isEmpty())
+    }
+
     @Test
     fun shadowsOnlyFromLiftTokens() {
         // docs/08 §4 "Elevation": cards sit on a ledge; only things over the map lift, by Lift.Chip / Lift.Panel.

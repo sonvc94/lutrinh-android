@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import vn.lutrinh.app.ui.theme.Lift
+import vn.lutrinh.app.ui.theme.IconSize
 
 /*
  * Buttons that float (docs/08 §5 "Buttons"): the specimen's chips, 12 dp corners, never a pill,
@@ -58,6 +59,6 @@ fun MapButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit
         shadowElevation = Lift.Chip,
         modifier = modifier.size(44.dp),
     ) {
-        Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription, Modifier.size(22.dp)) }
+        Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription, Modifier.size(IconSize.M)) }
     }
 }

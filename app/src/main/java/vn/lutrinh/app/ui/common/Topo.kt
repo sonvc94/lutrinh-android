@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import vn.lutrinh.app.ui.theme.Lift
 import vn.lutrinh.app.ui.theme.Palette
 import vn.lutrinh.app.ui.theme.Radii
+import vn.lutrinh.app.ui.theme.Space
 import vn.lutrinh.app.ui.theme.ledge
 
 /*
@@ -41,7 +42,7 @@ fun TopoCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
-    contentPadding: PaddingValues = PaddingValues(14.dp),
+    contentPadding: PaddingValues = PaddingValues(Space.M),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(Radii.Card)
@@ -64,7 +65,7 @@ fun TopoCard(
 fun TopoPanel(
     modifier: Modifier = Modifier,
     floating: Boolean = false,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+    contentPadding: PaddingValues = PaddingValues(Space.L),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
@@ -108,7 +109,7 @@ fun TopoBadge(text: String, tone: BadgeTone, modifier: Modifier = Modifier) {
         text,
         style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.sp),
         color = fg,
-        modifier = modifier.background(bg, RoundedCornerShape(Radii.Badge)).padding(horizontal = 8.dp, vertical = 2.dp),
+        modifier = modifier.background(bg, RoundedCornerShape(Radii.Badge)).padding(horizontal = 8.dp, vertical = 4.dp),
     )
 }
 

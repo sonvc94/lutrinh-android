@@ -49,7 +49,6 @@ values for a role the specimen does not show.
 | InkMuted | `#6B6A58` | `.lbl`, `.m` | labels, meta, secondary text (on Parchment/Card/CardDim only) |
 | Outline | `#86826B` | derived (InkMuted, lighter) | field borders, hollow discs: 3:1 lines |
 | Forest | `#1F2A24` | dark chip, end pin, callout | primary: filled buttons, FAB, switch, selection, end pin, snackbar |
-| Moss | `#2F3B2C` | page ground | launcher icon ground |
 | Signal | `#E4572E` | route, elevation line | the route, the km bar, accents as lines/fills (never text) |
 | SignalDeep | `#B83A16` | derived (Signal darkened) | Signal as text/icons: links, mode icons, selected leg |
 | SignalWash | `#FBE3D9` | Signal at 22–25 % on Card | accent wells (e.g. selected pin halo) |
@@ -122,8 +121,12 @@ The specimen's scale (px at its 360 px phone = dp/sp):
 
 ## 4. Space, radii, lines, elevation, motif
 
-* Spacing on a 2/4 dp grid: 4 · 8 · 12 · 14 · 16 · 18 · 22 · 24. Screen edge 16 dp (specimen card
-  margin 16, title padding 22); card padding 14; panel padding 18 × 16; list gap 12.
+* **Space scale** (`Space`, R39): 4 · 8 · 12 · 16 · 24 · 32 (and 0). Every padding, gap and spacer in
+  the app is one of these: screen edge 16 (`Space.L`); title / eyebrow inset 24; card padding 12
+  (`TopoCard`), panel padding 16 (`TopoPanel`); list gap 12; gap between related controls 8; chip
+  and badge insets 4 / 8; form-field gap 16. Sizes (thumbnails, 44 dp buttons, FAB clearance
+  `Space.XXL * 3`) are not spacing. A new off-scale value is a design change: change the scale
+  here first. Guard `spacingOnTheSpaceScale` (§12), its 2 exceptions carry a reason.
 * **Four radii** (`Radii`): 8 badges · 12 chips, buttons, fields, thumbnails, menus, snackbars
   (Material `extraSmall`/`small`) · 18 cards (`medium`) · 22 panels, sheets, dialogs (`large`,
   `extraLarge`). Nothing is a full pill; `CircleShape` only for dots, discs and pins.
@@ -139,6 +142,11 @@ The specimen's scale (px at its 360 px phone = dp/sp):
 * Touch targets ≥ 44 dp (Material 48 dp kept).
 
 ## 5. Icons
+
+**Sizes** (`IconSize`, R39): 18 in a button, chip, row or badge · 22 in a bar, map button or card
+arrow · 24 on its own (empty-state mark, battery guide) · 40 the Atlas mark. Disc / number markers
+are 28 dp (`DiscRole` on the trip timeline, battery-guide steps, from-photos stops); the photo
+buttons are 24 dp squares. Guard `spacingOnTheSpaceScale` checks every `Icon(…size(…))`.
 
 `TopoIcons` (own drawings, no third-party licence), in the specimen's line grammar: a 24 grid, one
 2 unit stroke, **round caps and round joins** (like its route and contour lines), boxes with 2 unit
@@ -245,6 +253,7 @@ ease in-out** `cubic-bezier(0.65, 0, 0.35, 1)` (`Motion.EaseInOut`).
 | Camera step move | 400–1800 ms: `350 + 1.5 ms/km + 160 ms per zoom level`, clamped (`CameraMath`) | trip map camera to the focused step, ease in-out, never while the cards move |
 | `EXPAND_MS` | 400 ms | card → Step detail shared bounds (and back) |
 | `CONTENT_FADE_MS` / `CONTENT_FADE_DELAY_MS` | 200 ms after 150 ms | the detail's content fades in once the bounds are growing; out at once (200 ms) on Back |
+| `SCREEN_MS` / `SCREEN_SLIDE_DP` | 300 ms, 24 dp | screen → screen (navigation, `NavHost` in `AppNavigation.kt`): the new screen fades in while sliding 24 dp along the way in (forward: from the right; Back: from the left), the old one fades out and slides out the same way, `EaseInOut`. Trip map ↔ Step detail only fades: the card's shared bounds do the moving |
 | `DAY_FLIP_MS` | 260 ms | "Ngày N/M": the number slides by its own height and fades, up when N grows, down when it shrinks; the chip itself fades in and out with the same duration and `EaseInOut` |
 
 The day counter is a Card chip over the map (Ink "Ngày" label, Barlow numerals, InkMuted "/M",
@@ -274,7 +283,7 @@ tokens.
   Forest (last) with a white ring; no Signal text, no gradients, no links. Text in `"Noto Sans"` then system sans (name only); numbers in `"Barlow Condensed"` 700,
   embedded as a ~2 kB WOFF2 subset of the digits and `.,:-–/+%` (`BarlowDigits.kt`, OFL, licence in
   `assets/licenses`) in a `data:` `@font-face`; the CSP allows `font-src data:` only (no network).
-* App icon: the Route mark in Card on a Moss square; window background Parchment.
+* App icon: the Route mark in Card on a Forest square (`ic_launcher_background`); window background Parchment.
 
 ## 9. Do / don't
 
@@ -326,8 +335,7 @@ AI-made pictures, em dashes in copy.
 | Forest / Parchment | #1F2A24 / #EFEBDA | text buttons, links | 12.41 | yes |
 | Forest / Card | #1F2A24 / #FBFAF2 | text buttons in dialogs | 14.18 | yes |
 | Forest / Sand | #1F2A24 / #E8E3CE | onPrimaryContainer | 11.53 | yes |
-| Card / Forest | #FBFAF2 / #1F2A24 | filled buttons, FAB, snackbar, dark chip | 14.18 | yes |
-| Card / Moss | #FBFAF2 / #2F3B2C | launcher mark | 11.25 | yes |
+| Card / Forest | #FBFAF2 / #1F2A24 | filled buttons, FAB, snackbar, dark chip, launcher mark | 14.18 | yes |
 | SignalDeep / Card | #B83A16 / #FBFAF2 | accent text, mode icons | 5.49 | yes |
 | SignalDeep / Parchment | #B83A16 / #EFEBDA | accent text | 4.81 | yes |
 | SignalDeep / Sand | #B83A16 / #E8E3CE | mode icon on a selected row (icon, ≥ 3) | 4.46 | icon only |
@@ -364,6 +372,10 @@ Signal (`#E4572E`) is never text: white on it is 3.68 and it is 3.08 on the pape
   missing OFL file, or a leftover of the old design (`be_vietnam`, `AtlasIcons`, `FlatFab`, `Cham`);
 * `topoIconsAndTypeWeights`: a Material icon import or a font weight off the scale (Thin, Light,
   SemiBold, …) outside the shrinking `notYetTopo` list (docs/09; a clean listed file fails too);
+* `spacingOnTheSpaceScale`: a dp literal other than 0/4/8/12/16/24/32 in `padding(` / `PaddingValues(` /
+  `spacedBy(` / `Spacer(`, or an `Icon(…size(…))` other than 18/22/24/40, outside `ui/theme/`; the
+  allow-list (`spaceAllowed`, 2 entries: the picker's 124 dp overlay offset, the 2 dp ring of a day
+  disc) needs a reason per entry and fails when an entry is no longer in the source;
 * `dialogsUseTheThreeTypesAndTheDialogTitleToken`: `AlertDialog(` only in `Dialogs.kt` (+ the time picker), no 26 sp title token in `ui/`;
 * `noSystemBlueOnMaps`, `noGeneratedSamplePictures`, `samplePhotosHaveASourceAndLicence`.
 
@@ -384,10 +396,11 @@ km bar as a `Canvas` (`RouteFit`, `KmScale` ported as is, docs/07).
 
 ## 14. Not done (follow-up)
 
-* Dark theme: the specimen has none; the app stays light-only (`MainActivity` forces light
-  system bars). A derived dark palette (Forest ground, Card ink, Signal kept) is a later decision.
+* Dark theme: the specimen has none; **the app stays light-only** (captain 2026-11-10, Q-1:
+  `MainActivity` forces light system bars, the system's dark mode is ignored on purpose). A derived
+  dark palette (Forest ground, Card ink, Signal kept) is a later decision.
 * The screens, dialogs and sheets marked "not yet" in `docs/09-redesign-inventory.md` (batches 2–4),
   including the HTML trip page.
 * Elevation profile: the app has no altitude data, so the specimen's profile chart has no
-  counterpart; the km scale bar stands in its place.
+  counterpart; **the km scale bar stays** (captain 2026-11-10, Q-7: no elevation chart).
 * Older feature screenshots in `docs/img/` (docs/03 index) still show the previous look.

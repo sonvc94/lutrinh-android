@@ -151,11 +151,11 @@ fun VideoBadge(durationMs: Long, modifier: Modifier = Modifier) {
     Row(
         modifier
             .background(MaterialTheme.colorScheme.inverseSurface, RoundedCornerShape(Radii.Badge))
-            .padding(start = 3.dp, end = 6.dp, top = 1.dp, bottom = 1.dp)
+            .padding(start = 4.dp, end = 8.dp, top = 0.dp, bottom = 0.dp)
             .semantics(mergeDescendants = true) { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(TopoIcons.Play, null, tint = ink, modifier = Modifier.size(14.dp))
+        Icon(TopoIcons.Play, null, tint = ink, modifier = Modifier.size(18.dp))
         Text(DisplayFormat.clock(durationMs), color = ink, style = MaterialTheme.typography.labelSmall.numerals())
     }
 }
@@ -185,7 +185,7 @@ fun MessageState(
     if (compact) {
         Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(TopoIcons.Atlas, null, tint = Palette.Contour, modifier = Modifier.size(24.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 if (body.isNotEmpty()) {
                     Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -44,8 +44,8 @@ internal fun OfflineIndicator(center: GeoPoint?, modifier: Modifier = Modifier) 
             color = MaterialTheme.colorScheme.surfaceContainerLowest,
             shadowElevation = Lift.Chip,
         ) {
-            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(TopoIcons.Download, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(TopoIcons.Download, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(stringResource(R.string.offline_indicator, area.name), style = MaterialTheme.typography.labelMedium)
             }
         }
@@ -58,7 +58,7 @@ internal fun OfflineIndicator(center: GeoPoint?, modifier: Modifier = Modifier) 
             shadowElevation = Lift.Panel,
         ) {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(TopoIcons.CloudOff, null, Modifier.size(20.dp))
+                Icon(TopoIcons.CloudOff, null, Modifier.size(18.dp))
                 Column {
                     Text(stringResource(R.string.offline_no_network), style = MaterialTheme.typography.labelLarge)
                     Text(stringResource(R.string.offline_not_downloaded), style = MaterialTheme.typography.bodySmall)

@@ -60,14 +60,14 @@ fun CoverPickerSheet(steps: List<Step>, chosenId: String?, onPick: (String?) -> 
             Text(
                 stringResource(R.string.trip_cover_change),
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 22.dp),
+                modifier = Modifier.padding(horizontal = 24.dp),
             )
             if (photos.isEmpty()) {
                 Text(
                     stringResource(R.string.trip_cover_none),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(22.dp),
+                    modifier = Modifier.padding(24.dp),
                 )
                 return@Column
             }
@@ -120,7 +120,7 @@ private fun CoverTile(
             Icon(
                 TopoIcons.Check, stringResource(R.string.trip_cover_chosen),
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(Radii.Badge)).padding(3.dp),
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(24.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(Radii.Badge)).padding(4.dp),
             )
         }
     }

@@ -2,6 +2,8 @@ package vn.lutrinh.app.ui.steps
 
 import androidx.compose.foundation.clickable
 import vn.lutrinh.app.ui.theme.TopoIcons
+import vn.lutrinh.app.ui.theme.IconSize
+import vn.lutrinh.app.ui.theme.Space
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -167,7 +169,7 @@ fun StepDetailScreen(
                             Spacer(Modifier.height(8.dp))
                             InfoRow(TopoIcons.Place, place)
                             coords?.let {
-                                Text(it, style = MaterialTheme.typography.bodySmall.numerals(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 26.dp))
+                                Text(it, style = MaterialTheme.typography.bodySmall.numerals(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = IconSize.S + Space.S))
                             }
                         }
                         Spacer(Modifier.height(4.dp))
@@ -193,12 +195,12 @@ fun StepDetailScreen(
                     if (step.photos.isNotEmpty()) {
                         Eyebrow(
                             stringResource(R.string.step_detail_photos, step.photos.size),
-                            modifier = Modifier.padding(start = 20.dp, top = 20.dp, bottom = 8.dp),
+                            modifier = Modifier.padding(start = 24.dp, top = 24.dp, bottom = 8.dp),
                         )
                         val cell = (LocalConfiguration.current.screenWidthDp.dp - 32.dp - 12.dp) / 3
                         FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.padding(horizontal = 16.dp),
                         ) {
                             step.photos.forEachIndexed { i, p ->
@@ -250,7 +252,7 @@ private fun StepNeighbours(d: StepDetail, onOpenStep: (String) -> Unit) {
 /** R20: what a draft is, and "Đăng" to publish it. A card with the "moderate" badge and a forest button. */
 @Composable
 private fun DraftCard(onPublish: () -> Unit) {
-    TopoCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(start = 14.dp, end = 10.dp, top = 10.dp, bottom = 10.dp)) {
+    TopoCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 DraftBadge()

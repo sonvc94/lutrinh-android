@@ -20,6 +20,10 @@ object Motion {
     /** "Ngày N/M": the day number slides and fades to the next one. */
     const val DAY_FLIP_MS = 260
 
+    /** Screen → screen (navigation, R39): the new screen fades in while sliding [SCREEN_SLIDE_DP] along the way in. */
+    const val SCREEN_MS = 300
+    const val SCREEN_SLIDE_DP = 24
+
     /** Cubic ease in-out: every move starts and ends softly (the map camera eases in and out too). */
     val EaseInOut: Easing = CubicBezierEasing(0.65f, 0f, 0.35f, 1f)
 }

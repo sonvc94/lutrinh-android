@@ -104,7 +104,7 @@ fun LegModeSheet(leg: Leg, measure: LegMeasure, onPick: (TransportMode?) -> Unit
             Text(
                 stringResource(R.string.leg_sheet_title, leg.from.title, leg.to.title),
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 2.dp, bottom = 12.dp),
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 12.dp),
             )
             (TransportMode.entries + listOf<TransportMode?>(null)).forEach { mode ->
                 val style = mode?.let { TransportStyle.of(it) }

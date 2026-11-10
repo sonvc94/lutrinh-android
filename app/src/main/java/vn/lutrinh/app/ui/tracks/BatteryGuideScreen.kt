@@ -89,7 +89,7 @@ fun BatteryGuideScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(verticalAlignment = Alignment.Top) {
-                Icon(TopoIcons.Battery, null, Modifier.size(28.dp), tint = Palette.SignalDeep)
+                Icon(TopoIcons.Battery, null, Modifier.size(24.dp), tint = Palette.SignalDeep)
                 Text(stringResource(R.string.battery_guide_intro), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 12.dp))
             }
             if (own != null) {
@@ -119,7 +119,7 @@ private fun SectionCard(title: String, steps: List<Int>, highlighted: Boolean) {
         steps.forEachIndexed { i, res ->
             Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.Top) {
                 Box(
-                    Modifier.size(26.dp).background(
+                    Modifier.size(28.dp).background(
                         if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                         CircleShape,
                     ),
@@ -131,7 +131,7 @@ private fun SectionCard(title: String, steps: List<Int>, highlighted: Boolean) {
                         color = if (highlighted) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                Text(stringResource(res), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 12.dp, top = 2.dp))
+                Text(stringResource(res), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 12.dp, top = 4.dp))
             }
         }
     }

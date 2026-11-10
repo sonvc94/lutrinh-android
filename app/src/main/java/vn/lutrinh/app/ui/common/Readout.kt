@@ -58,12 +58,12 @@ fun KmReadout(
         }
     }
     Column(modifier) {
-        if (kmNote != null && !compact) Eyebrow(kmNote, Modifier.padding(bottom = 6.dp))
+        if (kmNote != null && !compact) Eyebrow(kmNote, Modifier.padding(bottom = 8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             stat(DisplayFormat.kmNumber(km), kmUnit)
             counts.forEach { stat(it.value, it.label) }
         }
-        KmScaleBar(km, Modifier.fillMaxWidth().padding(top = 10.dp))
+        KmScaleBar(km, Modifier.fillMaxWidth().padding(top = 8.dp))
     }
 }
 

@@ -8,7 +8,19 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.navigation.NavBackStackEntry
+import vn.lutrinh.app.ui.theme.Motion
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -148,8 +160,21 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
+  val slidePx = with(LocalDensity.current) { Motion.SCREEN_SLIDE_DP.dp.roundToPx() }
+  val fade = tween<Float>(Motion.SCREEN_MS, easing = Motion.EaseInOut)
+  val slide = tween<IntOffset>(Motion.SCREEN_MS, easing = Motion.EaseInOut)
+  // Trip map ↔ step detail: the card's shared bounds do the moving, so these two only fade (R37).
+  fun AnimatedContentTransitionScope<NavBackStackEntry>.cardPair() =
+      setOf(initialState.destination.route, targetState.destination.route) == setOf(Routes.TRIP_MAP, Routes.STEP)
   CompositionLocalProvider(LocalSharedTransitionScope provides this) {
-    NavHost(navController = nav, startDestination = Routes.TRIPS) {
+    NavHost(
+        navController = nav,
+        startDestination = Routes.TRIPS,
+        enterTransition = { fadeIn(fade) + if (cardPair()) EnterTransition.None else slideInHorizontally(slide) { slidePx } },
+        exitTransition = { fadeOut(fade) + if (cardPair()) ExitTransition.None else slideOutHorizontally(slide) { -slidePx } },
+        popEnterTransition = { fadeIn(fade) + if (cardPair()) EnterTransition.None else slideInHorizontally(slide) { -slidePx } },
+        popExitTransition = { fadeOut(fade) + if (cardPair()) ExitTransition.None else slideOutHorizontally(slide) { slidePx } },
+    ) {
         composable(Routes.TRIPS) {
             TripListScreen(
                 onCreate = { nav.navigate(Routes.tripEdit()) },

@@ -10,6 +10,7 @@ import vn.lutrinh.app.ui.common.KmReadout
 import vn.lutrinh.app.ui.common.MapButton
 import vn.lutrinh.app.ui.common.ChipFab
 import vn.lutrinh.app.ui.theme.TopoIcons
+import vn.lutrinh.app.ui.theme.Space
 import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.StopSuggestion
@@ -452,7 +453,7 @@ private fun TripDetailContent(
 ) {
     LazyColumn(
         state = listState,
-        contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 104.dp),
+        contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = Space.XXL * 3), // clears the FAB (56 + 16 + 24)
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
@@ -489,7 +490,7 @@ private fun TripDetailContent(
                     val n = ChronoUnit.DAYS.between(d.trip.startDate, day) + 1
                     Eyebrow(
                         stringResource(R.string.day_label, n.toInt(), day.displayDay()),
-                        modifier = Modifier.padding(start = 22.dp, top = 16.dp, bottom = 2.dp),
+                        modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 4.dp),
                     )
                 }
                 val number = d.numbers[step.id]
@@ -511,12 +512,12 @@ private fun TripHeader(d: TripDetail) {
         ScreenHeading(
             title = d.trip.title,
             eyebrow = dateRange(d.trip.startDate, d.trip.endDate) { openEnded.format(it) },
-            modifier = Modifier.padding(horizontal = 6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp),
         )
         if (d.trip.description.isNotBlank()) {
-            Text(d.trip.description, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 6.dp, end = 6.dp, top = 8.dp))
+            Text(d.trip.description, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp))
         }
-        TopoPanel(Modifier.fillMaxWidth().padding(top = 14.dp)) {
+        TopoPanel(Modifier.fillMaxWidth().padding(top = 12.dp)) {
             KmReadout(
                 km = d.stats.distanceKm,
                 kmUnit = stringResource(R.string.stat_km),
@@ -556,7 +557,7 @@ private fun LegRow(leg: Leg, measure: LegMeasure, onClick: () -> Unit) {
         Box(Modifier.width(32.dp).height(48.dp), Alignment.Center) {
             Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
         }
-        LegChip(leg, measure, onClick, Modifier.padding(start = 10.dp))
+        LegChip(leg, measure, onClick, Modifier.padding(start = 8.dp))
     }
 }
 
@@ -587,13 +588,13 @@ private fun StepRow(number: Int?, role: DiscRole, step: Step, isLast: Boolean, o
             }
         },
     ) {
-        Box(Modifier.width(32.dp).padding(top = 14.dp), Alignment.TopCenter) {
+        Box(Modifier.width(32.dp).padding(top = 12.dp), Alignment.TopCenter) {
             val ring = MaterialTheme.colorScheme.surfaceContainerLowest
             if (number == null) {
                 Box(
                     Modifier.size(28.dp).background(ring, CircleShape).border(2.dp, MaterialTheme.colorScheme.outline, CircleShape),
                     Alignment.Center,
-                ) { Icon(TopoIcons.Note, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                ) { Icon(TopoIcons.Note, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
                 val fill = when (role) {
                     DiscRole.Start -> Palette.Trail
@@ -607,7 +608,7 @@ private fun StepRow(number: Int?, role: DiscRole, step: Step, isLast: Boolean, o
             }
         }
         TopoCard(
-            modifier = Modifier.padding(start = 10.dp, top = 6.dp, bottom = 6.dp).weight(1f),
+            modifier = Modifier.padding(start = 8.dp, top = 4.dp, bottom = 4.dp).weight(1f),
             onClick = onClick,
         ) {
             Column(Modifier.alpha(if (step.isDraft) 0.6f else 1f)) {
@@ -621,7 +622,7 @@ private fun StepRow(number: Int?, role: DiscRole, step: Step, isLast: Boolean, o
                 }
                 if (step.photos.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.height(56.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(56.dp)) {
                         step.photos.take(4).forEach { p ->
                             LocalMedia(p, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
                         }

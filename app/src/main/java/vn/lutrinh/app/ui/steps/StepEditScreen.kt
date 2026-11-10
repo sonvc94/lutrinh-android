@@ -614,7 +614,7 @@ fun StepEditScreen(
             f.missing -> MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
             else -> Column(
                 Modifier.padding(padding).fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 val titleError = when {
                     StepError.TITLE_BLANK in f.errors -> stringResource(R.string.err_step_title_blank)
@@ -845,7 +845,7 @@ private fun AddMediaButton(icon: ImageVector, label: String, enabled: Boolean, o
         modifier = modifier.heightIn(min = 64.dp),
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(icon, null, Modifier.size(22.dp))
             Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, maxLines = 2)
         }
@@ -881,7 +881,7 @@ private fun PhotoTile(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onTertiary,
                 modifier = Modifier.align(Alignment.BottomStart).padding(4.dp)
-                    .background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(Radii.Badge)).padding(horizontal = 6.dp, vertical = 2.dp),
+                    .background(MaterialTheme.colorScheme.tertiary, RoundedCornerShape(Radii.Badge)).padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
         if (fromGallery) {
@@ -891,13 +891,13 @@ private fun PhotoTile(
                 color = MaterialTheme.colorScheme.inverseOnSurface,
                 modifier = Modifier.align(Alignment.TopStart).padding(4.dp)
                     .background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), RoundedCornerShape(Radii.Badge))
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
         IconButton(
             onClick = onRemove,
-            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), RoundedCornerShape(Radii.Badge)),
-        ) { Icon(TopoIcons.Close, stringResource(R.string.step_photo_remove), tint = MaterialTheme.colorScheme.inverseOnSurface, modifier = Modifier.size(16.dp)) }
+            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(24.dp).background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), RoundedCornerShape(Radii.Badge)),
+        ) { Icon(TopoIcons.Close, stringResource(R.string.step_photo_remove), tint = MaterialTheme.colorScheme.inverseOnSurface, modifier = Modifier.size(18.dp)) }
     }
 }
 

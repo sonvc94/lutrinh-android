@@ -138,7 +138,7 @@ fun ShareTripScreen(
                 modifier = Modifier.padding(top = 8.dp),
             )
             Box(
-                Modifier.weight(1f).fillMaxWidth().padding(top = 12.dp, bottom = 14.dp)
+                Modifier.weight(1f).fillMaxWidth().padding(top = 12.dp, bottom = 12.dp)
                     .ledge(Radii.Card).clip(RoundedCornerShape(Radii.Card)).background(MaterialTheme.colorScheme.surfaceVariant),
                 Alignment.Center,
             ) {

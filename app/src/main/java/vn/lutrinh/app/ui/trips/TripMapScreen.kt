@@ -88,7 +88,7 @@ import vn.lutrinh.app.ui.common.rememberMyLocation
 private const val CARD_WIDTH_DP = 260
 
 /** Q-12: room kept at the right edge of the fit for the map buttons: 44 dp button + 12 dp margin + 16 dp gap. */
-private const val MAP_BUTTONS_RIGHT_DP = 44 + 12 + 16
+internal const val MAP_BUTTONS_RIGHT_DP = 44 + 12 + 16
 
 /** Full-screen trip map: numbered pins + route, a card carousel synced with the selected pin. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -239,7 +239,7 @@ fun TripMapScreen(
                 state = listState,
                 flingBehavior = rememberSnapFlingBehavior(listState, SnapPosition.Center),
                 contentPadding = PaddingValues(horizontal = sidePadding),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 // Measured outside the insets/offset: the whole strip the cards take from the map.
                 modifier = Modifier.align(Alignment.BottomCenter)
                     .onSizeChanged { carouselDp = with(density) { it.height.toDp().value.toInt() } }
@@ -252,7 +252,7 @@ fun TripMapScreen(
                     Surface(
                         onClick = { if (isSel) onOpenStep(step.id) else focus = focus.pick(step.id) },
                         // R37: opening the card grows it into the step detail (and Back shrinks it).
-                        modifier = Modifier.width(CARD_WIDTH_DP.dp).padding(bottom = 6.dp)
+                        modifier = Modifier.width(CARD_WIDTH_DP.dp).padding(bottom = 8.dp)
                             .stepSharedBounds(step.id, MaterialTheme.shapes.medium),
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
@@ -285,7 +285,7 @@ fun TripMapScreen(
                             }
                             // Same row height on every card (F23): the leg that ends here (R12), or "Điểm xuất phát" on the first.
                             // Its own line: a long chip ends in "…" instead of pushing the arrow out.
-                            Row(Modifier.fillMaxWidth().height(32.dp).padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth().height(32.dp).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 val leg = detail.legInto(step.id)
                                 if (leg != null) LegChip(leg, detail.measure(leg), onClick = { editLegTo = step.id }, Modifier.height(32.dp))
                                 else if (step.isDraft) DraftBadge()
@@ -313,7 +313,7 @@ private fun DayCounter(day: Int, total: Int) {
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         shadowElevation = Lift.Chip,
     ) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.trip_map_day), style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.width(4.dp))
             AnimatedContent(

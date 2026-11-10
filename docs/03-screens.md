@@ -789,6 +789,16 @@ Same flow and AVD as above (Hà Giang sample, vi-VN); `before-` = main (d93bbab)
 | b4-before-/after-d12.png | "Thay thế toàn bộ dữ liệu?": Restore mark in Signal, destructive "Thay thế" in Error text |
 | b4-before-/after-d13.png | "Không nhập được tệp GPX": error dialog, unchanged (already on the theme) |
 
+### Topo outdoor, standardisation batch 3: space scale, transition, My map fit (`img/std-scale/`, docs/08 §4–§6a, R39)
+
+Hà Giang sample on a review AVD (vi-VN); left = before (batch 2), right = after.
+
+| File | Shows |
+| --- | --- |
+| 01–05 | trip list, trip detail, trip map, step detail, step editor: same look, paddings snapped to 4/8/12/16/24 |
+| 06 | "Bản đồ của tôi" at fit-all: the route sits left of the button column |
+| 07 / 08 | list → trip → step and back as frames (real speed; 4× slowed): 300 ms fade + 24 dp slide |
+
 ### Topo outdoor, standardisation batch 2: dialogs, buttons, states (`img/topo/std2-*`, docs/08 §6, R38)
 
 Hà Giang sample on a review AVD (vi-VN), 540 px wide.

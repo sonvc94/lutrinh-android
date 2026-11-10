@@ -342,7 +342,7 @@ fun FromPhotosScreen(
 @Composable
 private fun FromPhotosIntro(onChoose: () -> Unit, onCancel: () -> Unit, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 22.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(TopoIcons.AddPhotos, null, tint = Palette.Signal)
             Text(stringResource(R.string.from_photos_intro_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.from_photos_intro_gps), style = MaterialTheme.typography.bodyMedium)
@@ -423,7 +423,7 @@ private fun SuggestionCard(
     val dim = !sg.include
     // A kept group is a topo card; a group switched off steps back (it stays readable, it is just not saved).
     TopoCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).alpha(if (dim) 0.72f else 1f)) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val keepLabel = stringResource(R.string.from_photos_keep, number)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
@@ -503,7 +503,7 @@ private fun InfoLine(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
         Icon(icon, null, Modifier.size(18.dp), tint = tint)
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(8.dp))
         content()
     }
 }

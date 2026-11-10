@@ -105,7 +105,7 @@ fun StopPhotosSection(
                         if (unticked.isNotEmpty()) {
                             Text(stringResource(R.string.stop_photos_unticked), style = MaterialTheme.typography.bodySmall)
                             unticked.chunked(COLUMNS).forEach { row ->
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     row.forEach { p ->
                                         GalleryTile(p, false, { onToggle(p.id) }, Modifier.weight(1f))
                                     }
@@ -122,7 +122,7 @@ fun StopPhotosSection(
                         )
                         TextButton(onClick = onRequestAccess) {
                             Icon(TopoIcons.AddPhotos, null)
-                            Spacer(Modifier.padding(3.dp))
+                            Spacer(Modifier.padding(4.dp))
                             Text(stringResource(R.string.stop_photos_pick_more))
                         }
                     }
@@ -150,7 +150,7 @@ private fun GalleryTile(p: GalleryPhoto, selected: Boolean, onToggle: () -> Unit
         )
         // Unticked = veiled in card paper with an empty ring; ticked = a forest disc with a check.
         if (!selected) Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.55f)))
-        val tick = Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp)
+        val tick = Modifier.align(Alignment.TopEnd).padding(8.dp).size(24.dp)
         if (selected) {
             Icon(
                 TopoIcons.Check,
@@ -171,7 +171,7 @@ private fun GalleryTile(p: GalleryPhoto, selected: Boolean, onToggle: () -> Unit
                 color = MaterialTheme.colorScheme.inverseOnSurface,
                 modifier = Modifier.align(Alignment.BottomStart).padding(4.dp)
                     .background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), RoundedCornerShape(Radii.Badge))
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
             )
         }
     }

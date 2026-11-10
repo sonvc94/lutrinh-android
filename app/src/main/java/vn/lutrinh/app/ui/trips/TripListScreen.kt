@@ -2,6 +2,7 @@ package vn.lutrinh.app.ui.trips
 
 import vn.lutrinh.app.ui.common.ChipFab
 import vn.lutrinh.app.ui.theme.TopoIcons
+import vn.lutrinh.app.ui.theme.Space
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -197,7 +198,7 @@ fun TripListScreen(
                 )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 96.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = Space.XXL * 3), // clears the FAB (56 + 16 + 24)
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -232,7 +233,7 @@ private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> 
         modifier = Modifier.fillMaxWidth(),
         onClick = onOpen,
         onLongClick = { menu = true },
-        contentPadding = PaddingValues(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 2.dp),
+        contentPadding = PaddingValues(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 0.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(width = 96.dp, height = 72.dp).clip(MaterialTheme.shapes.small)) {
@@ -243,7 +244,7 @@ private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> 
                     RouteCover(route, Modifier.fillMaxSize())
                 }
             }
-            Column(Modifier.weight(1f).padding(start = 14.dp)) {
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(
                     summary.trip.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -255,7 +256,7 @@ private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> 
                     dateRange(summary.trip.startDate, summary.trip.endDate) { openEnded.format(it) },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
+                    modifier = Modifier.padding(top = 4.dp),
                 )
                 Text(
                     stringResource(R.string.trip_counts, summary.stepCount, summary.photoCount),
@@ -263,7 +264,7 @@ private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> 
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (summary.draftCount > 0) {
-                    TopoBadge(stringResource(R.string.trip_drafts, summary.draftCount), BadgeTone.Moderate, Modifier.padding(top = 6.dp))
+                    TopoBadge(stringResource(R.string.trip_drafts, summary.draftCount), BadgeTone.Moderate, Modifier.padding(top = 8.dp))
                 }
             }
             Box {

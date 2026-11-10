@@ -56,7 +56,7 @@ fun StopSuggestionSection(
             stringResource(R.string.stop_suggest_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 6.dp),
+            modifier = Modifier.padding(bottom = 8.dp),
         )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             suggestions.forEach { s -> SuggestionCard(s, galleryCounts[s.key], steps, onAdd, onDismiss) }
@@ -74,10 +74,10 @@ private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, steps: List<St
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         modifier = Modifier.fillMaxWidth().ledge(),
     ) {
-        Column(Modifier.padding(start = 12.dp, end = 8.dp, top = 10.dp, bottom = 4.dp)) {
+        Column(Modifier.padding(start = 12.dp, end = 8.dp, top = 8.dp, bottom = 4.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                Icon(TopoIcons.Place, null, tint = TrackInk, modifier = Modifier.padding(top = 2.dp))
-                Column(Modifier.padding(start = 10.dp).weight(1f)) {
+                Icon(TopoIcons.Place, null, tint = TrackInk, modifier = Modifier.padding(top = 4.dp))
+                Column(Modifier.padding(start = 8.dp).weight(1f)) {
                     Text(
                         "${start.toLocalDate().displayDay()} · ${start.displayTime()}–${end.displayTime()}",
                         style = MaterialTheme.typography.titleSmall,

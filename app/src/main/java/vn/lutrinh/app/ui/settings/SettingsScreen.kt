@@ -58,14 +58,14 @@ fun SettingsScreen(onBack: () -> Unit) {
         Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding()) {
             Eyebrow(
                 stringResource(R.string.settings_section_map),
-                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 8.dp),
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 8.dp),
             )
             // One card per setting (specimen `.card`); the row is the toggle.
             TopoCard(Modifier.padding(horizontal = 16.dp).fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
                 Row(
                     Modifier.fillMaxWidth()
                         .toggleable(value = enabled, role = Role.Switch, onValueChange = { settings.setEnabled(it) })
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f).padding(end = 16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -84,7 +84,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 stringResource(R.string.settings_routing_privacy),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 22.dp, vertical = 12.dp),
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
             )
         }
     }
