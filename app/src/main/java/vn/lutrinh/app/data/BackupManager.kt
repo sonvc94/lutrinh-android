@@ -47,7 +47,8 @@ class BackupManager(
     internal var afterRestoreTable: ((String) -> Unit)? = null
 
     /** A checked backup, staged in the cache and ready to [restore]. */
-    data class Prepared(val manifest: BackupManifest, val current: BackupCounts, internal val dir: File)
+    /** [contents] = what the file holds, counted in its own database (a manifest of schema ≤ 7 has no video count). */
+    data class Prepared(val manifest: BackupManifest, val contents: BackupCounts, val current: BackupCounts, internal val dir: File)
 
     /** Rows on the device now. */
     suspend fun currentCounts(): BackupCounts = withContext(Dispatchers.IO) { counts(db.openHelper.writableDatabase) }
@@ -116,6 +117,7 @@ class BackupManager(
             val zipFile = File(dir, "backup.zip")
             zipFile.outputStream().use { input.copyTo(it) }
             val manifest: BackupManifest
+            val contents: BackupCounts
             val photosDir = File(dir, "photos").apply { mkdirs() }
             val staged = File(dir, BackupRules.DB_ENTRY)
             val zip = try { ZipFile(zipFile) } catch (e: Exception) { throw BackupException(BackupProblem.NotABackup, e) }
@@ -150,11 +152,12 @@ class BackupManager(
                 } catch (e: Exception) {
                     throw BackupException(BackupProblem.Damaged("database"), e)
                 }
-                if (counts != manifest.counts) throw BackupException(BackupProblem.Damaged("counts $counts"))
+                if (counts.rows() != manifest.counts.rows()) throw BackupException(BackupProblem.Damaged("counts $counts"))
+                contents = counts
             } finally {
                 copy.close()
             }
-            Prepared(manifest, currentCounts(), dir)
+            Prepared(manifest, contents, currentCounts(), dir)
         } catch (e: Throwable) {
             dir.deleteRecursively()
             throw e
@@ -191,7 +194,7 @@ class BackupManager(
                         afterRestoreTable?.invoke(t)
                     }
                     val now = counts(dst)
-                    check(now == prepared.manifest.counts) { "restored $now" }
+                    check(now.rows() == prepared.manifest.counts.rows()) { "restored $now" }
                 }
             } finally {
                 copy.close()
@@ -243,7 +246,8 @@ class BackupManager(
 
         fun counts(d: SupportSQLiteDatabase): BackupCounts {
             fun n(t: String) = d.query("SELECT COUNT(*) FROM `$t`").use { c -> c.moveToFirst(); c.getInt(0) }
-            return BackupCounts(n("trips"), n("steps"), n("photos"), n("tracks"), n("track_points"), n("stop_decisions"))
+            fun videos() = d.query("SELECT COUNT(*) FROM `photos` WHERE media_type = 'video'").use { c -> c.moveToFirst(); c.getInt(0) }
+            return BackupCounts(n("trips"), n("steps"), n("photos"), n("tracks"), n("track_points"), n("stop_decisions"), videos())
         }
 
         /** Copies every row of [table] by column name (column order may differ after migrations). */
@@ -279,7 +283,7 @@ class BackupManager(
                 JSONObject()
                     .put("trips", m.counts.trips).put("steps", m.counts.steps).put("photos", m.counts.photos)
                     .put("tracks", m.counts.tracks).put("trackPoints", m.counts.trackPoints)
-                    .put("stopDecisions", m.counts.stopDecisions),
+                    .put("stopDecisions", m.counts.stopDecisions).put("videos", m.counts.videos),
             )
             .put("photoFiles", m.photoFiles)
             .put("missingPhotoFiles", m.missingPhotoFiles)
@@ -295,7 +299,7 @@ class BackupManager(
                 createdAt = o.optString("createdAt"),
                 counts = BackupCounts(
                     c.getInt("trips"), c.getInt("steps"), c.getInt("photos"), c.getInt("tracks"),
-                    c.getInt("trackPoints"), c.getInt("stopDecisions"),
+                    c.getInt("trackPoints"), c.getInt("stopDecisions"), c.optInt("videos"),
                 ),
                 photoFiles = o.getInt("photoFiles"),
                 missingPhotoFiles = o.optInt("missingPhotoFiles"),

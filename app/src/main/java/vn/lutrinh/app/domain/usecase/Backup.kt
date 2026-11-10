@@ -15,7 +15,15 @@ data class BackupCounts(
     val tracks: Int = 0,
     val trackPoints: Int = 0,
     val stopDecisions: Int = 0,
-)
+    /** How many of the [photos] rows are videos (R29); [photos] counts both, as the file layout always did. */
+    val videos: Int = 0,
+) {
+    /** Photos without the videos: what the screens call "ảnh" (R26). */
+    val stills: Int get() = photos - videos
+
+    /** The table row counts only: a manifest written before [videos] existed still matches its database. */
+    fun rows(): BackupCounts = copy(videos = 0)
+}
 
 /** `manifest.json` of a backup file. */
 data class BackupManifest(

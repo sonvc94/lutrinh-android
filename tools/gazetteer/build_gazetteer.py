@@ -20,6 +20,7 @@ m museum / historic, r notable place of worship, n camp site.
 flags: "n" = notable (has wikidata/wikipedia) or "-". lat/lng: degrees x 1e5, integers.
 aliases: ";"-separated (alt_name, old_name, short_name, name:en, former province names).
 """
+import os
 import sys
 import unicodedata
 from collections import defaultdict
@@ -29,6 +30,9 @@ import shapely
 from shapely import wkb
 from shapely.ops import polygonize
 from shapely.strtree import STRtree
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # -I drops the script directory
+import place_names  # noqa: E402  "… Pass" -> "Đèo …" (see place_names.py)
 
 # Provinces merged on 1 July 2025 (Nghị quyết 202/2025/QH15): new name -> former provinces.
 # Names are the display names below (without "Tỉnh"/"Thành phố").
@@ -158,12 +162,12 @@ def main(pbf, out_path):
             except Exception:
                 continue
             p = g.representative_point()
-            places.append((k, notable(t), name, aliases_of(t, name), p.y, p.x))
+            places.append((k, notable(t), *place_names.apply(k, name, aliases_of(t, name)), p.y, p.x))
         elif o.is_node():
             k = kind_of(t)
             if k is None or not o.location.valid():
                 continue
-            places.append((k, notable(t), name, aliases_of(t, name), o.location.lat, o.location.lon))
+            places.append((k, notable(t), *place_names.apply(k, name, aliases_of(t, name)), o.location.lat, o.location.lon))
 
     provinces = province_polygons(pbf)
     names = [p[0] for p in provinces]

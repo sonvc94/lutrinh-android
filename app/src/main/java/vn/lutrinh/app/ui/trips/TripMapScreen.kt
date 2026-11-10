@@ -77,7 +77,8 @@ import vn.lutrinh.app.ui.tracks.RecordTrackControl
 import vn.lutrinh.app.ui.common.Loadable
 import vn.lutrinh.app.ui.common.LoadingState
 import vn.lutrinh.app.ui.common.DraftBadge
-import vn.lutrinh.app.ui.common.LocalPhoto
+import vn.lutrinh.app.ui.common.LocalMedia
+import vn.lutrinh.app.ui.common.VideoPlayMark
 import vn.lutrinh.app.ui.common.displayDateTime
 import vn.lutrinh.app.ui.common.BasemapFallbackNotice
 import vn.lutrinh.app.ui.common.MapStyleButton
@@ -263,7 +264,11 @@ fun TripMapScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 val cover = step.photos.firstOrNull()
                                 if (cover != null) {
-                                    LocalPhoto(cover.fileName, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
+                                    // R29: a video cover shows its still frame with a ▶ (the length would not fit 56 dp).
+                                    Box(Modifier.size(56.dp).clip(MaterialTheme.shapes.small)) {
+                                        LocalMedia(cover, Modifier.fillMaxSize(), badge = false)
+                                        if (cover.isVideo) VideoPlayMark(Modifier.align(Alignment.BottomEnd).padding(4.dp))
+                                    }
                                 } else {
                                     Box(
                                         Modifier.size(56.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant),

@@ -712,6 +712,12 @@ Data: `assets/places/vn_places.tsv`, built from OpenStreetMap by `tools/gazettee
   "bãi biển", "phố cổ", "cột cờ", "đèo", "núi", "thác", "chùa", "đền"). Words that also start real
   names without accents ("động/đồng", "hồ", "bản", "làng/lạng", "hang", "thôn", "bãi") are not
   generic.
+* **Vietnamese names.** The stored name is `name:vi` before `name`. OSM sometimes puts English in
+  it ("Mã Pí Lèng Pass"): a viewpoint, sight or mountain pass named "<X> Pass" is stored as
+  "Đèo <X>" and the old name stays an alias, so "pass" or "Mã Pí Lèng Pass" still finds it
+  (`tools/gazetteer/place_names.py`; kept as they are: heritage rows, "Snake Pass", a bare "Pass",
+  names already "Đèo …"; `PlacesTest.bundled gazetteer - Ma Pi Leng is Deo Ma Pi Leng…`,
+  `test_place_names.py`; `img/small-fixes/04`).
 * **Provinces:** the 34 in force since 1 July 2025; each lists the provinces merged into it as
   former names (`FORMER_PROVINCES`, e.g. Tuyên Quang ← Hà Giang, Ninh Bình ← Hà Nam + Nam Định). A
   former name finds the merged province and is shown with the result ("trước đây Hà Giang").
@@ -853,7 +859,9 @@ system picker — the app only sees a file).
 `restoreReplacesAllDataWithTheBackup`, `restoreFailureLeavesCurrentDataIntact`, `newerSchemaIsRefused`,
 `otherFilesAreRefusedAndChangeNothing`, `olderSchemaBackupIsMigrated`, `backupRoundTripKeepsAVideo`,
 `version6BackupRestoresIntoVersion7`). Since v7 the `photos/` entries include videos (R29) and the
-counts "ảnh" in the snackbar and the confirmation count photos and videos together. Checked by hand on the captain's data:
+snackbar and the confirmation count them apart ("16 ảnh · 1 video", `BackupCounts.stills` / `videos`,
+`DisplayFormat.mediaCount`): a video is never an "ảnh" (`backupRoundTripKeepsAVideo` asserts the counts and
+the text; `img/small-fixes/01`, `02`). Checked by hand on the captain's data:
 backup of `2|14|16|1|359|1` (287 717 B, 16 photo files), restored over the same data: every row and
 every photo file byte-identical (`img/gpx-backup/05`, `06`); and a schema-7 backup with two videos
 (`2|15|19|1|359|1`, 454 951 B) restored over 18 files: 19 files md5-identical (`img/photo-video/11`).
@@ -945,6 +953,8 @@ Code: `VideoRules` / `VideoProblem` in `domain/usecase/Media.kt` (pure), `PhotoS
   (n)". In the viewer a video page plays full screen in the platform player (Android: VideoView +
   MediaController, no player library; tap shows play/pause/seek); it starts when its page becomes
   current and pauses when swiped away.
+* **Trip map card.** The stop card's 56 dp thumbnail shows the first item of the stop; a video shows
+  its still frame with a ▶ mark (`VideoPlayMark`; the length badge does not fit 56 dp; `img/small-fixes/03`).
 * **Not a cover.** A video is never the trip cover (R21: left out of the picker and the automatic
   choice). As the first item it is still the step's first thumbnail.
 * **Share.** The share image and page (R18) show a still frame of a video, never the video.

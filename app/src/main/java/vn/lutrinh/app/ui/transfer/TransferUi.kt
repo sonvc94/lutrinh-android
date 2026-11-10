@@ -233,7 +233,7 @@ class TransferViewModel(private val c: AppContainer) : ViewModel() {
         private const val TAG = "Transfer"
 
         fun countsText(ctx: Context, n: BackupCounts): String =
-            ctx.getString(R.string.backup_counts, n.trips, n.steps, n.photos, n.tracks, n.trackPoints)
+            ctx.getString(R.string.backup_counts, n.trips, n.steps, DisplayFormat.mediaCount(n.stills, n.videos), n.tracks, n.trackPoints)
     }
 }
 
@@ -324,7 +324,7 @@ fun rememberTransfer(snackbar: SnackbarHostState, onOpenTrip: ((String) -> Unit)
                 title = stringResource(R.string.restore_confirm_title),
                 body = stringResource(
                     R.string.restore_confirm_body, day,
-                    TransferViewModel.countsText(context, m.counts), TransferViewModel.countsText(context, s.prepared.current),
+                    TransferViewModel.countsText(context, s.prepared.contents), TransferViewModel.countsText(context, s.prepared.current),
                 ),
                 confirmLabel = stringResource(R.string.restore_confirm_action),
                 dismissLabel = stringResource(R.string.action_cancel),

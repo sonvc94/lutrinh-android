@@ -275,7 +275,7 @@ photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (by
   "format": "lutrinh-backup", "formatVersion": 1,
   "appId": "vn.lutrinh.app", "appVersion": "0.1.0",
   "schemaVersion": 9, "createdAt": "2026-11-09T10:58:31Z",
-  "counts": { "trips": 2, "steps": 15, "photos": 19, "tracks": 1, "trackPoints": 359, "stopDecisions": 1 },
+  "counts": { "trips": 2, "steps": 15, "photos": 19, "tracks": 1, "trackPoints": 359, "stopDecisions": 1, "videos": 2 },
   "photoFiles": 19, "missingPhotoFiles": 0
 }
 ```
@@ -289,7 +289,10 @@ photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (by
 * Restore checks and replaces as in R26; a copy with an older `schemaVersion` is migrated with
   the same migrations as an app update (MIGRATION_x_y above), e.g. a schema-6 backup made before
   videos existed restores into v7 with its photo order kept (`BackupManagerTest.version6BackupRestoresIntoVersion7`).
-  `counts.photos` / `photoFiles` count photos and videos together (videos are rows of `photos`).
+  `counts.photos` / `photoFiles` count photos and videos together (videos are rows of `photos`);
+  `counts.videos` says how many of those rows are videos (optional, 0 when absent: it is informational
+  and left out of the check against the database, so older files still match). The screens show
+  "photos − videos ảnh · videos video".
   `leg_routes` rows (R36) travel with the backup but are not counted: they are a cache of the
   router's answers that the app can fetch again; a backup older than v8 restores without routes.
 

@@ -389,7 +389,7 @@
     <string name="restore_working">Đang khôi phục…</string>
     <string name="gpx_working">Đang xử lý tệp GPX…</string>
     <string name="backup_done">Đã sao lưu %1$s (%2$s)</string>
-    <string name="backup_counts">%1$d chuyến đi, %2$d điểm dừng, %3$d ảnh, %4$d hành trình GPS (%5$d điểm)</string>
+    <string name="backup_counts">%1$d chuyến đi, %2$d điểm dừng, %3$s, %4$d hành trình GPS (%5$d điểm)</string>
     <string name="restore_confirm_title">Thay thế toàn bộ dữ liệu?</string>
     <string name="restore_confirm_body">Bản sao lưu ngày %1$s có:\n%2$s.\n\nDữ liệu hiện có trên máy (%3$s) sẽ bị THAY THẾ hoàn toàn và không lấy lại được.</string>
     <string name="restore_confirm_action">Thay thế</string>

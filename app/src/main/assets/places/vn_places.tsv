@@ -2726,7 +2726,6 @@ h	5	1386423	10920941	-	Lộc Trung
 h	5	1387761	10916010	-	Lục Lễ	
 v	5	1350276	10845227	-	Ma Lin	
 v	5	1347865	10844403	-	Ma Rin	
-w	5	1397499	10852566	-	Mang Yang Pass	
 v	5	1377584	10759524	-	Mook Đen	
 h	5	1393456	10899286	-	Mỹ An	
 h	5	1450259	10905740	-	Mỹ An	
@@ -3437,6 +3436,7 @@ m	5	1417120	10905022	-	Đài Tưởng Niêm Liệt Sĩ Huyện Phù Mỹ
 m	5	1391844	10886505	-	Đàn Tế Trời - Tây Sơn	
 s	5	1391742	10886460	-	Đàn tế Trời Đất - Tây Sơn	
 p	5	1396377	10875581	-	Đèo An Khê	
+w	5	1397499	10852566	-	Đèo Mang Yang	Mang Yang Pass
 h	5	1361111	10935735	-	Đông	
 h	5	1384666	10906089	-	Đông Bình	
 h	5	1387934	10904414	-	Đông Lâm	
@@ -8606,7 +8606,6 @@ h	14	2169642	10463566	-	Thôn Khe Trầu
 v	14	2141386	10477637	-	Thượng Bằng La	
 v	14	2273893	10423955	-	Thải Giàng Sán	
 f	14	2232696	10383436	-	Tien Sa cascada	Tiên Sa Waterfall
-w	14	2234558	10382449	-	Tran Ton Pass	
 v	14	2239732	10389005	-	Trung Chải	
 t	14	2146909	10437809	n	Trạm Tấu	Hạnh Phúc;Tram Tau
 m	14	2237738	10385132	-	Tu viện Tả Phìn	
@@ -8739,6 +8738,7 @@ v	14	2149265	10473237	-	Đá Gân
 p	14	2151067	10478514	-	Đèo Bẳn	
 p	14	2155171	10482762	-	Đèo Din	
 p	14	2175094	10423901	-	Đèo Khau Phạ	
+w	14	2234558	10382449	-	Đèo Tran Ton	Tran Ton Pass
 v	14	2254762	10388414	-	Đông Thái	
 v	14	2153815	10481793	-	Đại Lịch	
 h	14	2145412	10455409	-	Đề Chơ	
@@ -16117,7 +16117,6 @@ t	26	2201042	10520958	-	Lực Hành
 h	26	2324928	10524476	-	Lỳ Chúc Tủng	
 v	26	2331009	10529889	-	Ma Lé	
 h	26	2328429	10538693	-	Ma Pẳng	
-w	26	2322710	10541785	-	Mai Pi Leng Pass	
 h	26	2326415	10517609	-	Mao Só Tủng	
 s	26	2330155	10536712	-	Massive banyan trees	
 t	26	2277321	10516842	-	Minh Ngọc	
@@ -16138,7 +16137,6 @@ h	26	2329207	10526533	-	Mã Là Dưới
 h	26	2329403	10525840	-	Mã Là Trên	
 h	26	2330721	10527481	-	Mã Lầu B	
 v	26	2332022	10526848	-	Mã Lủng	
-s	26	2324196	10539792	-	Mã Pí Lèng Pass	Ma Pi Leng Pass
 h	26	2330033	10529050	-	Mã Sồ	
 t	26	2316332	10541044	n	Mèo Vạc	
 t	26	2306559	10523774	-	Mậu Duệ	Mau Due
@@ -16571,6 +16569,8 @@ w	26	2338335	10532279	-	Đài Vọng Cảnh cực Bắc	Vietnam Northernmost Vie
 m	26	2187496	10513662	-	Đài tưởng niệm các anh hùng liệt sĩ huyện Yên Sơn	
 v	26	2165302	10527240	-	Đá Trơn	
 p	26	2256795	10450339	-	Đèo Gió	Gió Pass
+w	26	2322710	10541785	-	Đèo Mai Pi Leng	Mai Pi Leng Pass
+s	26	2324196	10539792	-	Đèo Mã Pí Lèng	Mã Pí Lèng Pass;Ma Pi Leng Pass
 v	26	2166568	10529516	-	Đông Khê	
 t	26	2165187	10527774	-	Đông Thọ	
 v	26	2165281	10524144	-	Đông Trai	

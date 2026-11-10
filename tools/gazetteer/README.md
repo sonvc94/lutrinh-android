@@ -31,6 +31,9 @@ The script stops when the extract does not hold exactly the 34 provinces of the 
 * Travel places: `tourism=attraction|viewpoint|camp_site|museum|theme_park|zoo`, `natural=peak|
   saddle|waterfall|cave_entrance|bay|beach`, lakes (`natural=water` + `water=lake|reservoir|lagoon`),
   `mountain_pass=yes`, selected `historic=*`, places of worship with a Wikidata/Wikipedia link.
+* "<X> Pass" (viewpoint, sight, pass) is stored as "Đèo <X>" with the old name as an alias
+  (`place_names.py`, test: `python3 -I -m unittest discover -s tools/gazetteer`; it also rewrites an
+  existing TSV in place: `python3 -I tools/gazetteer/place_names.py <tsv>`).
 * Every place gets the province whose polygon holds it; places outside Vietnam's 34 are dropped.
   Same name within ~2 km is kept once (higher kind wins). Names without a letter are dropped.
 

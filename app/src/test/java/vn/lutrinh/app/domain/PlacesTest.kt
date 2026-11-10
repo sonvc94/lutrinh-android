@@ -172,4 +172,36 @@ class PlacesTest {
         assertTrue(n.km < 3.0)
         assertEquals("Tuyên Quang", n.place.region.name)
     }
+
+    /** tools/gazetteer/place_names.py: "… Pass" is stored as "Đèo …", the old name stays a search alias. */
+    @Test fun `bundled gazetteer - Ma Pi Leng is Deo Ma Pi Leng and the old name still finds it`() {
+        val hit = asset.search("ma pi leng").first { it.place.name == "Đèo Mã Pí Lèng" }
+        assertEquals(PlaceKind.SIGHT, hit.place.kind)
+        assertTrue(hit.place.aliases.containsAll(listOf("Mã Pí Lèng Pass", "Ma Pi Leng Pass")))
+        assertTrue(asset.search("ma pi leng pass").any { it.place.name == "Đèo Mã Pí Lèng" })
+        assertTrue(asset.search("Mã Pí Lèng Pass").any { it.place.name == "Đèo Mã Pí Lèng" })
+        assertTrue(asset.places.none { it.kind in setOf(PlaceKind.PASS, PlaceKind.VIEWPOINT, PlaceKind.SIGHT) && it.name.endsWith(" Pass") && it.name != "Snake Pass" })
+    }
+
+    /** The per-char table gives what NFD of the whole text gave (accents dropped, đ → d, punctuation as one space). */
+    @Test fun `normalize - table version equals the NFD reference`() {
+        fun reference(s: String): String {
+            val nfd = Normalizer.normalize(s, Normalizer.Form.NFD)
+            val out = StringBuilder()
+            var space = false
+            for (ch in nfd) {
+                if (Character.getType(ch) == Character.NON_SPACING_MARK.toInt()) continue
+                val c = when (ch) { 'đ', 'Đ' -> 'd'; else -> ch.lowercaseChar() }
+                if (c in 'a'..'z' || c in '0'..'9') {
+                    if (space && out.isNotEmpty()) out.append(' ')
+                    space = false
+                    out.append(c)
+                } else space = true
+            }
+            return out.toString()
+        }
+        val samples = asset.places.flatMap { listOf(it.name) + it.aliases } +
+            listOf("Ma\u0303 Pi\u0301 Le\u0300ng", "  Đ-Ð (x)² ½ ǅ ", "Hồ Chí Minh, 1/2", "日本 Tam Sa", "")
+        for (t in samples) assertEquals(t, reference(t), PlaceText.normalize(t))
+    }
 }

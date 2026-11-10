@@ -62,7 +62,7 @@ app/src/main/java/vn/lutrinh/app/
   transfer  GPX export/import (R25): domain/usecase/Gpx.kt + GpxParser.kt (pure, SAX),
             data/RoomTripImportRepository.kt; backup/restore (R26): domain/usecase/Backup.kt,
             data/BackupManager.kt (zip, staged + checked restore, one transaction);
-            menus/pickers/dialogs in ui/transfer/TransferUi.kt; formats in docs/02
+            menus/pickers/dialogs in ui/transfer/TransferUi.kt; formats in docs/02; the summary text counts "ảnh · video" apart (BackupCounts.stills/videos)
   media     photo order (R27), system-camera capture (R28), short videos (R29): domain/usecase/Media.kt
             (pure), data/MediaCapture.kt, data/VideoMeta.kt, PhotoStorage.importVideo,
             ui/steps/MediaStrip.kt (drag strip + camera contract); videos are `photos` rows (media_type)
@@ -211,9 +211,10 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   this time". `dumpsys activity activities` has no `mResumedActivity` on Android 16: grep
   `topResumedActivity`. To re-test the one-time guide: `am force-stop`, then
   `run-as vn.lutrinh.app rm shared_prefs/lutrinh_prefs.xml`.
-* Place search (R23/R24): the gazetteer loads ~4 s after each app start on the debug AVD (logcat
-  `-s PlaceIndex`), so a scripted search right after `am start` shows "Đang tìm địa danh…" and an
-  auto name arrives late: wait ~6 s. Test with ASCII ("dong van", "ma pi leng"); verify offline with
+* Place search (R23/R24): the gazetteer loads ~1–1.5 s after each app start on the debug AVD (logcat
+  `-s PlaceIndex`; was ~4 s, now a per-char normalise table + parallel build), so a scripted search right
+  after `am start` can still show "Đang tìm địa danh…" for a moment. A name "<X> Pass" in OSM is stored as
+  "Đèo <X>" (`tools/gazetteer/place_names.py`, old name = alias). Test with ASCII ("dong van", "ma pi leng"); verify offline with
   airplane mode. Regenerate the asset only with `tools/gazetteer/README.md` (identical bytes for the
   same `.pbf`); an admin change = edit `FORMER_PROVINCES` and rerun.
 * GPX/backup (R25/R26) by script: files go through the system picker (DocumentsUI, English on

@@ -30,6 +30,7 @@ import vn.lutrinh.app.domain.model.TrackPoint
 import vn.lutrinh.app.domain.model.TrackStatus
 import vn.lutrinh.app.domain.model.Trip
 import vn.lutrinh.app.domain.usecase.BackupCounts
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.BackupException
 import vn.lutrinh.app.domain.usecase.BackupManifest
 import vn.lutrinh.app.domain.usecase.BackupProblem
@@ -246,6 +247,14 @@ class BackupManagerTest {
         val (m, zip) = backupBytes()
         assertEquals(4, m.photoFiles)
         assertEquals(4, m.counts.photos)
+        // R26: the summary counts the video as a video, never as an "ảnh".
+        assertEquals(1, m.counts.videos)
+        assertEquals(3, m.counts.stills)
+        assertEquals("3 ảnh · 1 video", DisplayFormat.mediaCount(m.counts.stills, m.counts.videos))
+        assertEquals(1, backup.prepare(ByteArrayInputStream(zip)).contents.videos)
+        assertEquals(1, BackupManager.fromJson(BackupManager.toJson(m)).counts.videos)
+        // a manifest from before the video count still matches its database
+        assertEquals(m.counts.rows(), BackupManager.fromJson(BackupManager.toJson(m).also { it.getJSONObject("counts").remove("videos") }).counts)
         assertTrue(entries(zip).getValue("photos/v.mp4").contentEquals(bytes))
 
         replaceWithB()

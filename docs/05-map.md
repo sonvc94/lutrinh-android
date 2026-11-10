@@ -557,10 +557,13 @@ tap-to-move the pin; neighbour steps are drawn there as a dotted line, here as s
   unless the extract has exactly 34 `admin_level=4` provinces; province polygons are rebuilt from
   the relations' member ways (the area assembler drops some broken ones).
 * **Loading:** `data/PlaceIndex.kt` parses the asset once per process on a background thread
-  (logcat `PlaceIndex: 21748 places in ~4000 ms` on the debug emulator build; release builds not
-  measured); screens read `PlaceIndex.gazetteer` (null until ready, the picker then shows "Đang tìm
+  (logcat `PlaceIndex: 21748 places in ~1000–1300 ms` on the debug emulator build, ~2000 ms before
+  the per-char normalise table and the parallel build of the places; release builds not measured); screens read `PlaceIndex.gazetteer` (null until ready, the picker then shows "Đang tìm
   địa danh…") and the step form awaits it. Searching is in memory (`Gazetteer.search`, a linear
   scan of ~22 000 places on a background dispatcher, debounced 120 ms); nothing is sent anywhere.
+* **Names:** `tools/gazetteer/place_names.py` turns "<X> Pass" into "Đèo <X>" for viewpoints, sights
+  and passes (the old name stays an alias); R23 lists what is left alone. Test:
+  `python3 -I -m unittest discover -s tools/gazetteer`.
 * **Updating** after an administrative change: edit `FORMER_PROVINCES` if provinces merge again,
   re-run the generator, check the counts it prints and `PlacesTest`'s bundled-asset tests.
 

@@ -33,6 +33,9 @@ object DisplayFormat {
     fun count(n: Long): String = String.format(VI, "%,d", n)
 
     /** "9,3 km". */
+    /** "12 ảnh · 3 video": photos and videos counted apart, a video is never an "ảnh" (R26). */
+    fun mediaCount(photos: Int, videos: Int): String = "${count(photos.toLong())} ảnh · ${count(videos.toLong())} video"
+
     fun km(km: Double): String = "${kmNumber(km)} km"
 
     /** Recorded track distance: "850 m" under 1 km, "2,4 km" under 100 km, "125 km" above. */

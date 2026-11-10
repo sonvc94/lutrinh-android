@@ -143,6 +143,18 @@ fun LocalMedia(
     }
 }
 
+/** The ▶ alone, for a thumbnail too small for [VideoBadge]'s length (the stop card on the trip map). */
+@Composable
+fun VideoPlayMark(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(24.dp)
+            .background(MaterialTheme.colorScheme.inverseSurface, RoundedCornerShape(Radii.Badge))
+            .semantics { contentDescription = "Video" },
+        Alignment.Center,
+    ) { Icon(TopoIcons.Play, null, tint = MaterialTheme.colorScheme.inverseOnSurface, modifier = Modifier.size(18.dp)) }
+}
+
 /** "▶ 0:42" on a forest badge (specimen dark chip, 8 dp corners): marks a video thumbnail (R29). */
 @Composable
 fun VideoBadge(durationMs: Long, modifier: Modifier = Modifier) {

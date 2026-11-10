@@ -14,19 +14,35 @@ import kotlin.math.ln
 /** Text as search compares it: lower case, no diacritics, đ → d, punctuation as spaces. */
 object PlaceText {
     fun normalize(s: String): String {
-        val nfd = Normalizer.normalize(s, Normalizer.Form.NFD)
-        val out = StringBuilder(nfd.length)
+        val out = StringBuilder(s.length)
         var space = false
-        for (ch in nfd) {
-            if (Character.getType(ch) == Character.NON_SPACING_MARK.toInt()) continue
-            val c = when (ch) { 'đ', 'Đ' -> 'd'; else -> ch.lowercaseChar() }
-            if (c in 'a'..'z' || c in '0'..'9') {
-                if (space && out.isNotEmpty()) out.append(' ')
-                space = false
-                out.append(c)
-            } else space = true
+        for (ch in s) {
+            // Same result as NFD of the whole text: the marks are dropped, so each char is decomposed alone.
+            for (c in baseOf(ch)) {
+                if (c == ' ') {
+                    space = true
+                } else {
+                    if (space && out.isNotEmpty()) out.append(' ')
+                    space = false
+                    out.append(c)
+                }
+            }
         }
         return out.toString()
+    }
+
+    /** What a char becomes (a-z, 0-9, and ' ' for each separator; "" for a combining mark); one table entry per char, filled on first use. */
+    private val BASES = arrayOfNulls<String>(0x10000)
+
+    private fun baseOf(ch: Char): String {
+        BASES[ch.code]?.let { return it }
+        val sb = StringBuilder()
+        for (d in Normalizer.normalize(ch.toString(), Normalizer.Form.NFD)) {
+            if (Character.getType(d) == Character.NON_SPACING_MARK.toInt()) continue
+            val c = when (d) { 'đ', 'Đ' -> 'd'; else -> d.lowercaseChar() }
+            sb.append(if (c in 'a'..'z' || c in '0'..'9') c else ' ')
+        }
+        return sb.toString().also { BASES[ch.code] = it }
     }
 
     fun tokens(s: String): List<String> = normalize(s).split(' ').filter { it.isNotEmpty() }
@@ -42,10 +58,13 @@ object PlaceText {
         "bai bien", "cot co", "pho co", "phuong", "xa", "tinh", "huyen", "tp", "deo", "nui", "thac", "chua", "den",
     )
 
+    /** [GENERIC_PREFIXES] with their space, built once (core runs for every key of every place at start-up). */
+    private val SPACED_PREFIXES = GENERIC_PREFIXES.map { "$it " }
+
     /** The name without one generic leading word ("xa dong van" → "dong van"). */
     fun core(normalized: String): String {
-        for (p in GENERIC_PREFIXES) {
-            if (normalized.length > p.length + 1 && normalized.startsWith("$p ")) return normalized.substring(p.length + 1)
+        for (p in SPACED_PREFIXES) {
+            if (normalized.length > p.length && normalized.startsWith(p)) return normalized.substring(p.length)
         }
         return normalized
     }
@@ -194,7 +213,7 @@ class Gazetteer(val regions: List<Region>, val places: List<Place>) {
         fun parse(lines: Sequence<String>): Gazetteer {
             val regions = ArrayList<Region>()
             val byId = HashMap<Int, Region>()
-            val places = ArrayList<Place>()
+            val rows = ArrayList<List<String>>()
             for (line in lines) {
                 if (line.isEmpty() || line[0] == '#') continue
                 val f = line.split('\t')
@@ -202,18 +221,26 @@ class Gazetteer(val regions: List<Region>, val places: List<Place>) {
                     val r = Region(f[1].toInt(), f[2], f[3].split(';').filter { it.isNotBlank() }, GeoPoint(f[4].toInt() / 1e5, f[5].toInt() / 1e5))
                     regions += r
                     byId[r.id] = r
-                    places += Place(r.name, PlaceKind.PROVINCE, r, r.center, aliases = r.formerNames)
-                    continue
-                }
-                if (f.size < 6 || f[0].length != 1) continue
-                val kind = PlaceKind.of(f[0][0]) ?: continue
-                val region = f[1].toIntOrNull()?.let(byId::get) ?: continue
-                val lat = f[2].toIntOrNull() ?: continue
-                val lng = f[3].toIntOrNull() ?: continue
-                val aliases = f.getOrNull(6)?.split(';')?.filter { it.isNotBlank() }.orEmpty()
-                places += Place(f[5], kind, region, GeoPoint(lat / 1e5, lng / 1e5), f[4] == "n", aliases)
+                    rows += f
+                } else if (f.size >= 6 && f[0].length == 1) rows += f
             }
-            return Gazetteer(regions, places)
+            // Building a Place normalises its names (the slow part, ~22 000 of them): spread it over the cores, keep the file order.
+            val built = arrayOfNulls<Place>(rows.size)
+            java.util.stream.IntStream.range(0, rows.size).parallel().forEach { i -> built[i] = place(rows[i], byId) }
+            return Gazetteer(regions, built.filterNotNull())
+        }
+
+        private fun place(f: List<String>, byId: Map<Int, Region>): Place? {
+            if (f[0] == "R") {
+                val r = byId[f[1].toInt()] ?: return null
+                return Place(r.name, PlaceKind.PROVINCE, r, r.center, aliases = r.formerNames)
+            }
+            val kind = PlaceKind.of(f[0][0]) ?: return null
+            val region = f[1].toIntOrNull()?.let(byId::get) ?: return null
+            val lat = f[2].toIntOrNull() ?: return null
+            val lng = f[3].toIntOrNull() ?: return null
+            val aliases = f.getOrNull(6)?.split(';')?.filter { it.isNotBlank() }.orEmpty()
+            return Place(f[5], kind, region, GeoPoint(lat / 1e5, lng / 1e5), f[4] == "n", aliases)
         }
     }
 }

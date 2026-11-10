@@ -971,6 +971,10 @@ EXIF photos), 27–28 (a historical upgrade from the v1 build).
 | place-search/05-step-auto-name.png | new step after "Dùng vị trí này": "Tên địa điểm" = Mã Pí Lèng Pass (R24) |
 | place-search/06-step-typed-name-kept.png | typed name "Nha nghi cua toi" kept after the pin moved |
 | place-search/07-step-pin-drop-auto-name.png | name cleared, pin dragged: the name is filled again from the nearest place |
+| small-fixes/01-backup-done-photos-and-video.png | the backup snackbar: "16 ảnh · 1 video" (R26) |
+| small-fixes/02-restore-confirm-photos-and-video.png | restore confirmation, photos and videos counted apart (R26) |
+| small-fixes/03-trip-map-video-play-mark.png | trip map stop card whose first item is a video: still frame with ▶ (R29) |
+| small-fixes/04-search-deo-ma-pi-leng.png | place search "ma pi leng": "Đèo Mã Pí Lèng" (R23) |
 | gpx-backup/01-trip-list-menu.png | trip list ⋮ "Tùy chọn khác": Bản đồ offline / Nhập tệp GPX / Sao lưu dữ liệu / Khôi phục từ bản sao lưu / Tạo dữ liệu mẫu (debug) |
 | gpx-backup/02-gpx-export-choice.png | "Xuất GPX" on the Hà Giang card: dialog "Xuất tệp GPX" with "Chia sẻ…" and "Lưu vào tệp…" |
 | gpx-backup/03-gpx-imported-trip.png | the exported Hà Giang file imported (R25): a new trip, 10 steps, the GPS track (359 points) on the header map |
