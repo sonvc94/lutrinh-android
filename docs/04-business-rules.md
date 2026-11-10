@@ -1188,6 +1188,10 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
 `MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`,
 `MigrationTest.version8UpgradesWithUsedProfileAndKeepsStoredRoutes`. Screens: docs/img/road-routing/
 (`13`–`15-lung-cu-car-route-*.png` = the Lũng Cú leg with "tuyến ô tô").
+One request per leg and input: a request that has gone out is never cancelled by a queue refresh (the
+previous leg being stored), and a stale queue skips a leg whose answer is already stored
+(`RouteSyncTest.aSlowRequestIsNotCancelledAndRepeatedWhenAnEarlierLegIsStored`; the car retry of a Xe máy
+leg is the only second request).
 The trip-detail preview keeps every pin inside its frame, clear of the credit and the expand button
 (`PreviewFrameTest`; `16`–`18` = Ninh Bình all routed, both previews).
 *Changed from the study* (docs/routing-feasibility.md): snap limit 500 m instead of 1 km, because

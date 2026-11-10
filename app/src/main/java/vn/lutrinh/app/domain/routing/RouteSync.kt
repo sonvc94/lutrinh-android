@@ -2,6 +2,7 @@ package vn.lutrinh.app.domain.routing
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,16 +12,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.repository.Clock
 import vn.lutrinh.app.domain.usecase.legsOf
-import kotlin.coroutines.cancellation.CancellationException
 
 /** Stored routes of legs (R36, table `leg_routes`). */
 interface LegRouteRepository {
@@ -145,6 +147,10 @@ class RouteSync(
      * stored row says which profile answered. Both without a route: stored as no route (straight).
      */
     internal suspend fun fetch(request: LegRouteRequest): Boolean = gate.withLock {
+        // The queue this drain works from may be stale: the request it waited behind (or an earlier drain's
+        // flight, see [ask]) has stored this very answer meanwhile. Asking again would be a wasted request.
+        val stored = routes.observeAll().first().firstOrNull { it.toStepId == request.toStepId }
+        if (stored != null && LegRoutes.matches(stored, request) && !stored.needsCarRetry) return@withLock true
         var row: LegRoute? = null
         for (profile in LegRoutes.profilesFor(request)) {
             row = ask(request, profile)
@@ -153,13 +159,13 @@ class RouteSync(
         }
         if (row != null) {
             log("stored ${row.status.id} ${row.usedProfile.id} ${"%.1f".format(row.distanceM / 1000)} km ${row.durationS.toLong()} s -> ${row.toStepId}")
-            try {
-                routes.save(row)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                // The step was deleted meanwhile (foreign key): nothing to keep.
-                log("not stored: ${e.message}")
+            withContext(NonCancellable) {
+                try {
+                    routes.save(row)
+                } catch (e: Exception) {
+                    // The step was deleted meanwhile (foreign key): nothing to keep.
+                    log("not stored: ${e.message}")
+                }
             }
             failures.remove(request)
             retryAt.remove(request)
@@ -177,12 +183,14 @@ class RouteSync(
             if (!provider.supports(profile)) continue
             pace()
             log("request ${provider.id} ${profile.id} -> ${request.toStepId}")
-            val result = try {
-                provider.route(request.from, request.to, profile)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                RouteResult.Unavailable(e.message ?: e.javaClass.simpleName)
+            // A request that has gone out is answered and stored: a refreshed queue (the previous leg was just
+            // stored) must not cancel it, or the next drain sends the same request again.
+            val result = withContext(NonCancellable) {
+                try {
+                    provider.route(request.from, request.to, profile)
+                } catch (e: Exception) {
+                    RouteResult.Unavailable(e.message ?: e.javaClass.simpleName)
+                }
             }
             val now = clock.nowMillis()
             when (result) {

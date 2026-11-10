@@ -1,6 +1,7 @@
 package vn.lutrinh.app.domain
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -58,10 +59,14 @@ class RouteSyncTest {
 
         /** Answers per profile before [answer] is used (null = no special answer). */
         var byProfile: (RouteProfile) -> RouteResult? = { null }
+
+        /** Network time of one answer (virtual ms). */
+        var latencyMs = 0L
         override val credit = RoutingCredit(id, "https://www.openstreetmap.org/fixthemap")
         override fun supports(profile: RouteProfile) = only == null || profile == only
         override suspend fun route(from: GeoPoint, to: GeoPoint, profile: RouteProfile): RouteResult {
             calls += clock.nowMillis() to profile
+            if (latencyMs > 0) delay(latencyMs)
             return byProfile(profile) ?: answer(from, to)
         }
     }
@@ -113,6 +118,17 @@ class RouteSyncTest {
         assertEquals(setOf("b", "c"), rig.routes.rows.value.keys)
         assertTrue(rig.routes.rows.value.values.all { it.status == LegRouteStatus.OK })
         assertEquals(emptyList<Any>(), rig.osrm.calls)
+    }
+
+    @Test fun aSlowRequestIsNotCancelledAndRepeatedWhenAnEarlierLegIsStored() = runTest {
+        // Saving leg 1 refreshes the queue while leg 2 is in flight (the request took > 1 s on the phone): the
+        // refresh must not cancel that request, or the same leg is asked twice (seen in logcat -s Routing).
+        val rig = Rig(this, MemoryStore(routingNoticeSeen = true))
+        rig.valhalla.latencyMs = 1_500
+        rig.steps.value = (0 until 6).map { i -> step("s$i", "2026-10-20T0$i:00", 22.0 + i * 0.05) }
+        settle()
+        assertEquals(5, rig.valhalla.calls.size)
+        assertEquals(setOf("s1", "s2", "s3", "s4", "s5"), rig.routes.rows.value.keys)
     }
 
     @Test fun requestsAreAtLeastOneSecondApart() = runTest {
