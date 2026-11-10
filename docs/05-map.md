@@ -38,10 +38,13 @@ Screens and view models never touch a map SDK (R35). Four parts, ported one to o
 **Map interface.** Coordinates are `GeoPoint`, colours `#RRGGBB`, sizes px.
 
 * `setBasemap(BasemapStyle)`.
-* Overlays: `setRouteColors`, `setPins`, `setLegs(legs, badges)`, `setTrips(lines, dots)`,
+* Overlays: `setRouteColors`, `setPins`, `setLegs(legs, badges)` (a `MapLeg` carries
+  `selected` and `travelled`, R37), `setTrips(lines, dots)`,
   `setTracks`, `setStopSuggestions`, `setMyLocation`.
 * Camera: `camera`, `moveTo(center, zoom, padding?, NONE | EASE | FLY)`,
-  `fitPoints(points, padding, maxZoom, animation)`, `afterLayout(action)`.
+  `fitPoints(points, padding, maxZoom, animation)`, `afterLayout(action)`, `widthPx`/`heightPx`,
+  `animateTo(CameraPlan)` (R37: centre, zoom, padding and duration decided by the app; 0 ms = jump,
+  otherwise an ease in-out glide of exactly that length).
 * Events: `setListener` → `onTap(MapHit?)` (pin, leg, trip, or nothing) and
   `onCameraIdle(MapCamera)`. Tap boxes: pins 22 dp, badges 22 dp, leg lines 11 dp, trips 18 dp.
 * `MapEngine`:
@@ -328,6 +331,7 @@ selected leg SignalDeep `#B83A16`. Selected features have `line-sort-key` 2 (dra
 | # | Layer id | Filter `kind` | Paint |
 | --- | --- | --- | --- |
 | 1–55 | Positron basemap (tuned) | | |
+| 55b | `route-travelled` | `travelled` = true (R37) | route colour, halo width 12 / 16 / 24, blur 4 → 8 (z5 → z13), opacity 0.38, round cap/join; under the shadow/casing so the line stays crisp on top |
 | 56 | `route-shadow` | `ground` | Forest `#1F2A24`, width 5 / 8 / 16, blur 3 → 8 (z5 → z13), opacity 0.28 → 0.16, translate (0, 1 dp), round cap/join |
 | 57 | `route-casing` | `ground` | white, width 4.6 / 6.6 / 9 → 6 / 8.6 / 12, round cap/join |
 | 58 | `route-ground` | `ground` | route colour, width 2.2 / 3.4 / 5 → 3.4 / 5 / 7.5, round cap/join |
@@ -495,16 +499,19 @@ Screens: `img/share-trip/06-airplane-image.png` (offline pack), `img/share-trip/
 | No steps | centre (16.0, 106.0) — Vietnam overview — zoom 5 |
 | One step | centre on it, zoom 12 |
 | Two or more | fit the bounds of **every drawn point** (steps and flight-arc points, so an arc never leaves the screen) inside the padded area, cap zoom at 14. Padding: 40 dp on the trip detail header and step detail (36 dp Thêm từ ảnh, 56 dp default); full trip map 48 dp on each side **plus the measured height of the card carousel at the bottom**, so no pin is drawn under the cards |
-| Step selected (pin or card tap, full trip map) | animate to the step at zoom `max(current, 11)` capped at 14 (never zooms the user out), keeping the carousel padding so the step sits above the cards |
+| Step focused (full trip map, R37) | after the carousel stops: glide (`animateTo(CameraMath.stepPlan)`) to centre the step in the visible map above the cards, zoom = fit of the step + its arriving leg (else leaving leg; no flights), ≤ `STEP_MAX_ZOOM` 13.5, ≥ 5, 12 with no leg |
 | Leg selected (mode sheet open) | animate to fit the leg's path, zoom ≤ 13, bottom padding = max(carousel padding, 55 % of the map height) so the leg stays visible above the sheet |
 | Picker opening | target point at zoom 13 (see R6 for which point); overview at zoom 5 when none |
 | Picker chip ("Vị trí của tôi" or one of the trip's steps) | fly to that point (`focusZoom`, ≥ 11) |
 | "Xem toàn bộ hành trình" (trip map) | clear the selection, fit all pins above the cards, zoom ≤ `FIT_MAX_ZOOM` (14) |
 | "Vị trí của tôi" (trip map, My map) | animate to the fix at zoom `max(current, 15)` (≤ 19), carousel padding kept |
-| Carousel swipe settles on a card | that card's step is selected and flown to like a pin tap |
+| Carousel swipe settles on a card | that card's step is selected and the camera moves to it (R37); a pin/card tap moves the camera only after the carousel's own scroll to the card ends |
+| System animations off (animator duration scale 0) | every move above is a jump (R37) |
 
 Animation length (`CameraMath.flyDurationMs`, tested in `CameraMathTest`):
-`350 ms + 1.5 ms/km + 160 ms per zoom level`, clamped to 450–1600 ms.
+`350 ms + 1.5 ms/km + 160 ms per zoom level`, clamped to 400–1800 ms (R37; was 450–1600).
+A step move eases in and out over exactly that time (MapLibre `easeCamera`, no zoom-out bump);
+`adb logcat -s CameraPlan` prints its zoom, length and padding.
 
 The route is fitted once per change of the step list/modes — or of the bottom padding, until
 the user has selected something — after the view has its size; a selection is not undone by a

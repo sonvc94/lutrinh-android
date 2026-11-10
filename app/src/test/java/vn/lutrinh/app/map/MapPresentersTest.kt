@@ -15,7 +15,7 @@ import vn.lutrinh.app.map.basemap.BasemapStyle
  * [MapController] adapter the same way. A fake adapter records what they ask for.
  */
 class MapPresentersTest {
-    private class FakeMap(override val density: Float = 2f, override val heightPx: Int = 2000) : MapController {
+    private class FakeMap(override val density: Float = 2f, override val heightPx: Int = 2000, override val widthPx: Int = 1000) : MapController {
         override var camera: MapCamera? = MapCamera(GeoPoint(21.0, 105.0), 8.0)
         var shownBasemap: BasemapStyle? = null
         var shownPins = emptyList<MapPin>()
@@ -39,6 +39,12 @@ class MapPresentersTest {
         override fun moveTo(center: GeoPoint, zoom: Double, padding: MapInsets?, animation: CameraAnimation) {
             moves += "move ${center.latitude},${center.longitude} z$zoom $animation pad=$padding"
             camera = MapCamera(center, zoom)
+        }
+        val plans = mutableListOf<CameraPlan>()
+        override fun animateTo(plan: CameraPlan) {
+            plans += plan
+            moves += "animate ${plan.center.latitude},${plan.center.longitude} ${plan.durationMs}ms pad=${plan.padding}"
+            camera = MapCamera(plan.center, plan.zoom)
         }
         override fun fitPoints(points: List<GeoPoint>, padding: MapInsets, maxZoom: Double, animation: CameraAnimation) {
             moves += "fit ${points.size} max$maxZoom $animation pad=$padding"
@@ -100,8 +106,9 @@ class MapPresentersTest {
         p.render(map, 56, 0, true)
         assertTrue(map.moves.isEmpty())
         p.markers = listOf(marker("a", "1", hg), marker("b", "2", qb, highlighted = true))
+        p.focusStep = "b"
         p.render(map, 56, 0, true)
-        assertTrue(map.moves.single(), map.moves.single().startsWith("move 23.07,104.99") && map.moves.single().contains("FLY"))
+        assertTrue(map.moves.single(), map.moves.single().startsWith("animate 23.07,104.99") && !map.moves.single().contains(" 0ms"))
         assertEquals("pin-2-END-true", map.shownPins[1].icon.id)
     }
 
@@ -187,5 +194,70 @@ class MapPresentersTest {
         assertEquals("move 23.07,104.99 z13.0 EASE pad=null", map.moves.last())
         assertEquals(2, map.moves.size)
         assertNull(map.shownBasemap)
+    }
+
+    /** R37: the trip map emphasises the leg arriving at the step the camera shows, and frames it. */
+    @Test
+    fun tripMap_travelledLegIsTheOneArrivingAtTheFocusedStep() {
+        val map = FakeMap()
+        val p = TripMapPresenter(icons)
+        p.markers = listOf(marker("a", "1", hg), marker("b", "2", qb), marker("c", "3", dv))
+        p.legModes = listOf(TransportMode.MOTORBIKE, TransportMode.CAR)
+        p.showTravelled = true
+        p.render(map, 56, 100, true)
+        assertEquals(listOf(false, false), map.legs.map { it.travelled })
+        map.moves.clear()
+        p.focusStep = "c"
+        p.render(map, 56, 100, true)
+        assertEquals(listOf("b" to false, "c" to true), map.legs.map { it.to to it.travelled })
+        // The camera keeps the arriving leg (b → c) in view, centred on c above the cards.
+        val plan = map.plans.single()
+        assertEquals(dv, plan.center)
+        assertEquals(MapInsets(112, 112, 112, 312), plan.padding)
+        assertTrue(plan.zoom < MapConfig.STEP_MAX_ZOOM && plan.zoom > MapConfig.OVERVIEW_ZOOM)
+        assertTrue(plan.durationMs in CameraMath.MIN_ANIMATION_MS..CameraMath.MAX_ANIMATION_MS)
+        // The first step has no arriving leg: nothing travelled.
+        p.focusStep = "a"
+        p.render(map, 56, 100, true)
+        assertEquals(listOf(false, false), map.legs.map { it.travelled })
+        // Off by default (step detail, trip detail header).
+        p.showTravelled = false
+        p.focusStep = "c"
+        p.render(map, 56, 100, true)
+        assertEquals(listOf(false, false), map.legs.map { it.travelled })
+    }
+
+    @Test
+    fun stepRegion_arrivingLeg_elseLeaving_neverAFlight() {
+        val ab = MapLeg("b", listOf(hg, qb), LegLine.GROUND, false)
+        val bcFlight = MapLeg("c", listOf(qb, GeoPoint(22.0, 105.0), dv), LegLine.FLIGHT, false)
+        val route = listOf("a", "b", "c")
+        assertEquals(listOf(hg, qb), stepRegion(route, listOf(ab, bcFlight), "b"))
+        // c arrives by flight and leaves nowhere; a has only its leaving leg.
+        assertEquals(emptyList<GeoPoint>(), stepRegion(route, listOf(ab, bcFlight), "c"))
+        assertEquals(listOf(hg, qb), stepRegion(route, listOf(ab, bcFlight), "a"))
+        // b arriving by flight: its leaving ground leg frames it.
+        val abFlight = ab.copy(line = LegLine.FLIGHT)
+        val bc = bcFlight.copy(line = LegLine.GROUND, path = listOf(qb, dv))
+        assertEquals(listOf(qb, dv), stepRegion(route, listOf(abFlight, bc), "b"))
+        // A draft is no route point.
+        assertEquals(emptyList<GeoPoint>(), stepRegion(route, listOf(ab, bc), "draft"))
+    }
+
+    @Test
+    fun tripMap_reducedMotion_everyMoveJumps() {
+        val map = FakeMap()
+        val p = TripMapPresenter(icons)
+        p.markers = listOf(marker("a", "1", hg), marker("b", "2", qb))
+        p.reducedMotion = true
+        p.render(map, 56, 0, true)
+        map.moves.clear()
+        p.focusStep = "b"
+        p.render(map, 56, 0, true)
+        p.fitAllSignal = 1
+        p.render(map, 56, 0, true)
+        assertEquals(2, map.moves.size)
+        assertTrue(map.moves[0], map.moves[0].startsWith("animate 23.07,104.99 0ms"))
+        assertTrue(map.moves[1], map.moves[1].startsWith("fit") && map.moves[1].contains("NONE"))
     }
 }

@@ -371,9 +371,23 @@ The picker returns its result to the step form through the previous screen's sav
   when a swipe settles the centred card's step becomes the selected one (pin highlighted, camera flies to it);
   tapping a card selects its step, and the selected card shows "Xem chi tiết ›" — tapping it opens Step detail;
   "Xem toàn bộ hành trình" clears the selection and refits the whole route above the cards; each
-  selection flies the camera to that step (zoom ≥ 11, never zooming the user out); tapping a badge, a leg line or a
+  selection moves the camera to that step (R37); tapping a badge, a leg line or a
   card's leg chip opens the Leg mode sheet, and the leg turns SignalDeep and is framed above the sheet. Empty
   trip: message "Chuyến đi chưa có điểm dừng nào để hiển thị."
+* **Motion (R37):** the camera moves only once the cards stop: a swipe first snaps a card to the
+  centre, then the camera glides (ease in-out, 400–1800 ms by distance and zoom change) to centre
+  that step in the map area above the cards, zoomed to show the leg arriving there (≤ z13.5); a
+  pin tap selects the pin at once, the carousel scrolls to its card, then the camera follows (our
+  own scroll never counts as a swipe). The leg arriving at that step glows (a soft, wide
+  signal-orange halo under the SignalDeep line); the others stay normal; nothing glows after
+  "Xem toàn bộ hành trình". A small panel **"Ngày N/M"** at the bottom left above the cards
+  (Barlow numerals; content description "Ngày N/M") gives the day of the trip of the camera's step
+  (day 1 = the trip's start date; M = the trip's days, or up to its latest step while it has no
+  end); the number rolls up when the day grows and down when it shrinks. Opening Step detail from
+  the selected card grows the card into the screen (400 ms, the detail's content fades in after
+  150 ms); Back shrinks the screen into the same card, and the trip map keeps the selection and
+  camera it had. With system animations off ("Tỉ lệ thời lượng hình động" = 0) every camera move
+  is a jump and the other motions are instant. Frames: `img/trip-motion/` (index below).
 * **Screens:** `img/09-trip-map-route.png`, `img/16-sample-hagiang-map.png`,
   `img/20-trip-map-pins-above-cards.png`, `img/23-trip-map-leg-modes.png`,
   `img/24-trip-map-legs-zoomed.png`; "Vị trí của tôi": `img/my-location/01-trip-map-my-location.png`,
@@ -702,6 +716,21 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 * **Screens:** `img/road-routing/01-notice.png`, `05-settings-on.png`, `06-settings-off.png`.
 
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
+
+### Trip-map motion (`img/trip-motion/`, R37)
+
+Own vi-VN AVD, sample trip "Vòng cung Hà Giang", `adb shell screenrecord` frames (60 fps, VFR)
+tiled left → right.
+
+| File | Shows |
+| --- | --- |
+| 01-swipe-settle-camera.png / .gif | swipe from card 1: the cards slide and snap first, then the camera glides to step 2, leg 1 → 2 glows, "Ngày 1/4" appears |
+| 02-pin-tap-scrolls.png | pin 10 tapped: the pin is selected at once, the carousel scrolls to card 10, then the camera moves and leg 9 → 10 glows |
+| 03-travelled-leg.png | step 10 focused: the arriving leg 9 → 10 glows, the other legs are normal; "Ngày 4/4" |
+| 04-card-expand.png | selected card 10 tapped: the card grows into Step detail, content fades in, the mini map appears once the move ends |
+| 05-card-collapse.png | Back: the detail shrinks into card 10; selection, camera and glow are kept |
+| 06-day-flip.png | swipe from step 10 (day 4) to step 9 (day 3): "4" slides down and out, "3" comes in from above |
+| 07-reduced-motion.png | animator duration scale 0: pin 10 tapped, the camera jumped (`CameraPlan: z8.84 0 ms`) |
 
 ### Topo outdoor, before/after (`img/topo/`, docs/08, batch 1)
 

@@ -8,7 +8,12 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import vn.lutrinh.app.ui.common.LocalNavAnimatedScope
+import vn.lutrinh.app.ui.common.LocalSharedTransitionScope
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -139,8 +144,11 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
     }
 }
 
+/** R37: the NavHost sits in a shared-transition scope so a trip-map card can grow into its step detail. */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-private fun NavGraph(nav: NavHostController) {
+private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
+  CompositionLocalProvider(LocalSharedTransitionScope provides this) {
     NavHost(navController = nav, startDestination = Routes.TRIPS) {
         composable(Routes.TRIPS) {
             TripListScreen(
@@ -191,13 +199,15 @@ private fun NavGraph(nav: NavHostController) {
         }
         composable(Routes.TRIP_MAP, arguments = listOf(required("tripId"))) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!
-            TripMapScreen(
-                onBack = { nav.popBackStack() },
-                onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
-                onOpenOffline = { nav.navigate(Routes.offline(tripId)) },
-                onNewTripAndRecord = { nav.navigate(Routes.tripEditAndRecord()) },
-                onOpenBatteryGuide = { nav.navigate(Routes.BATTERY_GUIDE) },
-            )
+            CompositionLocalProvider(LocalNavAnimatedScope provides this) {
+                TripMapScreen(
+                    onBack = { nav.popBackStack() },
+                    onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
+                    onOpenOffline = { nav.navigate(Routes.offline(tripId)) },
+                    onNewTripAndRecord = { nav.navigate(Routes.tripEditAndRecord()) },
+                    onOpenBatteryGuide = { nav.navigate(Routes.BATTERY_GUIDE) },
+                )
+            }
         }
         composable(Routes.BATTERY_GUIDE) { BatteryGuideScreen(onBack = { nav.popBackStack() }) }
         composable(Routes.SETTINGS) { SettingsScreen(onBack = { nav.popBackStack() }) }
@@ -244,13 +254,15 @@ private fun NavGraph(nav: NavHostController) {
         composable(Routes.STEP, arguments = listOf(required("tripId"), required("stepId"))) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!
             val stepId = entry.arguments?.getString("stepId")!!
-            StepDetailScreen(
-                onBack = { nav.popBackStack() },
-                onEdit = { nav.navigate(Routes.stepEdit(tripId, stepId)) },
-                onOpenPhoto = { nav.navigate(Routes.photos(tripId, stepId, it)) },
-                // Replace this step with its neighbour, so Back keeps returning to where the user came from.
-                onOpenStep = { id -> nav.navigate(Routes.step(tripId, id)) { popUpTo(Routes.STEP) { inclusive = true } } },
-            )
+            CompositionLocalProvider(LocalNavAnimatedScope provides this) {
+                StepDetailScreen(
+                    onBack = { nav.popBackStack() },
+                    onEdit = { nav.navigate(Routes.stepEdit(tripId, stepId)) },
+                    onOpenPhoto = { nav.navigate(Routes.photos(tripId, stepId, it)) },
+                    // Replace this step with its neighbour, so Back keeps returning to where the user came from.
+                    onOpenStep = { id -> nav.navigate(Routes.step(tripId, id)) { popUpTo(Routes.STEP) { inclusive = true } } },
+                )
+            }
         }
         composable(
             Routes.PICKER,
@@ -270,4 +282,5 @@ private fun NavGraph(nav: NavHostController) {
             PhotoViewerScreen(onClose = { nav.popBackStack() })
         }
     }
+  }
 }

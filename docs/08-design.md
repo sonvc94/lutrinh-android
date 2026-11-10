@@ -234,10 +234,30 @@ docs/09 (guard: `topoIconsAndTypeWeights`). Path data (SVG, 24 × 24):
 | Video badge / photo tags | Forest at 85 % with Card text, 8 dp; cover tag Trail | `VideoBadge`, `PhotoTile` |
 | Copy | plain Vietnamese, no em dash (—) in user text; en dash only in ranges | — |
 
+## 6a. Motion (R37, `ui/theme/Motion.kt`)
+
+Motion is quiet and short: things glide, nothing bounces. One curve for everything: **cubic
+ease in-out** `cubic-bezier(0.65, 0, 0.35, 1)` (`Motion.EaseInOut`).
+
+| Token | Value | Use |
+| --- | --- | --- |
+| Camera step move | 400–1800 ms: `350 + 1.5 ms/km + 160 ms per zoom level`, clamped (`CameraMath`) | trip map camera to the focused step, ease in-out, never while the cards move |
+| `EXPAND_MS` | 400 ms | card → Step detail shared bounds (and back) |
+| `CONTENT_FADE_MS` / `CONTENT_FADE_DELAY_MS` | 200 ms after 150 ms | the detail's content fades in once the bounds are growing; out at once (200 ms) on Back |
+| `DAY_FLIP_MS` | 260 ms | "Ngày N/M": the number slides by its own height and fades, up when N grows, down when it shrinks |
+
+The day counter is a Card chip over the map (Ink "Ngày" label, Barlow numerals, InkMuted "/M",
+`Radii` small, `Lift.Chip`); no new colour pair. Reduced motion: with the system's animator
+duration scale at 0 every camera move jumps and the Compose motions end at once (iOS: Reduce
+Motion). A live map cannot be drawn inside a moving shared bounds: show a plain
+surfaceContainer panel in its place until the move ends.
+
 ## 7. Map styling
 
 The basemap is repainted to the specimen's map (§2 "Map"): paper, vegetation, water, contour-brown
-borders; the route is the only strong colour. Map overlays (chips, buttons, panels) float with
+borders; the route is the only strong colour. The leg the camera has just travelled (R37) keeps
+that colour: SignalDeep line on top plus a soft, wide Signal halo (opacity 0.38, blurred), no
+second colour. Map overlays (chips, buttons, panels) float with
 `Lift`; the credit sits on Card at 80 %. Static maps (share image, `StaticTripMap`) use the same
 tokens.
 

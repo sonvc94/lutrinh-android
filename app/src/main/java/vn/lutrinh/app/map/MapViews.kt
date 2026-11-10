@@ -34,6 +34,7 @@ import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.map.basemap.BasemapProvider
 import vn.lutrinh.app.map.basemap.Basemaps
 import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.reducedMotion
 
 /*
  * The map composables of the app (docs/05-map.md). They draw through the map interface only
@@ -149,8 +150,9 @@ private fun mapListener(center: MutableState<GeoPoint?>, onTap: (MapHit?) -> Boo
  * the leg's transport mode ([legModes][i] = mode of the i-th leg between consecutive non-draft
  * markers, R12; draft markers are drawn hollow and skipped by the route, R20).
  * The camera fits the whole route whenever the set of pins changes (docs/05-map.md); on an
- * interactive map, selecting a pin ([MapMarker.highlighted]) or a leg ([selectedLegTo]) flies
- * the camera to it.
+ * interactive map, a new [focusStepId] (default: the highlighted pin) or leg ([selectedLegTo])
+ * moves the camera to it (R37: eased, framing the leg just travelled; a jump with system
+ * animations off).
  */
 @Composable
 fun TripMap(
@@ -180,8 +182,12 @@ fun TripMap(
     /** "Vị trí của tôi": the fix to draw (null = none) and a counter whose change flies the camera to it. */
     myLocation: MyLocationFix? = null,
     myLocationSignal: Int = 0,
+    /** Step the camera moves to (R37: the trip map passes the step its carousel settled on). */
+    focusStepId: String? = markers.firstOrNull { it.highlighted }?.id,
+    /** R37: emphasise the leg arriving at [focusStepId]. */
+    showTravelledLeg: Boolean = false,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val reduced = reducedMotion()
     val routeColors = RouteColors(Palette.Signal.hex(), Palette.SignalDeep.hex())
     val icons = rememberMapIcons()
     val presenter = remember { TripMapPresenter(icons) }
@@ -204,6 +210,9 @@ fun TripMap(
         presenter.fitAllSignal = fitAllSignal
         presenter.myLocation = myLocation
         presenter.myLocationSignal = myLocationSignal
+        presenter.focusStep = focusStepId
+        presenter.showTravelled = showTravelledLeg
+        presenter.reducedMotion = reduced
         map.setRouteColors(routeColors)
         presenter.render(map, fitPaddingDp, fitExtraBottomDp, interactive)
     }

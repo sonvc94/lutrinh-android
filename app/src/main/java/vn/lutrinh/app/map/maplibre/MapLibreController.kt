@@ -1,6 +1,7 @@
 package vn.lutrinh.app.map.maplibre
 
 import android.graphics.RectF
+import android.util.Log
 import androidx.core.view.doOnLayout
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -13,6 +14,7 @@ import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.usecase.Geo
 import vn.lutrinh.app.map.CameraAnimation
 import vn.lutrinh.app.map.CameraMath
+import vn.lutrinh.app.map.CameraPlan
 import vn.lutrinh.app.map.MapBadge
 import vn.lutrinh.app.map.MapCamera
 import vn.lutrinh.app.map.MapController
@@ -63,6 +65,7 @@ internal class MapLibreController(
     }
 
     override val heightPx: Int get() = view.height
+    override val widthPx: Int get() = view.width
 
     override val camera: MapCamera?
         get() {
@@ -186,6 +189,15 @@ internal class MapLibreController(
             CameraAnimation.EASE -> map.animateCamera(update)
             CameraAnimation.FLY -> map.animateCamera(update, flyDuration(center, zoom))
         }
+    }
+
+    override fun animateTo(plan: CameraPlan) {
+        val target = CameraPosition.Builder().target(LatLng(plan.center.latitude, plan.center.longitude)).zoom(plan.zoom)
+            .padding(plan.padding.toDoubleArray()).build()
+        val update = CameraUpdateFactory.newCameraPosition(target)
+        Log.i("CameraPlan", "z%.2f %d ms pad=%s".format(java.util.Locale.ROOT, plan.zoom, plan.durationMs, plan.padding))
+        // easeCamera(…, true) = MapLibre's ease-in-out curve over exactly the planned length.
+        if (plan.durationMs <= 0) map.moveCamera(update) else map.easeCamera(update, plan.durationMs, true)
     }
 
     override fun fitPoints(points: List<GeoPoint>, padding: MapInsets, maxZoom: Double, animation: CameraAnimation) {

@@ -33,14 +33,17 @@ internal object MapCameraRules {
         else -> map.fitPoints(points, padding, MapConfig.FIT_MAX_ZOOM)
     }
 
-    /** Flies to [point] at CameraMath.focusZoom, centred in the area left free by [padding]. */
-    fun focusStep(map: MapController, point: GeoPoint, padding: MapInsets) =
-        map.moveTo(point, CameraMath.focusZoom(map.camera?.zoom ?: 0.0), padding, CameraAnimation.FLY)
+    /**
+     * R37: eases to [point] centred in the area left free by [padding], zoomed to show [region]
+     * (the leg just travelled) around it, at most STEP_MAX_ZOOM; a jump when [reducedMotion].
+     */
+    fun focusStep(map: MapController, point: GeoPoint, region: List<GeoPoint>, padding: MapInsets, reducedMotion: Boolean) =
+        map.animateTo(CameraMath.stepPlan(point, region, map.camera, map.widthPx, map.heightPx, map.density, padding, reducedMotion))
 
     /** Flies to [fix] at MY_LOCATION_ZOOM at least, centred in the area left free by [padding]. */
-    fun flyToMyLocation(map: MapController, fix: MyLocationFix, padding: MapInsets) {
+    fun flyToMyLocation(map: MapController, fix: MyLocationFix, padding: MapInsets, animation: CameraAnimation = CameraAnimation.FLY) {
         val zoom = maxOf(map.camera?.zoom ?: 0.0, MapConfig.MY_LOCATION_ZOOM).coerceAtMost(MapConfig.MAX_ZOOM)
-        map.moveTo(fix.point, zoom, padding, CameraAnimation.FLY)
+        map.moveTo(fix.point, zoom, padding, animation)
     }
 }
 
@@ -54,6 +57,12 @@ internal class TripMapPresenter(private val icons: MapIcons) {
     var stops: List<StopMarker> = emptyList()
     var showRoute: Boolean = true
     var selectedLegTo: String? = null
+    /** Step the camera shows (R37: on the trip map it follows the carousel once it settles). */
+    var focusStep: String? = null
+    /** R37: emphasise the leg arriving at [focusStep] (trip map only). */
+    var showTravelled: Boolean = false
+    /** System animations off: camera moves jump (R37). */
+    var reducedMotion: Boolean = false
     var fitAllSignal: Int = 0
     var myLocation: MyLocationFix? = null
     var myLocationSignal: Int = 0
@@ -107,7 +116,7 @@ internal class TripMapPresenter(private val icons: MapIcons) {
             val selected = to.id == selectedLegTo
             val path = Polyline.simplify(legPaths.getOrNull(i)?.takeIf { it.size >= 2 } ?: LegGeometry.path(from.point, to.point, mode))
             paths += path
-            lines += MapLeg(to.id, path, mode.legLine(), selected)
+            lines += MapLeg(to.id, path, mode.legLine(), selected, travelled = showTravelled && to.id == focusStep)
             // The selected badge is placed first so it never gives way.
             if (mode != null) badges += MapBadge(to.id, Polyline.pointAt(path, 0.5), icons.badge(mode, selected), if (selected) -1 else i)
         }
@@ -117,10 +126,12 @@ internal class TripMapPresenter(private val icons: MapIcons) {
         map.setMyLocation(myLocation)
 
         val density = map.density
+        // R37: with system animations off every camera move of this map jumps.
+        val fly = if (reducedMotion) CameraAnimation.NONE else CameraAnimation.FLY
         // "Vị trí của tôi": fly to the fix once per tap; the carousel resize must not re-fit afterwards.
         if (myLocationSignal != shownMyLocationSignal) {
             shownMyLocationSignal = myLocationSignal
-            myLocation?.let { userFocused = true; MapCameraRules.flyToMyLocation(map, it, padding) }
+            myLocation?.let { userFocused = true; MapCameraRules.flyToMyLocation(map, it, padding, fly) }
         }
         // Re-fit when the route changes or when the bottom overlay is first measured / resized.
         // Finished tracks count in the fit; the live one does not (a new fix every few seconds
@@ -128,7 +139,7 @@ internal class TripMapPresenter(private val icons: MapIcons) {
         val routePoints = if (paths.isEmpty()) markers.map { it.point } else paths.flatten() + markers.filter { it.draft }.map { it.point }
         val points = routePoints + tracks.filterNot { it.live }.flatMap { it.points }
         val key = points to extraBottomDp
-        val selectedStep = markers.firstOrNull { it.highlighted }?.id
+        val selectedStep = focusStep
         if (key != fittedKey) {
             val routeChanged = key.first != fittedKey?.first
             fittedKey = key
@@ -153,7 +164,7 @@ internal class TripMapPresenter(private val icons: MapIcons) {
             fittedAllSignal = fitAllSignal
             focusedStep = selectedStep
             focusedLeg = selectedLegTo
-            map.fitPoints(points, padding, MapConfig.FIT_MAX_ZOOM, CameraAnimation.FLY)
+            map.fitPoints(points, padding, MapConfig.FIT_MAX_ZOOM, fly)
             return
         }
         // Selecting a step or a leg flies the camera there (only on a change, never on the first fit).
@@ -162,7 +173,7 @@ internal class TripMapPresenter(private val icons: MapIcons) {
             val m = markers.firstOrNull { it.id == selectedStep }
             if (m != null) {
                 userFocused = true
-                MapCameraRules.focusStep(map, m.point, padding)
+                MapCameraRules.focusStep(map, m.point, stepRegion(route.map { it.id }, lines, selectedStep), padding, reducedMotion)
             }
         }
         if (selectedLegTo != focusedLeg) {
@@ -172,10 +183,21 @@ internal class TripMapPresenter(private val icons: MapIcons) {
                 userFocused = true
                 val p = (paddingDp * density).toInt()
                 val bottom = maxOf(padding.bottom, (map.heightPx * LEG_FOCUS_BOTTOM).toInt())
-                map.fitPoints(paths[i], MapInsets(p, p, p, bottom), MapConfig.LEG_FOCUS_MAX_ZOOM, CameraAnimation.FLY)
+                map.fitPoints(paths[i], MapInsets(p, p, p, bottom), MapConfig.LEG_FOCUS_MAX_ZOOM, fly)
             }
         }
     }
+}
+
+/**
+ * R37: what the camera keeps in view around a focused step: the leg arriving at it, else the
+ * leg leaving it ([lines][i] joins [routeIds][i] → [routeIds][i + 1]). A flight arc spans half
+ * the country, so it is skipped. Empty = the step alone (a draft, a lone step, flights on both sides).
+ */
+internal fun stepRegion(routeIds: List<String>, lines: List<MapLeg>, step: String?): List<GeoPoint> {
+    val j = routeIds.indexOf(step)
+    if (j < 0) return emptyList()
+    return listOfNotNull(lines.getOrNull(j - 1), lines.getOrNull(j)).firstOrNull { it.line != LegLine.FLIGHT }?.path.orEmpty()
 }
 
 /** AllTripsMap ("Bản đồ của tôi", R14): one line per trip in its colour, a dot per step, tracks, my location. */

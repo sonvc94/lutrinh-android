@@ -56,6 +56,8 @@ internal object Overlay {
 
 /** Route layer ids, bottom to top. */
 internal object RouteLayerIds {
+    /** R37: the glow under the leg just travelled (not tappable, so not in [ALL]). */
+    const val TRAVELLED = "route-travelled"
     const val SHADOW = "route-shadow"
     const val CASING = "route-casing"
     const val GROUND = "route-ground"
@@ -148,7 +150,9 @@ internal fun List<MapPin>.toPinFeatures(): List<Feature> = map { pin ->
 internal fun List<MapLeg>.toLegFeatures(colors: RouteColors): List<Feature> = map { leg ->
     Feature.fromGeometry(leg.path.toLine()).apply {
         addStringProperty("kind", leg.line.code)
-        addBooleanProperty("selected", leg.selected)
+        // A travelled leg (R37) is drawn as wide as a selected one, in the route colour, over a glow.
+        addBooleanProperty("selected", leg.selected || leg.travelled)
+        addBooleanProperty("travelled", leg.travelled)
         addStringProperty("color", if (leg.selected) colors.selected else colors.line)
         addStringProperty("to", leg.to)
     }
@@ -254,6 +258,17 @@ private fun Style.addRouteLayers(source: String) {
     val color = Expression.toColor(Expression.get("color"))
     val sortKey = PropertyFactory.lineSortKey(Expression.switchCase(isSelected(), Expression.literal(2f), Expression.literal(1f)))
 
+    // 0. R37: a wide soft glow of the route colour under the leg just travelled (every mode).
+    addLayer(
+        LineLayer(RouteLayerIds.TRAVELLED, source).withProperties(
+            PropertyFactory.lineColor(color),
+            PropertyFactory.lineWidth(byZoom(5f to 12f, 9f to 16f, 13f to 24f)),
+            PropertyFactory.lineBlur(byZoom(5f to 4f, 13f to 8f)),
+            PropertyFactory.lineOpacity(0.38f),
+            PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
+            PropertyFactory.lineCap(Property.LINE_CAP_ROUND),
+        ).withFilter(Expression.eq(Expression.get("travelled"), Expression.literal(true))),
+    )
     // 1. Soft wide shadow under ground legs: lifts the line off the basemap, widest at street zoom.
     addLayer(
         LineLayer(RouteLayerIds.SHADOW, source).withProperties(

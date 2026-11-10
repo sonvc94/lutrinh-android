@@ -43,8 +43,11 @@ class MapIcon(val id: String, val draw: () -> Bitmap) {
  */
 data class MapPin(val id: String, val point: GeoPoint, val icon: MapIcon, val order: Int, val faded: Boolean = false)
 
-/** One leg of a trip route; [to] = id of the pin where it ends. */
-data class MapLeg(val to: String, val path: List<GeoPoint>, val line: LegLine, val selected: Boolean)
+/**
+ * One leg of a trip route; [to] = id of the pin where it ends. [selected] = its mode sheet is
+ * open; [travelled] = it arrives at the step the trip map shows (R37): drawn emphasised.
+ */
+data class MapLeg(val to: String, val path: List<GeoPoint>, val line: LegLine, val selected: Boolean, val travelled: Boolean = false)
 
 /** The transport-mode badge at the middle of a leg; a lower [order] is placed first (never gives way). */
 data class MapBadge(val to: String, val point: GeoPoint, val icon: MapIcon, val order: Int)
@@ -81,6 +84,9 @@ interface MapController {
     /** Height of the map view in px (0 before layout). */
     val heightPx: Int
 
+    /** Width of the map view in px (0 before layout). */
+    val widthPx: Int
+
     /** Current camera, or null before the first frame. */
     val camera: MapCamera?
 
@@ -99,6 +105,9 @@ interface MapController {
 
     /** Moves the camera to [center] at [zoom]; with [padding] the centre sits in the area left free. */
     fun moveTo(center: GeoPoint, zoom: Double, padding: MapInsets? = null, animation: CameraAnimation = CameraAnimation.NONE)
+
+    /** R37: runs [plan]: an ease-in-out move of exactly its duration, or a jump when that is 0. */
+    fun animateTo(plan: CameraPlan)
 
     /** Frames every one of [points] (≥ 2) inside the map minus [padding], zoomed in at most [maxZoom]. */
     fun fitPoints(points: List<GeoPoint>, padding: MapInsets, maxZoom: Double, animation: CameraAnimation = CameraAnimation.NONE)

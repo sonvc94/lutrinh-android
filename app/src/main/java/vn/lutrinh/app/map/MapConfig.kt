@@ -28,6 +28,12 @@ object MapConfig {
     /** Selecting a step flies to it at this zoom at least (village/town scale). */
     const val STEP_FOCUS_ZOOM = 11.0
 
+    /**
+     * R37: selecting a step on the trip map fits the leg just travelled around it, zoomed in at
+     * most this far (terrain and road shapes still readable).
+     */
+    const val STEP_MAX_ZOOM = 13.5
+
     /** Selecting a leg (its mode sheet opens) fits the leg, zoomed in at most this far. */
     const val LEG_FOCUS_MAX_ZOOM = 13.0
 

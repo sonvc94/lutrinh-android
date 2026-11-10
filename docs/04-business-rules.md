@@ -1188,6 +1188,57 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
 *Changed from the study* (docs/routing-feasibility.md): snap limit 500 m instead of 1 km, because
 the Tràng An sample snaps 713 m away with a 4.1–4.8× detour, which 1 km / 5× would have accepted.
 
+## R37 — Trip-map motion (camera between steps, travelled leg, day counter)
+
+* **Camera waits for the cards.** The trip map keeps two things apart: the *selected* step (card
+  and pin, changes at once) and the *camera* step (where the map goes and which leg glows). A
+  swipe sets both once the carousel has stopped (the snapped, centred card); a pin or card tap
+  selects at once, the carousel scrolls to that card, and only when that scroll ends does the
+  camera follow. The app's own scroll never counts as a swipe. "Xem toàn bộ hành trình" clears
+  both. The selection survives opening Step detail and coming back.
+* **Camera plan** (`CameraMath.stepPlan`): centre = the step; region = the step plus the path of
+  the leg arriving at it (the stored road line when there is one, R36), or the leg leaving it for
+  the first step; flights never count (they would zoom out to the whole country); a draft has no
+  region. Zoom = the zoom that fits that region into the visible map area (the map minus 48 dp a
+  side and the measured carousel at the bottom; the header is not part of the map), centred on the
+  step, capped at **13.5** (terrain still shows) and floored at 5; no region → 12. Padding = that
+  visible area, so the step sits in the middle of the free map above the cards.
+* **Duration:** `350 ms + 1.5 ms/km + 160 ms per zoom level changed`, clamped to **400–1800 ms**,
+  ease in-out (the clamp applies to every animated camera move). The first move of a new map
+  (no camera yet) is a jump.
+* **Travelled leg:** the leg arriving at the camera step (A → B) is drawn emphasised: SignalDeep
+  and on top, like a selected leg, plus a soft wide halo of the route colour under it. Every other
+  leg stays normal; with no camera step nothing glows. Only the full trip map does this.
+* **Day counter "Ngày N/M"** on the trip map: N = day of the camera step's arrival date counted
+  from the trip's start date (start day = 1); M = the trip's days (start → end inclusive), or up
+  to its latest step while it has no end, never less than any step's day. The number rolls up when
+  N grows and down when it shrinks. Hidden while no step is focused.
+* **Card → detail:** the selected card grows into Step detail (shared bounds, 400 ms ease in-out,
+  the detail's content fades in after 150 ms); Back shrinks it into the same card. A live map
+  cannot be drawn inside the moving bounds, so the detail's mini map shows a plain panel until the
+  move ends.
+* **Reduced motion:** when the system's animator duration scale is 0 (Android "Tỉ lệ thời lượng
+  hình động" off; iOS "Reduce Motion"), every camera move — step, fit-all, leg, my location — is a
+  jump; Compose motions finish at once.
+* **Check on a device:** `adb logcat -s CameraPlan` prints each step move:
+  `z9.48 820 ms pad=MapInsets(left=126, top=126, right=126, bottom=561)` (`0 ms` with animations off).
+
+*Tests:* `CameraMathTest` (`flyDurationGrowsWithDistanceAndZoomAndIsClamped`,
+`stepPlan_centresOnTheStepWithThePaddingAndFitsTheLegAroundIt`,
+`stepPlan_zoomIsCappedForShortLegs_andFlooredForHugeOnes`,
+`stepPlan_durationIsClampedAndJumpsWithReducedMotion`, `focusZoomZoomsInToTownScaleButNeverOut`);
+`MapPresentersTest` (`tripMap_selectingAStepFliesThere_onlyOnChange`,
+`tripMap_travelledLegIsTheOneArrivingAtTheFocusedStep`, `stepRegion_arrivingLeg_elseLeaving_neverAFlight`,
+`tripMap_reducedMotion_everyMoveJumps`); `CarouselFocusTest`
+(`pinTap_selectsAtOnce_cameraFollowsAfterOurScroll`, `swipeSettle_selectsTheCentredCard_andMovesTheCamera`,
+`ourScrollEndingOnTheSelectedCard_changesNothing`, `cameraStaysWhileANewSelectionIsStillScrolling`,
+`fitAll_clearsBoth`); `TripDaysTest` (`dayNumberCountsFromOne`,
+`totalIsTheTripsDays_orItsLatestStepWhenOpenEnded`). Frames: docs/img/trip-motion/.
+*Inspired by* the Polarsteps trip-screen study (polarsteps docs/26 §2, §4, §5: camera centred on
+the step after the carousel settles, region zoom, duration from distance and zoom). *Changed:* our
+own formula and clamp, zoom cap 13.5 instead of 10 (terrain), the arriving leg glows (Polarsteps
+highlights none), a day counter on the map.
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

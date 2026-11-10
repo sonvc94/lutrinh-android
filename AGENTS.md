@@ -10,7 +10,7 @@ the OpenStreetMap routing server (FOSSGIS Valhalla, OSRM car fallback); nothing 
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R36 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R37 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -73,6 +73,10 @@ app/src/main/java/vn/lutrinh/app/
             (TopoCard, TopoPanel, Eyebrow, ScreenHeading, TopoBadge, MapChip, topoFieldColors),
             Buttons.kt (ChipFab, MapButton), Readout.kt (stats panel + scale bar, maths in
             domain/usecase/KmScale.kt); redesign status per screen: docs/09-redesign-inventory.md
+  motion    trip-map motion (R37): map/CameraMath.stepPlan (camera plan, pure) → MapController.animateTo,
+            ui/trips/CarouselFocus.kt (selected vs camera step), MapLeg.travelled (layer route-travelled),
+            domain/usecase/TripDays.kt ("Ngày N/M"), ui/common/SharedBounds.kt (card → detail),
+            ui/theme/Motion.kt (tokens, reducedMotion(); docs/08 §6a)
   ui/       screens + view models; domain/usecase/DisplayFormat.kt has the km/duration/day formatters; ui/common/Common.kt has date helpers and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
@@ -239,3 +243,10 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   `OfflineConfig.estimateTiles` (vector z0–14 + relief raster z0–6) matched the store (Hà Giang
   1 764 estimated vs 1 763 in `mbgl-offline.db` `region_tiles`). Never raise the caps without the
   provider's terms.
+* `./gradlew installDebug` installs on **every** connected emulator (the captain's 5580 and other
+  projects' AVDs too): always `export ANDROID_SERIAL=<your AVD>` first, or `adb -s … install -r`.
+* Trip-map motion (R37): `logcat -s CameraPlan` prints each step move (`z9.48 820 ms pad=…`; `0 ms`
+  with `settings put global animator_duration_scale 0`; restore with `settings delete global
+  animator_duration_scale` when it was unset). Frames: `adb shell screenrecord` (works on the
+  google_apis AVD) → `ffmpeg -vsync 0` frames → `tile` strips. A live MapView (GL surface) draws as
+  a dark box inside a moving `sharedBounds`: screens hide it while `navTransitionRunning()`.

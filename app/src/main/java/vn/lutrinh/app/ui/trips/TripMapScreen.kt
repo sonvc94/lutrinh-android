@@ -1,6 +1,22 @@
 package vn.lutrinh.app.ui.trips
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.IntOffset
+import vn.lutrinh.app.domain.usecase.TripDays
+import vn.lutrinh.app.ui.common.stepSharedBounds
+import vn.lutrinh.app.ui.theme.Motion
+import vn.lutrinh.app.ui.theme.numerals
 import vn.lutrinh.app.ui.common.MapButton
 import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.Arrangement
@@ -43,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,7 +101,11 @@ fun TripMapScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val recording by vm.recording.collectAsStateWithLifecycle()
-    var selected by remember { mutableStateOf<String?>(null) }
+    // R37: the card/pin selected at once, and the step the camera moves to once the cards stop.
+    // Saved, so coming back from the step detail lands on the same card and camera (reverse expand).
+    var focus by rememberSaveable(stateSaver = CarouselFocus.Saver) { mutableStateOf(CarouselFocus()) }
+    val selected = focus.selected
+    var programmaticScroll by remember { mutableStateOf(false) }
     var editLegTo by remember { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     val detail = (state as? Loadable.Ready)?.value
@@ -95,22 +116,33 @@ fun TripMapScreen(
     val snackbar = remember { SnackbarHostState() }
     val me = rememberMyLocation(snackbar)
 
-    // A pin tap (or a settle below) selects a step: its card is centred.
+    // A pin or card tap selects a step: its card is centred, then (R37) the camera follows.
     LaunchedEffect(selected, detail) {
         val idx = detail?.steps?.indexOfFirst { it.id == selected } ?: -1
-        if (idx >= 0) listState.animateScrollToItem(idx)
+        if (idx >= 0) {
+            programmaticScroll = true
+            try {
+                listState.animateScrollToItem(idx)
+                focus = focus.scrolledTo()
+            } finally {
+                programmaticScroll = false
+            }
+        }
     }
-    // F5: when a swipe settles (the fling snaps to a card), the centred card becomes the selected step.
+    // F5/R37: when the user's swipe settles (the fling snaps to a card), the centred card becomes
+    // the selected step and the camera moves; our own scrolls above are not swipes.
     LaunchedEffect(listState) {
         var swiped = false
         snapshotFlow { listState.isScrollInProgress }.collect { moving ->
             if (moving) swiped = true
             else if (swiped) {
                 swiped = false
-                val info = listState.layoutInfo
-                val mid = (info.viewportStartOffset + info.viewportEndOffset) / 2
-                val centred = info.visibleItemsInfo.minByOrNull { abs(it.offset + it.size / 2 - mid) }?.key as? String
-                if (centred != null && centred != selected) selected = centred
+                if (!programmaticScroll) {
+                    val info = listState.layoutInfo
+                    val mid = (info.viewportStartOffset + info.viewportEndOffset) / 2
+                    val centred = info.visibleItemsInfo.minByOrNull { abs(it.offset + it.size / 2 - mid) }?.key as? String
+                    focus = focus.settled(centred)
+                }
             }
         }
     }
@@ -145,13 +177,15 @@ fun TripMapScreen(
                 fitExtraBottomDp = carouselDp,
                 // The leg whose mode sheet is open is highlighted and framed above the sheet.
                 selectedLegTo = editLegTo,
-                onMarkerClick = { selected = it },
+                onMarkerClick = { focus = focus.pick(it) },
                 onLegClick = { editLegTo = it },
                 tracks = detail.trackLines,
                 stopSuggestions = detail.stopMarkers(),
                 fitAllSignal = fitAll,
                 myLocation = me.fix,
                 myLocationSignal = me.signal,
+                focusStepId = focus.camera,
+                showTravelledLeg = true,
             )
             BasemapFallbackNotice(snackbar)
             // "Ghi hành trình" (R16) floats top-right; the offline indicator sits top-left.
@@ -163,6 +197,20 @@ fun TripMapScreen(
                 ended = !detail.canRecord, onNewTripAndRecord = onNewTripAndRecord,
                 onOpenBatteryGuide = onOpenBatteryGuide,
             )
+            // R37: "Ngày N/M" of the step the camera shows; the number flips when the day changes.
+            val shown = detail.steps.firstOrNull { it.id == focus.camera }
+            AnimatedVisibility(
+                visible = shown != null,
+                enter = fadeIn(tween(Motion.DAY_FLIP_MS)),
+                exit = fadeOut(tween(Motion.DAY_FLIP_MS)),
+                // Bottom left, just above the cards (the top holds the recording control and the offline note).
+                modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = carouselDp.dp + 12.dp),
+            ) {
+                val days = remember(detail) { detail.steps.map { it.arrivedAt.toLocalDate() } }
+                var last by remember { mutableIntStateOf(1) }
+                if (shown != null) last = TripDays.dayOf(detail.trip.startDate, shown.arrivedAt.toLocalDate())
+                DayCounter(last, TripDays.total(detail.trip.startDate, detail.trip.endDate, days))
+            }
             if (detail.steps.isEmpty()) {
                 TopoPanel(Modifier.align(Alignment.TopCenter).padding(16.dp), floating = true) {
                     Text(stringResource(R.string.trip_map_empty))
@@ -177,7 +225,7 @@ fun TripMapScreen(
                 MapStyleButton()
                 MyLocationButton(me)
                 if (detail.steps.size > 1 || selected != null) {
-                    MapButton(TopoIcons.Fit, stringResource(R.string.trip_map_fit), onClick = { selected = null; fitAll++ })
+                    MapButton(TopoIcons.Fit, stringResource(R.string.trip_map_fit), onClick = { focus = focus.pick(null); fitAll++ })
                 }
             }
             // One card is centred and snapped to; the padding lets the first and last one reach the centre.
@@ -197,8 +245,10 @@ fun TripMapScreen(
                     // A card over the map (docs/08 §5 "Map cards"): card paper, 18 dp, the chip shadow;
                     // the selected one has a 2 dp forest edge.
                     Surface(
-                        onClick = { if (isSel) onOpenStep(step.id) else selected = step.id },
-                        modifier = Modifier.width(CARD_WIDTH_DP.dp).padding(bottom = 6.dp),
+                        onClick = { if (isSel) onOpenStep(step.id) else focus = focus.pick(step.id) },
+                        // R37: opening the card grows it into the step detail (and Back shrinks it).
+                        modifier = Modifier.width(CARD_WIDTH_DP.dp).padding(bottom = 6.dp)
+                            .stepSharedBounds(step.id, MaterialTheme.shapes.medium),
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceContainerLowest,
                         shadowElevation = Lift.Chip,
@@ -247,5 +297,34 @@ fun TripMapScreen(
 
     detail?.legs?.firstOrNull { it.to.id == editLegTo }?.let { leg ->
         LegModeSheet(leg, detail.measure(leg), onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
+    }
+}
+
+/** R37: "Ngày N/M" over the trip map; N slides up to a later day and down to an earlier one. */
+@Composable
+private fun DayCounter(day: Int, total: Int) {
+    val description = stringResource(R.string.trip_map_day_cd, day, total)
+    Surface(
+        modifier = Modifier.clearAndSetSemantics { contentDescription = description },
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shadowElevation = Lift.Chip,
+    ) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.trip_map_day), style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.width(4.dp))
+            AnimatedContent(
+                targetState = day,
+                transitionSpec = {
+                    val up = targetState > initialState
+                    val slide = tween<IntOffset>(Motion.DAY_FLIP_MS, easing = Motion.EaseInOut)
+                    val fade = tween<Float>(Motion.DAY_FLIP_MS, easing = Motion.EaseInOut)
+                    (slideInVertically(slide) { h -> if (up) h else -h } + fadeIn(fade)) togetherWith
+                        (slideOutVertically(slide) { h -> if (up) -h else h } + fadeOut(fade)) using SizeTransform(clip = true)
+                },
+                label = "day",
+            ) { n -> Text("$n", style = MaterialTheme.typography.labelLarge.numerals()) }
+            Text("/$total", style = MaterialTheme.typography.labelLarge.numerals(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

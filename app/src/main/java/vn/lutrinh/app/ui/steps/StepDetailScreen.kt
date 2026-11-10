@@ -3,6 +3,7 @@ package vn.lutrinh.app.ui.steps
 import androidx.compose.foundation.clickable
 import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -67,6 +68,8 @@ import vn.lutrinh.app.ui.common.LocalMedia
 import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.displayDateTime
 import vn.lutrinh.app.ui.common.factory
+import vn.lutrinh.app.ui.common.navTransitionRunning
+import vn.lutrinh.app.ui.common.stepSharedBounds
 import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.common.rememberGazetteer
 import vn.lutrinh.app.ui.trips.toMarkers
@@ -121,6 +124,8 @@ fun StepDetailScreen(
     val d = (state as? Loadable.Ready)?.value
 
     Scaffold(
+        // R37: opened from a trip-map card, the screen grows out of that card (Back shrinks it).
+        modifier = Modifier.stepSharedBounds(vm.stepId, MaterialTheme.shapes.medium),
         topBar = {
             TopAppBar(
                 title = { Text(d?.let { if (it.number != null) "${it.number}. ${it.step.title}" else it.step.title } ?: "", maxLines = 1) },
@@ -172,12 +177,17 @@ fun StepDetailScreen(
                         )
                     }
                     Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(200.dp).clip(MaterialTheme.shapes.medium)) {
-                        TripMap(
-                            markers = s.value.tripSteps.toMarkers(step.id),
-                            interactive = true,
-                            fitPaddingDp = 40,
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        // R37: no GL map inside the moving shared bounds (it draws as a dark box).
+                        if (navTransitionRunning()) {
+                            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer))
+                        } else {
+                            TripMap(
+                                markers = s.value.tripSteps.toMarkers(step.id),
+                                interactive = true,
+                                fitPaddingDp = 40,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                     }
                     if (step.photos.isNotEmpty()) {
                         Eyebrow(
