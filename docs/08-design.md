@@ -199,6 +199,7 @@ docs/09 (guard: `topoIconsAndTypeWeights`). Path data (SVG, 24 × 24):
 | Record |  | `M12 6a6 6 0 1 0 0 12a6 6 0 1 0 0 -12z` |
 | Battery | `M5 8h12a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM21 10.5v3M11.5 9.5L9.5 12h3l-2 2.5` |  |
 | CloudOff | `M7 18h10a3.5 3.5 0 0 0 .6-6.95A5.5 5.5 0 0 0 7.2 9.1 4.5 4.5 0 0 0 7 18zM4 4l16 16` |  |
+| Calendar | `M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM4 10h16M8.5 3v4M15.5 3v4` |  |
 
 ## 6. Components
 

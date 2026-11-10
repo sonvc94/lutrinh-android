@@ -52,7 +52,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -81,7 +80,11 @@ import vn.lutrinh.app.map.PickerMap
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatCoord
 import vn.lutrinh.app.ui.steps.contextMarkers
-import vn.lutrinh.app.ui.theme.hairline
+import vn.lutrinh.app.ui.common.Eyebrow
+import vn.lutrinh.app.ui.common.TopoPanel
+import vn.lutrinh.app.ui.theme.Lift
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.numerals
 
 /** A shortcut chip: a step of this trip (D4). Place search (R23) sits above the chips. */
 data class PlaceChip(val label: String, val point: GeoPoint)
@@ -197,10 +200,13 @@ fun LocationPickerScreen(
             BasemapFallbackNotice(snackbar)
             // "Kiểu bản đồ" (R32): right edge, below the search field and the quick-place chips.
             MapStyleButton(Modifier.align(Alignment.TopEnd).padding(top = 124.dp, end = 12.dp))
+            // Quick places are the specimen's map chips: card paper, 12 dp, `Lift.Chip`.
             val chipColors = AssistChipDefaults.assistChipColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                disabledContainerColor = MaterialTheme.colorScheme.surface,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
             )
+            val chipShape = MaterialTheme.shapes.small
+            val chipElevation = AssistChipDefaults.assistChipElevation(elevation = Lift.Chip, disabledElevation = Lift.Chip)
             Column(Modifier.align(Alignment.TopCenter).fillMaxWidth()) {
             PlaceSearchField(
                 query = query,
@@ -231,35 +237,40 @@ fun LocationPickerScreen(
                         enabled = !locating,
                         leadingIcon = { Icon(TopoIcons.MyLocation, null, Modifier.size(18.dp)) },
                         label = { Text(stringResource(if (locating) R.string.picker_locating else R.string.picker_my_location)) },
+                        shape = chipShape,
                         colors = chipColors,
+                        elevation = chipElevation,
+                        border = null,
                     )
                 }
                 items(chips) { chip ->
                     AssistChip(
                         onClick = { moveTo = PickerMove(chip.point) },
                         label = { Text(chip.label, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 160.dp)) },
+                        shape = chipShape,
                         colors = chipColors,
+                        elevation = chipElevation,
+                        border = null,
                     )
                 }
             }
             }
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                border = hairline,
-                shape = MaterialTheme.shapes.large,
+            // The bottom panel of the specimen (`.pan`): floating card paper, eyebrow over the readout.
+            TopoPanel(
+                floating = true,
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().navigationBarsPadding().padding(12.dp).padding(bottom = 16.dp),
             ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(stringResource(R.string.picker_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    val here = chosenName(chosen, center)
-                    if (here != null) Text(here, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        formatCoord(center.latitude, center.longitude),
-                        style = if (here != null) MaterialTheme.typography.bodySmall else MaterialTheme.typography.titleMedium,
-                    )
-                    Button(shape = MaterialTheme.shapes.small, onClick = { onPicked(center, chosenName(chosen, center)) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-                        Text(stringResource(R.string.picker_confirm))
-                    }
+                Eyebrow(stringResource(R.string.picker_hint))
+                val here = chosenName(chosen, center)
+                if (here != null) Text(here, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
+                Text(
+                    formatCoord(center.latitude, center.longitude),
+                    style = (if (here != null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.headlineSmall).numerals(),
+                    color = if (here != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
+                )
+                Button(shape = MaterialTheme.shapes.small, onClick = { onPicked(center, chosenName(chosen, center)) }, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                    Text(stringResource(R.string.picker_confirm))
                 }
             }
         }
@@ -268,10 +279,11 @@ fun LocationPickerScreen(
     if (askPermission) {
         AlertDialog(
             onDismissRequest = { askPermission = false },
+            icon = { Icon(TopoIcons.MyLocation, null, tint = Palette.Signal) },
             title = { Text(stringResource(R.string.picker_permission_title)) },
             text = { Text(stringResource(R.string.picker_permission_body)) },
             confirmButton = {
-                TextButton(onClick = { askPermission = false; permissionLauncher.launch(DeviceLocation.PERMISSIONS) }) {
+                Button(shape = MaterialTheme.shapes.small, onClick = { askPermission = false; permissionLauncher.launch(DeviceLocation.PERMISSIONS) }) {
                     Text(stringResource(R.string.picker_permission_continue))
                 }
             },

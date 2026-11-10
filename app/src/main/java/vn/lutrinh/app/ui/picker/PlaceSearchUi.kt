@@ -16,7 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,12 +28,17 @@ import androidx.compose.ui.unit.dp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.usecase.PlaceHit
 import vn.lutrinh.app.domain.usecase.PlaceKind
-import vn.lutrinh.app.ui.theme.hairline
+import vn.lutrinh.app.ui.common.topoFieldColors
+import vn.lutrinh.app.ui.theme.Lift
 
-/** R23: the search field at the top of "Chọn vị trí". */
+/**
+ * R23: the search field at the top of "Chọn vị trí". It floats over the map, so it is a map chip
+ * (card paper, 12 dp, `Lift.Chip`) holding the topo outlined field.
+ */
 @Composable
 fun PlaceSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifier = Modifier) {
     val keyboard = LocalSoftwareKeyboardController.current
+    Surface(modifier = modifier, shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerLowest, shadowElevation = Lift.Chip) {
     OutlinedTextField(
         value = query,
         onValueChange = { onQuery(it.take(80)) },
@@ -49,19 +53,18 @@ fun PlaceSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifie
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         // the keyboard's search key only hides the keyboard: results are already listed as you type
         keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }),
-        shape = MaterialTheme.shapes.large,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-        ),
-        modifier = modifier.testTag("place_search"),
+        shape = MaterialTheme.shapes.small,
+        colors = topoFieldColors(),
+        modifier = Modifier.fillMaxWidth().testTag("place_search"),
     )
+    }
 }
 
 /** R23: the ranked results; a tap moves the pin there. */
 @Composable
 fun PlaceResults(results: List<PlaceHit>, loading: Boolean, tooShort: Boolean, onPick: (PlaceHit) -> Unit, modifier: Modifier = Modifier) {
-    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLowest, border = hairline, modifier = modifier) {
+    // A panel over the map: card paper, 22 dp, `Lift.Panel`, dividers in Grid.
+    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLowest, shadowElevation = Lift.Panel, modifier = modifier) {
         Column {
             when {
                 tooShort -> {}
@@ -77,9 +80,9 @@ fun PlaceResults(results: List<PlaceHit>, loading: Boolean, tooShort: Boolean, o
             }
             Text(
                 stringResource(R.string.picker_search_attribution),
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
             )
         }
     }
@@ -99,11 +102,11 @@ private fun ResultRow(hit: PlaceHit, onPick: (PlaceHit) -> Unit) {
     } else {
         listOf(kind, p.region.name + (hit.viaFormer?.let { " (${stringResource(R.string.picker_search_former, it)})" } ?: ""))
     }
-    Column(Modifier.fillMaxWidth().clickable { onPick(hit) }.padding(horizontal = 16.dp, vertical = 10.dp)) {
-        Text(p.name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Column(Modifier.fillMaxWidth().clickable { onPick(hit) }.padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Text(p.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(
             where.joinToString(" · "),
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

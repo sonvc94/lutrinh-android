@@ -106,9 +106,6 @@ class DesignGuardTest {
      */
     private val notYetTopo = setOf(
         "ui/share/ShareTripScreen.kt",
-        "ui/steps/FromPhotosScreen.kt",
-        "ui/trips/CoverPicker.kt",
-        "ui/trips/TripEditScreen.kt",
     )
 
     private val legacyLook = Regex("""import androidx\.compose\.material\.icons|FontWeight\.(Thin|ExtraLight|Light|SemiBold|ExtraBold|Black)\b""")

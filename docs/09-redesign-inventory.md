@@ -1,7 +1,7 @@
 # 09 — Topo-outdoor redesign inventory
 
 Every piece of UI of Lữ Trình and whether it follows the topo-outdoor spec (`docs/08-design.md`)
-after batch 1 (branch `mate/lutrinh-topo-system`) and batch 3 (`mate/lutrinh-topo-b3`), 2026-11-10. Paths are under
+after batch 1 (branch `mate/lutrinh-topo-system`), batch 2 (`mate/lutrinh-topo-b2`) and batch 3 (`mate/lutrinh-topo-b3`), 2026-11-10. Paths are under
 `app/src/main/java/vn/lutrinh/app/`.
 
 Status:
@@ -24,9 +24,9 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | S4 | Step detail | `ui/steps/StepDetailScreen.kt` | on spec | 1 |
 | S5 | Step editor (fields, location card, media strip, gallery photos R19) | `ui/steps/StepEditScreen.kt`, `ui/steps/MediaStrip.kt`, `ui/steps/StopPhotosUi.kt` | on spec | 1 |
 | S6 | Settings "Cài đặt" | `ui/settings/SettingsScreen.kt` | on spec | 1 |
-| S7 | Trip create / edit (cover, dates) | `ui/trips/TripEditScreen.kt` | tokens only | 2 |
-| S8 | Location picker + place search | `ui/picker/LocationPickerScreen.kt`, `ui/picker/PlaceSearchUi.kt`, `ui/common/PlaceUi.kt` | tokens only | 2 |
-| S9 | Add from photos "Thêm từ ảnh" | `ui/steps/FromPhotosScreen.kt` | tokens only | 2 |
+| S7 | Trip create / edit (cover, dates) | `ui/trips/TripEditScreen.kt` | on spec | 2 |
+| S8 | Location picker + place search | `ui/picker/LocationPickerScreen.kt`, `ui/picker/PlaceSearchUi.kt`, `ui/common/PlaceUi.kt` | on spec | 2 |
+| S9 | Add from photos "Thêm từ ảnh" | `ui/steps/FromPhotosScreen.kt` | on spec | 2 |
 | S10 | My map "Bản đồ của tôi" | `ui/trips/MyMapScreen.kt` | on spec | 3 |
 | S11 | Offline maps "Bản đồ offline" | `ui/offline/OfflineMapsScreen.kt` | on spec | 3 |
 | S12 | Battery guide "Ghi hành trình ổn định" | `ui/tracks/BatteryGuideScreen.kt` | on spec | 3 |
@@ -45,7 +45,7 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | D6 | Extend trip dates (step outside the trip) | `ui/steps/StepEditScreen.kt` (`capture`) | theme (on spec) | 1 |
 | D7 | Time picker "Giờ đến" | `ui/steps/StepEditScreen.kt` (`TimePickDialog`) | theme (on spec) | 1 |
 | D8 | Date picker (trip dates, "Ngày đến") | `ui/trips/TripEditScreen.kt` (`DatePickDialog`) | theme (on spec) | 1 |
-| D9 | Picker location permission | `ui/picker/LocationPickerScreen.kt` (`locate`) | theme | 2 |
+| D9 | Picker location permission | `ui/picker/LocationPickerScreen.kt` (`locate`) | on spec | 2 |
 | D10 | GPX export choice | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | theme | 4 |
 | D11 | Busy (export/backup progress) | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | theme | 4 |
 | D12 | Restore confirm | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | theme | 4 |
@@ -57,8 +57,8 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | --- | --- | --- | --- | --- |
 | B1 | Leg mode "Bạn di chuyển bằng gì?" | `ui/trips/LegUi.kt` (`LegModeSheet`) | on spec | 1 |
 | B2 | Map style "Kiểu bản đồ" | `ui/common/MapStyle.kt` (`MapStyleButton`) | on spec | 1 |
-| B3 | Cover picker | `ui/trips/CoverPicker.kt` (`CoverPickerSheet`) | tokens only | 2 |
-| B4 | From-photos intro | `ui/steps/FromPhotosScreen.kt` (`FromPhotosIntro`) | tokens only | 2 |
+| B3 | Cover picker | `ui/trips/CoverPicker.kt` (`CoverPickerSheet`) | on spec | 2 |
+| B4 | From-photos intro | `ui/steps/FromPhotosScreen.kt` (`FromPhotosIntro`) | on spec | 2 |
 
 ## Menus
 
@@ -98,9 +98,13 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 
 Each batch is a contained set of files; shared components (`ui/common/`, `ui/theme/`) are done.
 
-* **Batch 2: create and place.** `ui/trips/TripEditScreen.kt`, `ui/trips/CoverPicker.kt`,
+* **Batch 2: create and place (done, on spec).** `ui/trips/TripEditScreen.kt`, `ui/trips/CoverPicker.kt`,
   `ui/picker/LocationPickerScreen.kt`, `ui/picker/PlaceSearchUi.kt`, `ui/common/PlaceUi.kt`,
-  `ui/steps/FromPhotosScreen.kt` (S7–S9, D9, B3, B4).
+  `ui/steps/FromPhotosScreen.kt` (S7–S9, D9, B3, B4); shots `docs/img/topo/before-/after-b2-*.png`.
+  `PlaceSearchUi.kt` and `PlaceUi.kt` were already free of Material icons and off-scale weights
+  (not in `notYetTopo`); the other files left the list. New: `FieldButton` (TripEditScreen.kt,
+  an outlined field-style button with a TopoIcons icon, also used for the step time) and the
+  `TopoIcons.Calendar` icon.
 * **Batch 3: maps and tools (done, on spec).** `ui/trips/MyMapScreen.kt`, `ui/offline/OfflineMapsScreen.kt`,
   `ui/tracks/BatteryGuideScreen.kt`, `ui/photos/PhotoViewerScreen.kt` (S10–S13).
 * **Batch 4: share and transfer.** `ui/share/ShareTripScreen.kt`, `share/SummaryImage.kt`,

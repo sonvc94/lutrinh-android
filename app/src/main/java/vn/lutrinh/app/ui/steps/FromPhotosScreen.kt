@@ -27,14 +27,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.EventBusy
-import androidx.compose.material.icons.outlined.LocationOff
-import androidx.compose.material.icons.outlined.Place
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,8 +50,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -102,7 +97,14 @@ import vn.lutrinh.app.ui.common.DiscardDialog
 import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.common.rememberGazetteer
 import java.time.LocalDateTime
-import vn.lutrinh.app.ui.theme.hairline
+import vn.lutrinh.app.ui.common.Eyebrow
+import vn.lutrinh.app.ui.common.TopoCard
+import vn.lutrinh.app.ui.common.topoFieldColors
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.Radii
+import vn.lutrinh.app.ui.theme.ledge
+import vn.lutrinh.app.ui.theme.numerals
+import androidx.compose.material3.HorizontalDivider
 
 /** "Thêm từ ảnh" flow state (docs/03-screens.md S9). */
 data class FromPhotosState(
@@ -280,16 +282,19 @@ fun FromPhotosScreen(
         },
         bottomBar = {
             if (s.phase == FromPhotosState.Phase.REVIEW || s.phase == FromPhotosState.Phase.SAVING) {
-                Surface(color = MaterialTheme.colorScheme.surfaceContainerLowest, border = hairline) {
-                    Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
-                        if (s.phase == FromPhotosState.Phase.SAVING) {
-                            LinearProgressIndicator(Modifier.fillMaxWidth().padding(bottom = 12.dp))
+                Surface(color = MaterialTheme.colorScheme.surfaceContainerLowest) {
+                    Column {
+                        HorizontalDivider()
+                        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
+                            if (s.phase == FromPhotosState.Phase.SAVING) {
+                                LinearProgressIndicator(Modifier.fillMaxWidth().padding(bottom = 12.dp))
+                            }
+                            Button(shape = MaterialTheme.shapes.small,
+                                onClick = vm::confirm,
+                                enabled = s.canConfirm && s.phase == FromPhotosState.Phase.REVIEW,
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                            ) { Text(stringResource(R.string.from_photos_confirm, s.toCreate.size)) }
                         }
-                        Button(shape = MaterialTheme.shapes.small,
-                            onClick = vm::confirm,
-                            enabled = s.canConfirm && s.phase == FromPhotosState.Phase.REVIEW,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text(stringResource(R.string.from_photos_confirm, s.toCreate.size)) }
                     }
                 }
             }
@@ -337,7 +342,8 @@ fun FromPhotosScreen(
 @Composable
 private fun FromPhotosIntro(onChoose: () -> Unit, onCancel: () -> Unit, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 22.dp).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(TopoIcons.AddPhotos, null, tint = Palette.Signal)
             Text(stringResource(R.string.from_photos_intro_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.from_photos_intro_gps), style = MaterialTheme.typography.bodyMedium)
             Text(stringResource(R.string.from_photos_intro_review), style = MaterialTheme.typography.bodyMedium)
@@ -346,7 +352,7 @@ private fun FromPhotosIntro(onChoose: () -> Unit, onCancel: () -> Unit, onDismis
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(shape = MaterialTheme.shapes.small, onClick = onChoose, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.from_photos_pick)) }
+            Button(shape = MaterialTheme.shapes.small, onClick = onChoose, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text(stringResource(R.string.from_photos_pick)) }
             TextButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.action_cancel)) }
         }
     }
@@ -368,19 +374,20 @@ private fun Review(
         modifier = Modifier.fillMaxSize(),
     ) {
         item {
-            Box(Modifier.fillMaxWidth().height(180.dp)) {
+            // The map is a card of its own (18 dp, ledge), not an edge-to-edge band.
+            Box(Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(180.dp).ledge(Radii.Card).clip(MaterialTheme.shapes.medium)) {
                 TripMap(markers = markers, showRoute = false, interactive = false, fitPaddingDp = 36, modifier = Modifier.fillMaxSize())
             }
         }
         item {
             Text(
                 stringResource(R.string.from_photos_summary, s.photoCount, s.suggestions.size),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             Text(
                 stringResource(R.string.from_photos_summary_hint),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
             )
@@ -414,13 +421,9 @@ private fun SuggestionCard(
     onPickLocation: () -> Unit,
 ) {
     val dim = !sg.include
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (dim) MaterialTheme.colorScheme.surfaceContainerLow else MaterialTheme.colorScheme.surfaceContainer,
-        ),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // A kept group is a topo card; a group switched off steps back (it stays readable, it is just not saved).
+    TopoCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).alpha(if (dim) 0.72f else 1f)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             val keepLabel = stringResource(R.string.from_photos_keep, number)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
@@ -429,13 +432,11 @@ private fun SuggestionCard(
                     enabled = enabled && sg.location != null && !sg.outsideTrip,
                     modifier = Modifier.semantics { contentDescription = keepLabel },
                 )
+                // The same numbered disc as the map pin and the timeline: Waypoint, white ring, Barlow number.
                 Box(
-                    Modifier.size(28.dp).background(
-                        if (dim) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.primary,
-                        CircleShape,
-                    ),
+                    Modifier.size(28.dp).background(if (dim) MaterialTheme.colorScheme.outline else Palette.Waypoint, CircleShape),
                     Alignment.Center,
-                ) { Text("$number", color = Color.White, style = MaterialTheme.typography.labelLarge) }
+                ) { Text("$number", color = Palette.Card, style = MaterialTheme.typography.labelLarge.numerals()) }
                 Spacer(Modifier.width(12.dp))
                 OutlinedTextField(
                     value = sg.title,
@@ -444,10 +445,11 @@ private fun SuggestionCard(
                     singleLine = true,
                     isError = sg.include && !titleOk,
                     label = { Text(stringResource(R.string.step_field_title)) },
+                    colors = topoFieldColors(),
                     modifier = Modifier.weight(1f),
                 )
             }
-            InfoLine(Icons.Outlined.Schedule) {
+            InfoLine(TopoIcons.Time) {
                 Text(
                     if (sg.datedFromPhotos) sg.arrivedAt.displayDateTime()
                     else stringResource(R.string.from_photos_no_date, sg.arrivedAt.displayDateTime()),
@@ -455,7 +457,7 @@ private fun SuggestionCard(
                 )
             }
             if (sg.outsideTrip && tripDates != null) {
-                InfoLine(Icons.Outlined.EventBusy, MaterialTheme.colorScheme.error) {
+                InfoLine(TopoIcons.Calendar, MaterialTheme.colorScheme.error) {
                     Text(
                         stringResource(R.string.from_photos_outside_trip, sg.arrivedAt.toLocalDate().display()),
                         style = MaterialTheme.typography.bodyMedium,
@@ -464,17 +466,18 @@ private fun SuggestionCard(
                 }
             }
             val loc = sg.location
-            InfoLine(if (loc == null) Icons.Outlined.LocationOff else Icons.Outlined.Place) {
+            InfoLine(TopoIcons.Place, if (loc == null) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant) {
                 val lines = loc?.let { placeLines(it, tripSteps, places = rememberGazetteer()) }
                 Column(Modifier.weight(1f)) {
                     Text(lines?.first ?: stringResource(R.string.from_photos_no_location), style = MaterialTheme.typography.bodyMedium)
                     lines?.second?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(it, style = MaterialTheme.typography.bodySmall.numerals(), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 ChangeLocationButton(hasLocation = loc != null, onClick = onPickLocation, enabled = enabled && !sg.outsideTrip)
             }
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            HorizontalDivider()
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(sg.photos, key = { it.key }) { p ->
                     AsyncImage(
                         model = Uri.parse(p.key),
@@ -485,24 +488,20 @@ private fun SuggestionCard(
                     )
                 }
             }
-            Text(
-                stringResource(R.string.from_photos_count, sg.photos.size),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Eyebrow(stringResource(R.string.from_photos_count, sg.photos.size))
+            }
         }
     }
 }
 
 @Composable
 private fun InfoLine(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 12.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
         Icon(icon, null, Modifier.size(18.dp), tint = tint)
         Spacer(Modifier.width(10.dp))
         content()

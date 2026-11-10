@@ -123,6 +123,8 @@ The picker returns its result to the step form through the previous screen's sav
   date picker, always in Vietnamese whatever the device language ("Chọn ngày", "23 thg 10, 2025",
   "tháng 10 năm 2025", week from T2 to CN; `img/21-date-picker-vietnamese.png` was taken on an
   English emulator). The step form's time picker (24 h) gets the same treatment.
+* **Look (docs/08):** card-paper outlined fields (`topoFieldColors`), date and time buttons in the
+  same style with a Calendar / Clock icon (`FieldButton`), the cover row a ledge card, forest save.
 * **Validation:** on save, via the domain (02-data-model.md); errors appear under the fields. Edit
   also blocks date changes that would orphan steps (R4).
 * **Edit only:** row "Ảnh bìa" (R21) under the dates: thumbnail of the cover as it will be,
@@ -524,6 +526,9 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
   keyboard. A tap on a row moves the pin there, clears the field (chips return) and shows the
   place name above the coordinates on the bottom card; "Dùng vị trí này" returns the point with
   that name (R24) while the pin is still on it. Works in airplane mode.
+* **Look (docs/08):** the search field and the chips float over the map as card-paper chips
+  (12 dp, `Lift.Chip`); results panel 22 dp, `Lift.Panel`; bottom panel = `TopoPanel(floating)`
+  with an eyebrow hint, the place name, coordinates in Barlow numerals and a forest button.
 * **Content:** full map with a fixed pin in the centre; under the search field one row of chips — "Vị trí của tôi" first,
   then **this trip's other steps** by title in timeline order (the step being edited is left out;
   a trip with no other step shows only "Vị trí của tôi"); the other steps also as small context
@@ -589,6 +594,9 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
   (`ACCESS_MEDIA_LOCATION`; on Android 14+ the "photos and videos" dialog), then the system
   **file picker** (multi-select, images) — not the Photo Picker, which hides GPS (06-photos.md).
   Cancelling the picker with nothing picked returns to the trip. While reading: progress.
+* **Look (docs/08):** the map sits in an 18 dp ledge card; each suggestion is a `TopoCard` with a
+  Waypoint-orange number disc (Barlow numerals), card-paper fields, `TopoIcons` on the date / place
+  lines, a dimmed card when unticked, the photo count as an eyebrow; forest "Tạo điểm dừng" bar.
 * **Review content:** a 180 dp map with the numbered kept suggestions; "N ảnh → M điểm dừng gợi
   ý" + hint; one card per suggestion (R13): checkbox (label "Giữ điểm dừng N"), number, editable
   title (the nearest gazetteer place of its photo GPS by R24, e.g. "Phố cổ Đồng Văn"; "Điểm dừng
@@ -700,6 +708,7 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 
 The current look. Same sample data ("Tạo dữ liệu mẫu"), same scripted flow on a separate vi-VN
 review AVD: `before-*` from main (6b6ad19, "Sổ bản đồ"), `after-*` from the topo-outdoor branch.
+Batch 2 (`b2`) was shot against main d93bbab (batch 1 look) the same way.
 540 px wide. **Every screenshot below this section shows an older look** (atlas, or earlier):
 they still document behaviour and layout, not colours, type or shapes; a later batch
 (docs/09) replaces them screen by screen.
@@ -726,6 +735,16 @@ they still document behaviour and layout, not colours, type or shapes; a later b
 | b3-after-offline-downloading.png, b3-after-offline-done.png | Offline area while downloading (6 dp progress bar, "Tạm dừng" / "Hủy tải") and stored (Easy badge + check, "Xóa") |
 | b3-before-/b3-after-battery.png | "Ghi hành trình ổn định": battery mark, `TopoCard` sections with numbered discs, forest main button |
 | b3-before-/b3-after-photo-viewer.png | Photo viewer: black stage, counter as a map chip, close as a map button |
+| before-/after-b2-trip-new.png | Trip form "Tạo chuyến đi": card-paper fields, date buttons with the Calendar icon, forest save button |
+| before-/after-b2-trip-new-error.png | Trip form with validation errors (red helper text under the fields) |
+| before-/after-b2-trip-edit.png | Trip form "Sửa chuyến đi": cover row as a ledge card (thumbnail, eyebrow "Ảnh bìa", "Đổi ảnh bìa"), delete button |
+| before-/after-b2-cover-picker.png | Cover sheet "Đổi ảnh bìa": "Tự động" tile as a forest veil, 2 dp forest selection ring with a check disc |
+| before-/after-b2-picker.png | Location picker: search field and chips as floating chips, bottom panel with eyebrow hint, Barlow coordinates, forest button |
+| before-/after-b2-picker-search.png | Place search results: 22 dp card-paper panel over the map, "Tên" / "Loại · Tỉnh" rows |
+| before-/after-b2-picker-permission.png | "Dùng vị trí của bạn?" rationale dialog: signal location icon, forest "Tiếp tục" |
+| before-/after-b2-from-photos-intro.png | "Thêm điểm dừng từ ảnh" sheet: signal photo icon, 22 dp padding, forest "Chọn ảnh" |
+| before-/after-b2-from-photos-review.png | Review of photo suggestions: map in an 18 dp ledge card, numbered Waypoint discs, topo suggestion cards, forest "Tạo điểm dừng" bar |
+| after-b2-from-photos-review-2.png | Same review scrolled: the "Ảnh không có vị trí" card and an excluded (dimmed) suggestion |
 
 ### Design atlas, before/after (`img/design-atlas/`, docs/08)
 

@@ -131,6 +131,7 @@ import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.placeLines
 import vn.lutrinh.app.ui.common.rememberGazetteer
 import vn.lutrinh.app.ui.trips.DateField
+import vn.lutrinh.app.ui.trips.FieldButton
 import vn.lutrinh.app.ui.trips.DatePickDialog
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -633,14 +634,7 @@ fun StepEditScreen(
                 LocationCard(f, vm.stepId, onPick = { onPickLocation(f.location ?: f.suggestedLocation) })
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateField(stringResource(R.string.step_field_date), f.date.display(), Modifier.weight(1f)) { pickDate = true }
-                    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { pickTime = true }, modifier = Modifier.weight(0.7f).height(64.dp)) {
-                        Icon(TopoIcons.Time, null)
-                        Spacer(Modifier.padding(4.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(stringResource(R.string.step_field_time), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text(f.time.displayTime(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
+                    FieldButton(TopoIcons.Time, stringResource(R.string.step_field_time), f.time.displayTime(), Modifier.weight(0.7f)) { pickTime = true }
                 }
                 f.trip?.let { trip ->
                     if (StepError.BEFORE_TRIP_START in f.errors) {

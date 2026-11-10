@@ -13,9 +13,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.EventBusy
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -54,7 +51,14 @@ import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.domain.usecase.TripCover
+import vn.lutrinh.app.ui.common.Eyebrow
 import vn.lutrinh.app.ui.common.LocalPhoto
+import vn.lutrinh.app.ui.common.RouteCover
+import vn.lutrinh.app.ui.common.TopoCard
+import vn.lutrinh.app.ui.common.topoFieldColors
+import vn.lutrinh.app.domain.usecase.inTimelineOrder
+import androidx.compose.material3.ButtonDefaults as FieldButtonDefaults
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -188,7 +192,7 @@ fun TripEditScreen(
             f.missing -> MessageState(stringResource(R.string.not_found), "", Modifier.padding(padding))
             else -> Column(
                 Modifier.padding(padding).fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 val titleError = when {
                     TripError.TITLE_BLANK in f.errors -> stringResource(R.string.err_trip_title_blank)
@@ -208,6 +212,7 @@ fun TripEditScreen(
                             Text("${f.title.trim().length}/${Limits.TRIP_TITLE_MAX}")
                         }
                     },
+                    colors = topoFieldColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
@@ -219,6 +224,7 @@ fun TripEditScreen(
                     supportingText = if (TripError.DESCRIPTION_TOO_LONG in f.errors) {
                         { Text(stringResource(R.string.err_trip_description_long, Limits.TRIP_DESCRIPTION_MAX)) }
                     } else null,
+                    colors = topoFieldColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -246,13 +252,13 @@ fun TripEditScreen(
                 }
                 if (f.endDate != null) {
                     TextButton(onClick = { vm.edit { copy(endDate = null) } }) {
-                        Icon(Icons.Outlined.EventBusy, null)
+                        Icon(TopoIcons.Close, null, Modifier.size(18.dp))
                         Spacer(Modifier.padding(4.dp))
                         Text(stringResource(R.string.trip_field_end_clear))
                     }
                 }
                 if (!isNew) CoverRow(f, onChange = { pickCover = true })
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
                 Button(shape = MaterialTheme.shapes.small, onClick = vm::save, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Text(stringResource(if (isNew) R.string.trip_create_button else R.string.action_save))
                 }
@@ -291,30 +297,50 @@ fun TripEditScreen(
 @Composable
 private fun CoverRow(f: TripForm, onChange: () -> Unit) {
     val cover = TripCover.resolve(f.coverPhotoId, f.steps)
-    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onChange, modifier = Modifier.fillMaxWidth().height(72.dp), contentPadding = PaddingValues(8.dp)) {
-        Box(Modifier.size(56.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant), Alignment.Center) {
-            if (cover != null) LocalPhoto(cover.fileName, Modifier.fillMaxSize())
-            else Icon(TopoIcons.Photo, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    TopoCard(modifier = Modifier.fillMaxWidth(), onClick = onChange) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // The card's own thumbnail (docs/08 §6): the cover photo, else the route cover.
+            Box(Modifier.size(width = 96.dp, height = 72.dp).clip(MaterialTheme.shapes.small)) {
+                if (cover != null) LocalPhoto(cover.fileName, Modifier.fillMaxSize())
+                else RouteCover(f.steps.inTimelineOrder().map { it.location }, Modifier.fillMaxSize())
+            }
+            Column(Modifier.weight(1f).padding(start = 14.dp)) {
+                Eyebrow(stringResource(R.string.trip_cover))
+                Text(
+                    stringResource(if (f.coverPhotoId != null) R.string.trip_cover_chosen else R.string.trip_cover_auto),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    stringResource(R.string.trip_cover_change),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
         }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.trip_cover), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(
-                stringResource(if (f.coverPhotoId != null) R.string.trip_cover_chosen else R.string.trip_cover_auto),
-                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        Text(stringResource(R.string.trip_cover_change), style = MaterialTheme.typography.labelLarge)
     }
 }
 
 @Composable
 fun DateField(label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onClick, modifier = modifier.height(64.dp)) {
-        Icon(Icons.Outlined.CalendarMonth, null)
+    FieldButton(TopoIcons.Calendar, label, value, modifier, onClick)
+}
+
+/**
+ * A form field that opens a picker (date, time): a field-sized outlined button on card paper,
+ * muted [label] over the [value] (docs/08 §5 "Inputs"), so it sits level with the text fields.
+ */
+@Composable
+fun FieldButton(icon: ImageVector, label: String, value: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    OutlinedButton(shape = MaterialTheme.shapes.small,
+        onClick = onClick,
+        modifier = modifier.height(64.dp),
+        colors = FieldButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+    ) {
+        Icon(icon, null, Modifier.size(22.dp))
         Spacer(Modifier.padding(4.dp))
         Column(Modifier.weight(1f)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
         }
     }
