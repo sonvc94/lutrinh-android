@@ -9,7 +9,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
+import vn.lutrinh.app.ui.common.BusyDialog
+import vn.lutrinh.app.ui.common.ConfirmDialog
+import vn.lutrinh.app.ui.common.MessageDialog
+import vn.lutrinh.app.ui.common.NoticeDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -288,45 +291,28 @@ fun rememberTransfer(snackbar: SnackbarHostState, onOpenTrip: ((String) -> Unit)
             fileName = vm.gpxName(tripId) ?: ""
             title = fileName.removeSuffix("." + GpxFormat.EXTENSION)
         }
-        AlertDialog(
+        NoticeDialog(
+            icon = TopoIcons.Route,
+            title = stringResource(R.string.gpx_export_title),
+            body = stringResource(R.string.gpx_export_body, title),
+            confirmLabel = stringResource(R.string.gpx_export_save),
+            onConfirm = { exportChoice = false; saveGpx.launch(fileName.ifBlank { "chuyen-di.gpx" }) },
             onDismissRequest = { exportChoice = false; exportTrip = null },
-            icon = { Icon(TopoIcons.Route, null, tint = Palette.Signal) },
-            title = { Text(stringResource(R.string.gpx_export_title)) },
-            text = { Text(stringResource(R.string.gpx_export_body, title)) },
-            confirmButton = {
-                Button(shape = MaterialTheme.shapes.small, onClick = { exportChoice = false; saveGpx.launch(fileName.ifBlank { "chuyen-di.gpx" }) }) {
-                    Text(stringResource(R.string.gpx_export_save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { exportChoice = false; exportTrip = null; vm.shareGpx(tripId) }) {
-                    Text(stringResource(R.string.gpx_export_share))
-                }
-            },
+            dismissLabel = stringResource(R.string.gpx_export_share),
+            onDismissAction = { exportChoice = false; exportTrip = null; vm.shareGpx(tripId) },
         )
     }
 
     when (val s = state) {
         TransferViewModel.UiState.Idle -> Unit
-        is TransferViewModel.UiState.Busy -> AlertDialog(
-            onDismissRequest = {},
-            confirmButton = {},
-            text = {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    CircularProgressIndicator()
-                    Text(
-                        stringResource(
-                            when (s.what) {
-                                TransferViewModel.Work.GPX -> R.string.gpx_working
-                                TransferViewModel.Work.BACKUP -> R.string.backup_working
-                                TransferViewModel.Work.RESTORE -> R.string.restore_working
-                            },
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            },
+        is TransferViewModel.UiState.Busy -> BusyDialog(
+            stringResource(
+                when (s.what) {
+                    TransferViewModel.Work.GPX -> R.string.gpx_working
+                    TransferViewModel.Work.BACKUP -> R.string.backup_working
+                    TransferViewModel.Work.RESTORE -> R.string.restore_working
+                },
+            ),
         )
         is TransferViewModel.UiState.ConfirmRestore -> {
             val m = s.prepared.manifest
@@ -334,27 +320,17 @@ fun rememberTransfer(snackbar: SnackbarHostState, onOpenTrip: ((String) -> Unit)
                 val at = Instant.parse(m.createdAt).atZone(ZoneId.systemDefault())
                 DisplayFormat.dayWithYear(at.toLocalDate()) + " " + DisplayFormat.time(at.toLocalTime())
             }.getOrDefault(m.createdAt)
-            AlertDialog(
-                onDismissRequest = vm::dismiss,
-                icon = { Icon(TopoIcons.Restore, null, tint = Palette.Signal) },
-                title = { Text(stringResource(R.string.restore_confirm_title)) },
-                text = {
-                    Column {
-                        Text(
-                            stringResource(
-                                R.string.restore_confirm_body, day,
-                                TransferViewModel.countsText(context, m.counts), TransferViewModel.countsText(context, s.prepared.current),
-                            ),
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = vm::confirmRestore,
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) { Text(stringResource(R.string.restore_confirm_action)) }
-                },
-                dismissButton = { TextButton(onClick = vm::dismiss) { Text(stringResource(R.string.action_cancel)) } },
+            ConfirmDialog(
+                title = stringResource(R.string.restore_confirm_title),
+                body = stringResource(
+                    R.string.restore_confirm_body, day,
+                    TransferViewModel.countsText(context, m.counts), TransferViewModel.countsText(context, s.prepared.current),
+                ),
+                confirmLabel = stringResource(R.string.restore_confirm_action),
+                dismissLabel = stringResource(R.string.action_cancel),
+                onConfirm = vm::confirmRestore,
+                onDismiss = vm::dismiss,
+                destructive = true,
             )
         }
         is TransferViewModel.UiState.GpxFailed -> ErrorDialog(stringResource(R.string.gpx_error_title), gpxErrorText(s.error), vm::dismiss)
@@ -376,12 +352,7 @@ fun rememberTransfer(snackbar: SnackbarHostState, onOpenTrip: ((String) -> Unit)
 
 @Composable
 private fun ErrorDialog(title: String?, body: String, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = title?.let { { Text(it) } },
-        text = { Text(body) },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
-    )
+    MessageDialog(title, body, stringResource(R.string.action_close), onDismiss)
 }
 
 @Composable

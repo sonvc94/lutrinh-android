@@ -22,13 +22,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -168,9 +166,12 @@ fun LoadingState(modifier: Modifier = Modifier) {
 }
 
 /**
- * Empty and error states (docs/08 §5 "Empty states"): a small contour mark in contour brown, the
- * title (26 bold), the body in muted ink, and a forest button. Left-aligned like the specimen's
- * screen headings. The title says what is missing, the body says what to do, the button does it.
+ * Empty and error states (docs/08 §5 "Empty states", R38): the one component for "nothing here" and
+ * "could not load". A contour mark in Contour brown (40 dp), the title (titleLarge 22 bold), the
+ * body (bodyLarge, muted ink) and at most one Forest button; left-aligned like the screen headings.
+ * The title says what is missing, the body says what to do, the button does it.
+ * [compact] is the same state inside a card or a panel (stop photos, search results, "Bản đồ của
+ * tôi"): no fill-the-screen, mark 24 dp beside the text, title titleMedium, body bodyMedium, no button.
  */
 @Composable
 fun MessageState(
@@ -179,7 +180,20 @@ fun MessageState(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
+    if (compact) {
+        Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(TopoIcons.Atlas, null, tint = Palette.Contour, modifier = Modifier.size(24.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                if (body.isNotEmpty()) {
+                    Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        return
+    }
     Column(
         modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 32.dp),
         verticalArrangement = Arrangement.Center,
@@ -187,7 +201,7 @@ fun MessageState(
     ) {
         Icon(TopoIcons.Atlas, null, tint = Palette.Contour, modifier = Modifier.size(40.dp))
         Spacer(Modifier.height(12.dp))
-        Text(title, style = MaterialTheme.typography.headlineSmall)
+        Text(title, style = MaterialTheme.typography.titleLarge)
         if (body.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             Text(body, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -200,22 +214,16 @@ fun MessageState(
 }
 
 /*
- * Dialogs (docs/08 §5 "Dialogs"): every AlertDialog takes the theme's card paper, 22 dp panel
- * corners, a 26 bold title and forest text buttons; a destructive confirm is in the error red.
+ * Dialogs live in Dialogs.kt (docs/08 §5, R38). These two are the Confirm type for the two
+ * questions several screens ask; the destructive confirm is in the error red.
  */
 
 @Composable
 fun ConfirmDeleteDialog(title: String, body: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    ConfirmDialog(
+        title = title, body = body,
+        confirmLabel = stringResource(R.string.action_delete), dismissLabel = stringResource(R.string.action_cancel),
+        onConfirm = onConfirm, onDismiss = onDismiss, destructive = true,
     )
 }
 
@@ -226,11 +234,9 @@ fun DiscardDialog(
     title: String = stringResource(R.string.discard_title),
     body: String = stringResource(R.string.discard_body),
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
-        confirmButton = { TextButton(onClick = onDiscard) { Text(stringResource(R.string.discard_confirm)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.keep_editing)) } },
+    ConfirmDialog(
+        title = title, body = body,
+        confirmLabel = stringResource(R.string.discard_confirm), dismissLabel = stringResource(R.string.keep_editing),
+        onConfirm = onDiscard, onDismiss = onDismiss, destructive = true,
     )
 }

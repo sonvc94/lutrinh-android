@@ -128,7 +128,8 @@ fun StepDetailScreen(
         modifier = Modifier.stepSharedBounds(vm.stepId, MaterialTheme.shapes.medium),
         topBar = {
             TopAppBar(
-                title = { Text(d?.let { if (it.number != null) "${it.number}. ${it.step.title}" else it.step.title } ?: "", maxLines = 1) },
+                // The title is the heading below; the bar names the screen (a draft has no number yet).
+                title = { Text(d?.let { if (it.number != null) stringResource(R.string.step_detail_bar_numbered, it.number) else stringResource(R.string.step_detail_bar) } ?: "", maxLines = 1) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },

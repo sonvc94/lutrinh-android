@@ -10,7 +10,7 @@ the OpenStreetMap routing server (FOSSGIS Valhalla, OSRM car fallback); nothing 
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R37 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R38 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 

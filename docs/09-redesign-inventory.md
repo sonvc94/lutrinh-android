@@ -37,19 +37,19 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 
 | # | Dialog | File (function) | Status | Batch |
 | --- | --- | --- | --- | --- |
-| D1 | Routing notice "Vẽ chặng theo đường đi?" (R36) | `ui/settings/SettingsScreen.kt` (`RoutingNoticeDialog`) | on spec | 1 |
-| D2 | Confirm delete (trip, step, offline area) | `ui/common/Common.kt` (`ConfirmDeleteDialog`) | theme (on spec) | 1 |
-| D3 | Discard changes "Bỏ các thay đổi?" | `ui/common/Common.kt` (`DiscardDialog`) | theme (on spec) | 1 |
-| D4 | Location permission for "Vị trí của tôi" | `ui/common/MyLocation.kt` (`MyLocationButton`) | theme (on spec) | 1 |
-| D5 | Track permission + "open settings" (R16) | `ui/tracks/TrackUi.kt` (`askNotificationsThenStart`, `SettingsDialog`) | theme (on spec) | 1 |
-| D6 | Extend trip dates (step outside the trip) | `ui/steps/StepEditScreen.kt` (`capture`) | theme (on spec) | 1 |
+| D1 | Routing notice "Vẽ chặng theo đường đi?" (R36) | `ui/settings/SettingsScreen.kt` (`RoutingNoticeDialog`) | on spec (R38: NoticeDialog, title 22) | 1 |
+| D2 | Confirm delete (trip, step, offline area) | `ui/common/Common.kt` (`ConfirmDeleteDialog`) | on spec (R38: ConfirmDialog, red confirm, title 22) | 1 |
+| D3 | Discard changes "Bỏ các thay đổi?" | `ui/common/Common.kt` (`DiscardDialog`) | on spec (R38: ConfirmDialog, "Bỏ" red, title 22) | 1 |
+| D4 | Location permission for "Vị trí của tôi" | `ui/common/MyLocation.kt` (`MyLocationButton`) | on spec (R38: NoticeDialog (icon + filled button added), title 22) | 1 |
+| D5 | Track permission + "open settings" (R16) | `ui/tracks/TrackUi.kt` (`askNotificationsThenStart`, `SettingsDialog`) | on spec (R38: NoticeDialog, title 22) | 1 |
+| D6 | Extend trip dates (step outside the trip) | `ui/steps/StepEditScreen.kt` (`capture`) | on spec (R38: ConfirmDialog, title 22) | 1 |
 | D7 | Time picker "Giờ đến" | `ui/steps/StepEditScreen.kt` (`TimePickDialog`) | theme (on spec) | 1 |
 | D8 | Date picker (trip dates, "Ngày đến") | `ui/trips/TripEditScreen.kt` (`DatePickDialog`) | theme (on spec) | 1 |
-| D9 | Picker location permission | `ui/picker/LocationPickerScreen.kt` (`locate`) | on spec | 2 |
-| D10 | GPX export choice | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec | 4 |
-| D11 | Busy (export/backup progress) | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec | 4 |
-| D12 | Restore confirm | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec | 4 |
-| D13 | Transfer error | `ui/transfer/TransferUi.kt` (`ErrorDialog`) | on spec | 4 |
+| D9 | Picker location permission | `ui/picker/LocationPickerScreen.kt` (`locate`) | on spec (R38: NoticeDialog, title 22) | 2 |
+| D10 | GPX export choice | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec (R38: NoticeDialog, title 22) | 4 |
+| D11 | Busy (export/backup progress) | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec (R38: BusyDialog, title 22) | 4 |
+| D12 | Restore confirm | `ui/transfer/TransferUi.kt` (`rememberTransfer`) | on spec (R38: ConfirmDialog, red confirm, title 22) | 4 |
+| D13 | Transfer error | `ui/transfer/TransferUi.kt` (`ErrorDialog`) | on spec (R38: MessageDialog, title 22) | 4 |
 
 ## Bottom sheets
 
@@ -81,7 +81,7 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 
 | # | Element | File | Status | Batch |
 | --- | --- | --- | --- | --- |
-| O1 | Pins, legs, track, my location, route colours | `map/Pins.kt`, `map/maplibre/OverlayLayers.kt`, `map/maplibre/MyLocationLayers.kt`, `map/TransportStyle.kt` | on spec | 1 |
+| O1 | Pins, legs, track, my location, route colours | `map/Pins.kt`, `map/maplibre/OverlayLayers.kt`, `map/maplibre/MyLocationLayers.kt`, `map/TransportStyle.kt` | on spec (leg mode badge = 8 dp tile, not a circle, Q-4) | 1 |
 | O2 | Basemap repaint (Bản đồ, Vệ tinh) | `map/basemap/OpenFreeMap.kt`, `map/basemap/EsriWorldImagery.kt` | on spec | 1 |
 | O3 | Map credit | `map/MapViews.kt` (`MapAttribution`) | on spec (standard 1: one text, OSM named once, paper panel under every live map) | 1 |
 
@@ -90,7 +90,7 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | # | Output | File | Status | Batch |
 | --- | --- | --- | --- | --- |
 | X1 | Summary image PNG (R18) | `share/SummaryImage.kt`, `map/StaticTripMap.kt` | on spec (stats row, ledge map, photos fit above the mark) | 4 |
-| X2 | HTML trip page (R18) | `domain/usecase/TripPage.kt` | on spec (topo hex in its CSS) | 4 |
+| X2 | HTML trip page (R18) | `domain/usecase/TripPage.kt` | on spec (topo hex in its CSS; Barlow digits embedded as a data: font, R38/Q-9) | 4 |
 | X3 | GPX / backup files | `domain/usecase/Gpx.kt`, `data/BackupManager.kt` | no visual | — |
 | X4 | Launcher icon, splash | `res/drawable/ic_launcher_foreground.xml`, `res/values/colors.xml` | on spec | 1 |
 
@@ -109,6 +109,14 @@ Each batch is a contained set of files; shared components (`ui/common/`, `ui/the
   `ui/tracks/BatteryGuideScreen.kt`, `ui/photos/PhotoViewerScreen.kt` (S10–S13).
 * **Batch 4: share and transfer.** `ui/share/ShareTripScreen.kt`, `share/SummaryImage.kt`,
   `domain/usecase/TripPage.kt`, `ui/transfer/TransferUi.kt` (S14, D10–D13, X1, X2). Done (branch `mate/lutrinh-topo-b4`).
+
+* **Standardisation batch 2 (huashu-design review, branch `mate/lutrinh-std-dialogs`): dialogs, buttons,
+  states.** Q-2 three dialog types in `ui/common/Dialogs.kt` with title 22 (D1–D6, D9–D13; the 26
+  step is removed from `Type.kt`); Q-4 mode badges as tiles (O1); Q-5 photo buttons rounded 8 and the
+  three media buttons on one row (S5, B3); Step detail top bar "Điểm dừng n" (S4); Q-8 one
+  `MessageState` + `compact` in "Bản đồ của tôi" (S10), place search (S8) and stop photos (S5); Q-11
+  data chips 13 (docs/08 §3); Q-9 embedded Barlow digits (X2). Rule R38; guard
+  `dialogsUseTheThreeTypesAndTheDialogTitleToken`. Shots `docs/img/topo/std2-*.png`.
 
 Count: 14 screens + 13 dialogs + 4 sheets + 4 menus + 3 messages + 3 map overlays + 4 share
 outputs = 45 entries.

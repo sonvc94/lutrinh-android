@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import vn.lutrinh.app.ui.common.NoticeDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -97,12 +97,14 @@ fun SettingsScreen(onBack: () -> Unit) {
  */
 @Composable
 fun RoutingNoticeDialog(onAccept: () -> Unit, onTurnOff: () -> Unit) {
-    AlertDialog(
+    NoticeDialog(
+        icon = TopoIcons.Route,
+        title = stringResource(R.string.routing_notice_title),
+        body = stringResource(R.string.routing_notice_body),
+        confirmLabel = stringResource(R.string.routing_notice_ok),
+        onConfirm = onAccept,
         onDismissRequest = onAccept,
-        icon = { Icon(TopoIcons.Route, null, tint = Palette.Signal) },
-        title = { Text(stringResource(R.string.routing_notice_title)) },
-        text = { Text(stringResource(R.string.routing_notice_body)) },
-        confirmButton = { Button(shape = MaterialTheme.shapes.small, onClick = onAccept) { Text(stringResource(R.string.routing_notice_ok)) } },
-        dismissButton = { TextButton(onClick = onTurnOff) { Text(stringResource(R.string.routing_notice_off)) } },
+        dismissLabel = stringResource(R.string.routing_notice_off),
+        onDismissAction = onTurnOff,
     )
 }

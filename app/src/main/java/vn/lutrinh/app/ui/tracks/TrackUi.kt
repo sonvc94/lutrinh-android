@@ -24,7 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
+import vn.lutrinh.app.ui.common.NoticeDialog
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -229,18 +229,17 @@ fun RecordTrackControl(
     }
 
     when (dialog) {
-        TrackDialog.RATIONALE -> AlertDialog(
-            onDismissRequest = { dialog = null },
-            icon = { Icon(TopoIcons.Route, null, tint = TrackInk) },
-            title = { Text(stringResource(R.string.track_permission_title)) },
-            text = { Text(stringResource(R.string.track_permission_body)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    dialog = null
-                    locationLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-                }) { Text(stringResource(R.string.track_permission_continue)) }
+        TrackDialog.RATIONALE -> NoticeDialog(
+            icon = TopoIcons.Route,
+            title = stringResource(R.string.track_permission_title),
+            body = stringResource(R.string.track_permission_body),
+            confirmLabel = stringResource(R.string.track_permission_continue),
+            onConfirm = {
+                dialog = null
+                locationLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
             },
-            dismissButton = { TextButton(onClick = { dialog = null }) { Text(stringResource(R.string.action_cancel)) } },
+            onDismissRequest = { dialog = null },
+            dismissLabel = stringResource(R.string.action_cancel),
         )
         TrackDialog.DENIED -> SettingsDialog(
             title = stringResource(R.string.track_permission_denied_title),
@@ -261,17 +260,17 @@ fun RecordTrackControl(
 @Composable
 private fun SettingsDialog(title: String, body: String, intent: Intent, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
-        confirmButton = {
-            TextButton(onClick = {
-                onDismiss()
-                runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-            }) { Text(stringResource(R.string.action_open_settings)) }
+    NoticeDialog(
+        icon = TopoIcons.MyLocation,
+        title = title,
+        body = body,
+        confirmLabel = stringResource(R.string.action_open_settings),
+        onConfirm = {
+            onDismiss()
+            runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) } },
+        onDismissRequest = onDismiss,
+        dismissLabel = stringResource(R.string.action_close),
     )
 }
 

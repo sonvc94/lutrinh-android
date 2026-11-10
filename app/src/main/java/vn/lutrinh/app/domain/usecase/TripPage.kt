@@ -79,9 +79,9 @@ object TripPage {
         sb.append("<!DOCTYPE html>\n<html lang=\"vi\">\n<head>\n<meta charset=\"utf-8\">\n")
         sb.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
         // Defence in depth: even if something slipped through, the browser may load nothing.
-        sb.append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'\">\n")
+        sb.append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'\">\n")
         sb.append("<meta name=\"generator\" content=\"Lữ Trình\">\n")
-        sb.append("<title>").append(esc(content.title)).append("</title>\n<style>").append(CSS).append("</style>\n</head>\n<body>\n")
+        sb.append("<title>").append(esc(content.title)).append("</title>\n<style>").append(FONT_FACE).append(CSS).append("</style>\n</head>\n<body>\n")
 
         sb.append("<header>\n<p class=\"dates\">").append(esc(content.dates)).append("</p>\n")
         sb.append("<h1>").append(esc(content.title)).append("</h1>\n")
@@ -179,9 +179,15 @@ object TripPage {
      * corners), Ink #2A2A22, InkMuted #6B6A58, Grid #E3DEC8, Sand #E8E3CE, Forest #1F2A24, Trail
      * #2D7A46 / Waypoint #2B6CB0 / Forest step discs with a 3 px white ring. Signal orange
      * #E4572E only as a line (the page's route mark), never as text. Fonts: Noto Sans for words and
-     * Barlow Condensed for numbers, by name only: the page may load nothing (CSP), so a phone or
-     * computer without them falls back to its sans and condensed sans. No gradients, no links.
+     * Barlow Condensed for numbers. Noto Sans is by name only (a phone or computer without it
+     * falls back to its sans); the digits are embedded as a subset in [FONT_FACE] (a `data:` font,
+     * the page may load nothing else, CSP `font-src data:`), so numbers look the same everywhere.
+     * No gradients, no links.
      */
+    private const val FONT_FACE =
+        "@font-face{font-family:\"Barlow Condensed\";font-weight:700;font-style:normal;" +
+            "src:url(data:font/woff2;base64," + BarlowDigits.WOFF2_BASE64 + ") format(\"woff2\")}\n"
+
     private const val CSS = """
 *{box-sizing:border-box}
 body{margin:0;background:#EFEBDA;color:#2A2A22;font:16px/1.55 "Noto Sans",-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}

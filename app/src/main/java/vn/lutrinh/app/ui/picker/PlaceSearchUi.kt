@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.usecase.PlaceHit
 import vn.lutrinh.app.domain.usecase.PlaceKind
+import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.topoFieldColors
 import vn.lutrinh.app.ui.theme.Lift
 
@@ -70,7 +71,12 @@ fun PlaceResults(results: List<PlaceHit>, loading: Boolean, tooShort: Boolean, o
                 tooShort -> {}
                 // while a newer query runs, the previous results stay (no flicker while typing)
                 results.isEmpty() && loading -> Message(stringResource(R.string.picker_search_loading))
-                results.isEmpty() -> Message(stringResource(R.string.picker_search_empty))
+                results.isEmpty() -> MessageState(
+                    title = stringResource(R.string.picker_search_empty_title),
+                    body = stringResource(R.string.picker_search_empty),
+                    modifier = Modifier.padding(16.dp),
+                    compact = true,
+                )
                 else -> LazyColumn(Modifier.heightIn(max = 360.dp)) {
                     items(results, key = { "${it.place.name}|${it.place.location}|${it.place.kind}" }) { hit ->
                         ResultRow(hit, onPick)

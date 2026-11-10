@@ -789,6 +789,21 @@ Same flow and AVD as above (Hà Giang sample, vi-VN); `before-` = main (d93bbab)
 | b4-before-/after-d12.png | "Thay thế toàn bộ dữ liệu?": Restore mark in Signal, destructive "Thay thế" in Error text |
 | b4-before-/after-d13.png | "Không nhập được tệp GPX": error dialog, unchanged (already on the theme) |
 
+### Topo outdoor, standardisation batch 2: dialogs, buttons, states (`img/topo/std2-*`, docs/08 §6, R38)
+
+Hà Giang sample on a review AVD (vi-VN), 540 px wide.
+
+| File | Shows |
+| --- | --- |
+| std2-dlg-notice.png | Notice dialog (routing, R36): Signal icon, title 22, filled Forest main button |
+| std2-dlg-confirm.png | Confirm dialog (delete trip): two text buttons, destructive "Xóa" in Error |
+| std2-dlg-message.png | Message dialog (GPX import error): one text button |
+| std2-mode-badges.png | Trip map: leg mode badges as 8 dp tiles, not circles |
+| std2-media-row.png | Step editor: three media buttons on one row; × on a photo as an 8 dp rounded square |
+| std2-dlg-stepdetail.png | Step detail: top bar "Điểm dừng 1", the title only as the heading |
+| std2-empty-list.png | Trip list without trips: `MessageState`, title 22 |
+| std2-empty-search.png / -stopphotos.png / -mymap.png | the three new empty states (compact `MessageState`): place search, stop photos, "Bản đồ của tôi" |
+
 ### Design atlas, before/after (`img/design-atlas/`, docs/08)
 
 Same sample data, same flow, scripted on a separate review AVD: `before-*` from a main build

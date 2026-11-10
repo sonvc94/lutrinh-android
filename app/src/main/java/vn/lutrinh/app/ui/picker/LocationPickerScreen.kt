@@ -7,7 +7,7 @@ import android.os.CancellationSignal
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.AlertDialog
+import vn.lutrinh.app.ui.common.NoticeDialog
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
@@ -265,7 +265,7 @@ fun LocationPickerScreen(
                 if (here != null) Text(here, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 6.dp))
                 Text(
                     formatCoord(center.latitude, center.longitude),
-                    style = (if (here != null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.headlineSmall).numerals(),
+                    style = (if (here != null) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleLarge).numerals(),
                     color = if (here != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 2.dp, bottom = 12.dp),
                 )
@@ -277,17 +277,14 @@ fun LocationPickerScreen(
     }
 
     if (askPermission) {
-        AlertDialog(
+        NoticeDialog(
+            icon = TopoIcons.MyLocation,
+            title = stringResource(R.string.picker_permission_title),
+            body = stringResource(R.string.picker_permission_body),
+            confirmLabel = stringResource(R.string.picker_permission_continue),
+            onConfirm = { askPermission = false; permissionLauncher.launch(DeviceLocation.PERMISSIONS) },
             onDismissRequest = { askPermission = false },
-            icon = { Icon(TopoIcons.MyLocation, null, tint = Palette.Signal) },
-            title = { Text(stringResource(R.string.picker_permission_title)) },
-            text = { Text(stringResource(R.string.picker_permission_body)) },
-            confirmButton = {
-                Button(shape = MaterialTheme.shapes.small, onClick = { askPermission = false; permissionLauncher.launch(DeviceLocation.PERMISSIONS) }) {
-                    Text(stringResource(R.string.picker_permission_continue))
-                }
-            },
-            dismissButton = { TextButton(onClick = { askPermission = false }) { Text(stringResource(R.string.action_cancel)) } },
+            dismissLabel = stringResource(R.string.action_cancel),
         )
     }
 }

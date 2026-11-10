@@ -4,7 +4,6 @@ import android.net.Uri
 import vn.lutrinh.app.ui.theme.TopoIcons
 import android.content.ActivityNotFoundException
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -29,6 +28,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,7 +40,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -62,6 +62,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.AlertDialog
+import vn.lutrinh.app.ui.common.ConfirmDialog
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -721,12 +722,13 @@ fun StepEditScreen(
             ExtendCase.AFTER_END -> (offer.current.end ?: offer.current.start).display() to (offer.widened.end ?: offer.widened.start).display()
             else -> offer.current.start.display() to offer.widened.start.display()
         }
-        AlertDialog(
-            onDismissRequest = vm::dismissExtendOffer,
-            title = { Text(stringResource(R.string.extend_trip_title)) },
-            text = { Text(stringResource(bodyRes, was, now)) },
-            confirmButton = { TextButton(onClick = { vm.save(draft = f.saveAsDraft, extendTrip = true) }) { Text(stringResource(R.string.extend_trip_confirm)) } },
-            dismissButton = { TextButton(onClick = vm::dismissExtendOffer) { Text(stringResource(R.string.action_cancel)) } },
+        ConfirmDialog(
+            title = stringResource(R.string.extend_trip_title),
+            body = stringResource(bodyRes, was, now),
+            confirmLabel = stringResource(R.string.extend_trip_confirm),
+            dismissLabel = stringResource(R.string.action_cancel),
+            onConfirm = { vm.save(draft = f.saveAsDraft, extendTrip = true) },
+            onDismiss = vm::dismissExtendOffer,
         )
     }
     if (confirmDiscard) DiscardDialog(onDiscard = { confirmDiscard = false; onBack() }, onDismiss = { confirmDiscard = false })
@@ -790,10 +792,11 @@ private fun PhotosSection(
         Eyebrow("${stringResource(R.string.step_photos)} (${f.photoCount})")
         // R28/R29: picker (photos and videos), system camera photo, system camera video.
         val canAdd = !f.importing && f.photoCount < Limits.PHOTOS_PER_STEP_MAX
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AddMediaButton(TopoIcons.AddPhotos, stringResource(R.string.step_photos_add), canAdd, onAdd)
-            AddMediaButton(TopoIcons.Camera, stringResource(R.string.step_photos_take), canAdd, onTakePhoto)
-            AddMediaButton(TopoIcons.Video, stringResource(R.string.step_photos_record), canAdd, onRecordVideo)
+        // One row at any width (docs/08 §5 "Media buttons"): three equal tiles, icon over label.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AddMediaButton(TopoIcons.AddPhotos, stringResource(R.string.step_photos_add), canAdd, onAdd, Modifier.weight(1f))
+            AddMediaButton(TopoIcons.Camera, stringResource(R.string.step_photos_take), canAdd, onTakePhoto, Modifier.weight(1f))
+            AddMediaButton(TopoIcons.Video, stringResource(R.string.step_photos_record), canAdd, onRecordVideo, Modifier.weight(1f))
         }
         if (f.importing) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (f.importFailed > 0) Text(stringResource(R.string.step_photos_import_failed, f.importFailed), color = MaterialTheme.colorScheme.error)
@@ -836,11 +839,16 @@ private fun PhotosSection(
 }
 
 @Composable
-private fun AddMediaButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit) {
-    FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = onClick, enabled = enabled, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
-        Icon(icon, null, Modifier.size(18.dp))
-        Spacer(Modifier.padding(2.dp))
-        Text(label)
+private fun AddMediaButton(icon: ImageVector, label: String, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FilledTonalButton(shape = MaterialTheme.shapes.small,
+        onClick = onClick, enabled = enabled,
+        modifier = modifier.heightIn(min = 64.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Icon(icon, null, Modifier.size(22.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center, maxLines = 2)
+        }
     }
 }
 
@@ -888,7 +896,7 @@ private fun PhotoTile(
         }
         IconButton(
             onClick = onRemove,
-            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), CircleShape),
+            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), RoundedCornerShape(Radii.Badge)),
         ) { Icon(TopoIcons.Close, stringResource(R.string.step_photo_remove), tint = MaterialTheme.colorScheme.inverseOnSurface, modifier = Modifier.size(16.dp)) }
     }
 }

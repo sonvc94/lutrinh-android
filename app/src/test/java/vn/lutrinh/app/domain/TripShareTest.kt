@@ -93,7 +93,9 @@ class TripShareTest {
     @Test fun pageLoadsNothingFromTheNetwork() {
         val html = TripPage.build(content(listOf(step(1, photos = 2, note = "xem https://example.com"), step(2, day = 1)))) { byteArrayOf(1, 2) }.html
         assertEquals(0, Regex("(src|href)=\"https?://").findAll(html).count())
-        assertEquals(0, Regex("url\\(").findAll(html).count())
+        // the only url( is the embedded Barlow digits subset: a data: font, never a request
+        assertEquals(0, Regex("url\\((?!data:font/woff2;base64,)").findAll(html).count())
+        assertEquals(1, Regex("url\\(data:font/woff2;base64,").findAll(html).count())
         assertFalse(html.contains("<link"))
         assertFalse(html.contains("<script"))
         assertTrue(html.contains("Content-Security-Policy\" content=\"default-src 'none'; img-src data:;"))
@@ -122,14 +124,14 @@ class TripShareTest {
         assertEquals(TripPage.LEVELS.first(), normal.level)
         assertEquals(8, normal.photosIncluded)
 
-        // Fits once photos are 800 px / q50 (4000 B each, ~5.3 kB base64): 8 photos ≈ 43 kB.
-        val smaller = TripPage.buildWithinCap(content(steps), cap = 50_000, encode = encode)
+        // Fits once photos are 800 px / q50 (4000 B each, ~5.3 kB base64): 8 photos ≈ 43 kB (+ 3 kB for the embedded digits).
+        val smaller = TripPage.buildWithinCap(content(steps), cap = 54_000, encode = encode)
         assertEquals(800, smaller.level.maxPx)
         assertEquals(Int.MAX_VALUE, smaller.level.maxPhotosPerStep)
-        assertTrue(smaller.bytes <= 50_000)
+        assertTrue(smaller.bytes <= 54_000)
 
         // Tighter: at most 2 photos per step.
-        val fewer = TripPage.buildWithinCap(content(steps), cap = 30_000, encode = encode)
+        val fewer = TripPage.buildWithinCap(content(steps), cap = 34_000, encode = encode)
         assertEquals(2, fewer.level.maxPhotosPerStep)
         assertEquals(4, fewer.photosIncluded)
         assertEquals(4, fewer.photosOmitted)

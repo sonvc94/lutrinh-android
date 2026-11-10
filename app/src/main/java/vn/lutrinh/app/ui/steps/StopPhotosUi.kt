@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.FilledTonalButton
@@ -37,6 +36,7 @@ import coil3.compose.AsyncImage
 import vn.lutrinh.app.R
 import vn.lutrinh.app.data.GalleryAccess
 import vn.lutrinh.app.domain.usecase.GalleryPhoto
+import vn.lutrinh.app.ui.common.MessageState
 import vn.lutrinh.app.ui.common.TopoCard
 import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.theme.Radii
@@ -88,10 +88,10 @@ fun StopPhotosSection(
                 else -> {
                     val photos = s.selection.photos
                     if (photos.isEmpty()) {
-                        Text(
-                            stringResource(R.string.stop_photos_none),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        MessageState(
+                            title = stringResource(R.string.stop_photos_none_title),
+                            body = stringResource(R.string.stop_photos_none),
+                            compact = true,
                         )
                     } else {
                         // F3: ticked photos live in the "Ảnh (N)" grid above; only the unticked show here.
@@ -156,12 +156,12 @@ private fun GalleryTile(p: GalleryPhoto, selected: Boolean, onToggle: () -> Unit
                 TopoIcons.Check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = tick.background(MaterialTheme.colorScheme.primary, CircleShape).padding(4.dp),
+                modifier = tick.background(MaterialTheme.colorScheme.primary, RoundedCornerShape(Radii.Badge)).padding(4.dp),
             )
         } else {
             Box(
-                tick.background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.35f), CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.inverseOnSurface, CircleShape),
+                tick.background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.35f), RoundedCornerShape(Radii.Badge))
+                    .border(2.dp, MaterialTheme.colorScheme.inverseOnSurface, RoundedCornerShape(Radii.Badge)),
             )
         }
         p.takenAt?.let {

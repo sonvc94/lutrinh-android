@@ -18,7 +18,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import vn.lutrinh.app.ui.theme.Radii
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -119,7 +120,7 @@ private fun CoverTile(
             Icon(
                 TopoIcons.Check, stringResource(R.string.trip_cover_chosen),
                 tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp).background(MaterialTheme.colorScheme.primary, CircleShape).padding(3.dp),
+                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(Radii.Badge)).padding(3.dp),
             )
         }
     }

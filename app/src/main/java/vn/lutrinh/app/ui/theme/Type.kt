@@ -36,7 +36,7 @@ fun TextStyle.numerals(): TextStyle =
     copy(fontFamily = NumeralFont, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum", letterSpacing = 0.01.em)
 
 /**
- * The specimen's scale (px at 360 px width = dp): 40 readout · 28 screen title · 26 sheet title ·
+ * The specimen's scale (px at 360 px width = dp): 40 readout · 28 screen title · 22 sheet and dialog title (titleLarge = headlineSmall) ·
  * 17 card title / callout · 15 status · 14 meta and chips · 13 labels (700, +0.06 em) · 12 floor.
  * Weights: 400 body, 500 fields, 700 titles, labels and chips (the specimen has no 600).
  */
@@ -54,7 +54,7 @@ val AppTypography = Typography(
     displaySmall = style(30, 36, FontWeight.Bold),
     headlineLarge = style(32, 40, FontWeight.Bold),
     headlineMedium = style(28, 36, FontWeight.Bold),
-    headlineSmall = style(26, 34, FontWeight.Bold),
+    headlineSmall = style(22, 30, FontWeight.Bold), // dialog title: M3 AlertDialog reads this slot (R38),
     titleLarge = style(22, 30, FontWeight.Bold),
     titleMedium = style(17, 24, FontWeight.Bold),
     titleSmall = style(15, 22, FontWeight.Bold),

@@ -3,6 +3,7 @@ package vn.lutrinh.app.map
 import vn.lutrinh.app.ui.theme.TopoIcons
 import android.graphics.Bitmap
 import android.graphics.Paint
+import android.graphics.RectF
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.theme.Radii
 import vn.lutrinh.app.ui.theme.rgbHex
 
 /**
@@ -70,9 +72,10 @@ internal fun TransportMode?.legLine(): LegLine = this?.let { TransportStyle.of(i
 internal fun TransportMode.badgeId(selected: Boolean = false) = "mode-$code" + if (selected) "-sel" else ""
 
 /**
- * Mode badges as bitmaps for MapLibre, keyed by [badgeId]: a white disc with a soft shadow, a
- * thin ring and the icon in the mode colour; the selected variant is filled with the mode
- * colour, white ring and icon, and slightly larger.
+ * Mode badges as bitmaps for MapLibre, keyed by [badgeId]: a small Card tile (radius [Radii.Badge],
+ * not a circle, so it never reads as a stop pin) with the chip shadow, a thin outline and the icon
+ * in the mode colour; the selected variant is filled with the mode colour, white outline and icon,
+ * and slightly larger.
  */
 @Composable
 internal fun rememberTransportBadges(sizeDp: Float = 24f): Map<String, Bitmap> {
@@ -91,23 +94,25 @@ internal fun rememberTransportBadges(sizeDp: Float = 24f): Map<String, Bitmap> {
                     val image = ImageBitmap(px, px)
                     val bmp = image.asAndroidBitmap()
                     val c = android.graphics.Canvas(bmp)
-                    val r = disc / 2f
+                    val corner = Radii.Badge.value * d
                     val cx = px / 2f
+                    val tile = RectF(cx - disc / 2f, cx - disc / 2f, cx + disc / 2f, cx + disc / 2f)
                     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-                    paint.color = if (selected) modeColor.toArgb() else android.graphics.Color.WHITE
+                    paint.color = (if (selected) modeColor else Palette.Card).toArgb()
                     paint.setShadowLayer(2.5f * d, 0f, 1f * d, 0x55102A20)
-                    c.drawCircle(cx, cx, r, paint)
+                    c.drawRoundRect(tile, corner, corner, paint)
                     paint.clearShadowLayer()
                     paint.style = Paint.Style.STROKE
                     paint.strokeWidth = (if (selected) 2f else 1.5f) * d
-                    paint.color = if (selected) android.graphics.Color.WHITE else modeColor.copy(alpha = 0.55f).toArgb()
-                    c.drawCircle(cx, cx, r - paint.strokeWidth / 2, paint)
+                    paint.color = (if (selected) Palette.Card else modeColor.copy(alpha = 0.55f)).toArgb()
+                    val half = paint.strokeWidth / 2
+                    c.drawRoundRect(RectF(tile.left + half, tile.top + half, tile.right - half, tile.bottom - half), corner - half, corner - half, paint)
                     val icon = disc * 0.6f
                     val inset = (px - icon) / 2f
                     CanvasDrawScope().draw(density, LayoutDirection.Ltr, Canvas(image), Size(px.toFloat(), px.toFloat())) {
                         translate(inset, inset) {
                             with(painter) {
-                                draw(Size(icon, icon), colorFilter = ColorFilter.tint(if (selected) Color.White else modeColor))
+                                draw(Size(icon, icon), colorFilter = ColorFilter.tint(if (selected) Palette.Card else modeColor))
                             }
                         }
                     }

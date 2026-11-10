@@ -50,6 +50,19 @@ class DesignGuardTest {
     }
 
     @Test
+    fun dialogsUseTheThreeTypesAndTheDialogTitleToken() {
+        // docs/08 §5 "Dialogs", R38: AlertDialog only in ui/common/Dialogs.kt (the time picker has no title and
+        // keeps its own); titles are titleLarge 22, and the old 26 sp title slot (headlineSmall) is not used by name.
+        val ui = sources().filter { rel(it).startsWith("ui/") }
+        val raw = hits(ui.filterNot { rel(it) in setOf("ui/common/Dialogs.kt", "ui/steps/StepEditScreen.kt") }, Regex("""\bAlertDialog\("""))
+        assertTrue("AlertDialog outside ui/common/Dialogs.kt (use ConfirmDialog / NoticeDialog / MessageDialog):\n" + raw.joinToString("\n"), raw.isEmpty())
+        val sizes = hits(ui.filterNot { rel(it).startsWith("ui/theme/") }, Regex("""headlineSmall|fontSize\s*=\s*26|\b26\.sp"""))
+        assertTrue("26 sp title outside the theme (dialog and state titles are titleLarge 22):\n" + sizes.joinToString("\n"), sizes.isEmpty())
+        val dialogs = File(root, "ui/common/Dialogs.kt").readText()
+        assertTrue("every dialog title is titleLarge", Regex("""style = MaterialTheme\.typography\.titleLarge""").findAll(dialogs).count() >= 3)
+    }
+
+    @Test
     fun noPillButtons() {
         // docs/08 §6 "Buttons": 12 dp corners (shapes.small); M3 filled/tonal/outlined buttons default to a full pill.
         val ui = sources().filter { rel(it).startsWith("ui/") }

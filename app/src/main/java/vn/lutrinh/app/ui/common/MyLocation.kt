@@ -8,7 +8,6 @@ import android.os.CancellationSignal
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -106,16 +105,14 @@ fun rememberMyLocation(snackbar: SnackbarHostState): MyLocationState {
 fun MyLocationButton(state: MyLocationState, modifier: Modifier = Modifier) {
     MapButton(TopoIcons.MyLocation, stringResource(R.string.my_location), state::onClick, modifier)
     if (state.askPermission) {
-        AlertDialog(
+        NoticeDialog(
+            icon = TopoIcons.MyLocation,
+            title = stringResource(R.string.picker_permission_title),
+            body = stringResource(R.string.my_location_permission_body),
+            confirmLabel = stringResource(R.string.picker_permission_continue),
+            onConfirm = { state.askPermission = false; state.launchPermission() },
             onDismissRequest = { state.askPermission = false },
-            title = { Text(stringResource(R.string.picker_permission_title)) },
-            text = { Text(stringResource(R.string.my_location_permission_body)) },
-            confirmButton = {
-                TextButton(onClick = { state.askPermission = false; state.launchPermission() }) {
-                    Text(stringResource(R.string.picker_permission_continue))
-                }
-            },
-            dismissButton = { TextButton(onClick = { state.askPermission = false }) { Text(stringResource(R.string.action_cancel)) } },
+            dismissLabel = stringResource(R.string.action_cancel),
         )
     }
 }

@@ -490,7 +490,9 @@ and `map/StaticTripMap.kt` (docs/05 "Static map for sharing", docs/06 "Export").
   "Tạo bằng Lữ Trình …". A photo whose file is missing is skipped.
 * **Offline and safe.** All user text (title, description, step titles, notes) is HTML-escaped
   (`& < > " '`); CSS is inline; images are `data:image/jpeg;base64` URIs only; no `<script>`, no
-  `<link>`, no `url(…)`; a `Content-Security-Policy` meta tag (`default-src 'none'; img-src data:;
+  `<link>`, no `url(…)` except the one `data:font/woff2;base64,…` of the embedded Barlow Condensed
+  700 digits subset (`BarlowDigits.kt`, OFL; the numbers render in Barlow without an installed font);
+  a `Content-Security-Policy` meta tag (`default-src 'none'; img-src data:; font-src data:;
   style-src 'unsafe-inline'`) forbids any request. The attribution is text, never a link.
 * **Size cap** (`TripPage.buildWithinCap`, `CAP_BYTES` = 15 000 000 bytes, UTF-8). The page is
   built at the first level that fits: photos 1280 px / JPEG q80 → 1280/q65 → 1024/q60 → 800/q50 →
@@ -1248,6 +1250,27 @@ a stop at the Tràng An park centre snaps 713 m away with a 4.1–4.8× detour, 
 the step after the carousel settles, region zoom, duration from distance and zoom). *Changed:* our
 own formula and clamp, zoom cap 13.5 instead of 10 (terrain), the arriving leg glows (Polarsteps
 highlights none), a day counter on the map.
+
+## R38 — Dialog grammar and empty states (docs/08 §6)
+
+* **Three dialog types, one title.** Every popup is built by `ui/common/Dialogs.kt`: `ConfirmDialog`
+  (a question: title, body, two text buttons, no icon; a destructive confirm — delete, discard,
+  restore — is red), `NoticeDialog` (a notice or a permission rationale: a Signal TopoIcon, title,
+  body, a filled Forest main button, optionally a text dismiss) and `MessageDialog` (an error or
+  result: one text button), plus `BusyDialog` (spinner and text). Title = `titleLarge` 22 / 30 bold,
+  body = `bodyMedium`; the 26 type step is removed (`headlineSmall` = 22). The time and date
+  pickers keep their Material pickers. No dialog changes what its buttons do.
+* **One empty state.** Every "nothing here" is `MessageState` (Contour mark, 22 title, text, optional
+  button); `compact` (24 dp mark, 17 title, no button) inside a card: "Bản đồ của tôi" with no trip,
+  place search with no result, stop photos with none found, besides the trip list and trip detail.
+* **Look of three small things** (no behaviour): the transport badge on a leg is an 8 dp tile, not a
+  circle; buttons over a photo (× remove, cover check, stop-photo tick) are 8 dp rounded squares;
+  the three "add photo / video" buttons share one row; Step detail's top bar says "Điểm dừng n"
+  (the step's own title is the heading under it); data chips (`LegChip`) are 13.
+
+*Tests:* `DesignGuardTest` (`dialogsUseTheThreeTypesAndTheDialogTitleToken`, `noPillButtons`),
+`TripShareTest` (the url( / CSP assertions of R18). Screenshots: docs/img/topo/.
+*Inspired by* the huashu-design review of the app (captain 2026-11-10, Q-2, Q-4, Q-5, Q-8, Q-9, Q-11).
 
 ## Text rules
 

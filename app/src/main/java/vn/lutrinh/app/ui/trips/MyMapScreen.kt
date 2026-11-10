@@ -219,7 +219,11 @@ fun MyMapScreen(
             }
             if (data.trips.isEmpty()) {
                 TopoPanel(Modifier.align(Alignment.Center).padding(24.dp), floating = true) {
-                    Text(stringResource(R.string.my_map_empty))
+                    MessageState(
+                        title = stringResource(R.string.my_map_empty_title),
+                        body = stringResource(R.string.my_map_empty_body),
+                        compact = true,
+                    )
                 }
             }
             BasemapFallbackNotice(snackbar)

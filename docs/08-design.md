@@ -110,14 +110,13 @@ The specimen's scale (px at its 360 px phone = dp/sp):
 | 40 / 40 | 700 | displayLarge (readout numbers, with numerals()) | `.stats .n` 40 px |
 | 34 / 40, 30 / 36 | 700 | displayMedium, displaySmall (compact readout) | — |
 | 28 / 36 | 700 | headlineMedium: screen and trip titles | list title 28 px |
-| 26 / 34 | 700 | headlineSmall | profile title 26 px |
-| 22 / 30 | 700 | titleLarge: sheet and dialog titles | — |
+| 22 / 30 | 700 | headlineSmall, titleLarge: sheet, dialog and empty-state titles (the 26 step is gone, R38) | — |
 | 17 / 24 | 700 | titleMedium: card titles | `.card b` 17 px |
 | 17 / 26 | 400 | bodyLarge: callouts, notes | callout 17 px / 1.5 |
 | 15 / 22 | 700 | titleSmall | status bar 15 px |
 | 14 / 21 | 400 | bodyMedium: meta lines | `.m` 14 px |
-| 14 / 20 | 700 | labelLarge: buttons, chips | `.chip` 14 px 700 |
-| 13 / 18 | 700, +0.06 em | labelMedium: eyebrows and stat labels | `.lbl` 13 px 700 .06 em |
+| 14 / 20 | 700 | labelLarge: buttons, action chips | `.chip` 14 px 700 |
+| 13 / 18 | 700, +0.06 em | labelMedium: eyebrows and stat labels; also data chips (`LegChip`: km · time of a leg, 13, captain 2026-11-10) | `.lbl` 13 px 700 .06 em |
 | 13 / 19 | 400 | bodySmall | axis labels 13 px |
 | 12 / 16 | 700, +0.04 em | labelSmall (floor; only the 9 sp map credit is smaller) | — |
 
@@ -212,18 +211,20 @@ docs/09 (guard: `topoIconsAndTypeWeights`). Path data (SVG, 24 × 24):
 | Stats readout | specimen stats row: optional eyebrow, numbers (Barlow 40 / 30 compact) over bold labels, spread across, then the km scale bar | `KmReadout`, `KmScaleBar` |
 | Km scale bar | Sand track (rounded), alternating Signal blocks, InkMuted ticks and numbers | `KmScaleBar` |
 | Badge | 13 bold, 8 dp radius, 2 × 8 padding, wash + ink pair (easy/moderate/hard) | `TopoBadge`, `DraftBadge` |
-| Chip | Card paper, 12 dp, labelLarge; outlineVariant edge on paper, `Lift.Chip` on the map; dark chip = Forest + Card text | `LegChip`, `MapChip` |
+| Chip | Card paper, 12 dp, labelLarge (14; a data chip such as `LegChip` is 13); outlineVariant edge on paper, `Lift.Chip` on the map; dark chip = Forest + Card text | `LegChip`, `MapChip` |
 | Buttons | Filled Forest + Card text; tonal Sand; outlined Outline edge; text Forest; all 12 dp (`shapes.small`) | guard `noPillButtons` |
 | FAB | Forest chip with icon + label, 12 dp, `Lift.Chip`, content description = label | `ChipFab` |
 | Map buttons | 44 dp Card squares, 12 dp, `Lift.Chip`, Ink TopoIcon | `MapButton` |
 | Bottom sheet | Card paper, 22 dp top corners, drag handle InkMuted; eyebrow + titleLarge; rows transparent; selected = a Sand row for one-line rows (InkMuted never on Sand), else a radio | `ModalBottomSheet` (theme), `LegModeSheet` |
-| Dialog / popup | Card paper, 22 dp, titleLarge, body bodyMedium; confirm = filled Forest (12 dp) or Forest text, dismiss = text; destructive text Error; an optional TopoIcon in Signal | `AlertDialog` (theme), `RoutingNoticeDialog` |
+| Dialog / popup (R38) | Card paper, 22 dp, titleLarge 22, body bodyMedium; **three types** in `ui/common/Dialogs.kt`: `ConfirmDialog` (question: no icon, two text buttons, destructive confirm in Error), `NoticeDialog` (notice or permission rationale: a TopoIcon in Signal, filled Forest main button 12 dp, optional text dismiss), `MessageDialog` (error / result: one text button) + `BusyDialog` (spinner + text, no buttons); time and date pickers stay Material pickers | `Dialogs.kt`, `DiscardDialog`, `ConfirmDeleteDialog`, `RoutingNoticeDialog` |
 | Menu | Card paper, 12 dp, labelLarge-size rows, TopoIcons Ink | `DropdownMenu` (theme) |
 | Snackbar | the specimen's dark callout: Forest, Card text, 12 dp | `SnackbarHost` (theme) |
 | Inputs | outlined, 12 dp, Card fill, Outline edge, Forest when focused, label InkMuted | `topoFieldColors()` |
 | Switch / radio / checkbox | Forest when on; off = CardDim track with an Outline edge | theme |
 | Segmented control | 12 dp outer corners, selected Sand + Forest check | theme (`ShareTripScreen`) |
-| Empty state | Contour target mark (40 dp), 22 bold title, bodyLarge text, one filled button | `MessageState` |
+| Empty state (R38) | one `MessageState`: Contour target mark (40 dp), titleLarge 22, bodyLarge text, optional filled button; inside a card or list `compact` = mark 24 dp, titleMedium, bodyMedium, no button. Used by: trip list, trip detail, "Bản đồ của tôi" (no trips), place search (no result), stop photos (none found) | `MessageState` |
+| Mode badge on a leg | rounded tile 8 dp, Card paper, hairline edge + `Lift.Chip` shadow, mode TopoIcon Ink (selected: filled with the mode colour, Card icon) — never a circle, so it does not read as a pin | `rememberTransportBadges` |
+| Buttons on a photo | 8 dp rounded squares (× remove, cover check, stop-photo tick), Forest 85 % + Card icon; media add row = three equal buttons on one row (icon over label) | `StepEditScreen`, `CoverPicker`, `StopPhotosUi` |
 | Timeline (trip detail) | numbered discs (Trail start, Waypoint stops, Forest end, white ring, Barlow number; draft hollow Outline) on a Grid rail; each step a `TopoCard`; day labels as eyebrows; leg chips between | `StepRow`, `LegRow` |
 | Trip cover | the cover photo; without one, `RouteCover`: Sand ground, three Contour ovals, the route in Signal on a Card casing, Trail/Waypoint/Forest pins | `RouteCover` |
 | Map carousel card | Card, 18 dp, `Lift.Chip`, selected = 2 dp Forest edge; title row = 56 dp photo, date + title, then a `TopoIcons.Next` arrow (22 dp, Ink) on every card; the leg chip sits on its own line below and ellipsizes (card 260 dp); on "Bản đồ của tôi" the trip colour is a 16 × 4 dp line key by the title, the stats line in `numerals()` | `TripMapScreen`, `MyMapScreen` |
@@ -270,8 +271,9 @@ tokens.
   file is pure Kotlin, so no `Palette`): Parchment page; dates as an eyebrow (13 px bold, +0.06 em)
   over a 28 px title; map, stats and each step as Card blocks with a 2 px Ledge shadow (22 / 18 px
   corners); stats and step numbers in Barlow Condensed; step discs Trail (first) / Waypoint /
-  Forest (last) with a white ring; no Signal text, no gradients, no links. Fonts by name only
-  (`"Noto Sans"`, `"Barlow Condensed"` then system sans / condensed): the CSP forbids loading any.
+  Forest (last) with a white ring; no Signal text, no gradients, no links. Text in `"Noto Sans"` then system sans (name only); numbers in `"Barlow Condensed"` 700,
+  embedded as a ~2 kB WOFF2 subset of the digits and `.,:-–/+%` (`BarlowDigits.kt`, OFL, licence in
+  `assets/licenses`) in a `data:` `@font-face`; the CSP allows `font-src data:` only (no network).
 * App icon: the Route mark in Card on a Moss square; window background Parchment.
 
 ## 9. Do / don't
@@ -362,6 +364,7 @@ Signal (`#E4572E`) is never text: white on it is 3.68 and it is 3.08 on the pape
   missing OFL file, or a leftover of the old design (`be_vietnam`, `AtlasIcons`, `FlatFab`, `Cham`);
 * `topoIconsAndTypeWeights`: a Material icon import or a font weight off the scale (Thin, Light,
   SemiBold, …) outside the shrinking `notYetTopo` list (docs/09; a clean listed file fails too);
+* `dialogsUseTheThreeTypesAndTheDialogTitleToken`: `AlertDialog(` only in `Dialogs.kt` (+ the time picker), no 26 sp title token in `ui/`;
 * `noSystemBlueOnMaps`, `noGeneratedSamplePictures`, `samplePhotosHaveASourceAndLicence`.
 
 Review checklist for a UI change: tokens only; ledge on paper, Lift over the map; radii 8/12/18/22;
