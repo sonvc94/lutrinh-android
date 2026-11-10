@@ -105,7 +105,6 @@ class DesignGuardTest {
      * here, and a listed file that is already clean fails the test so the list only shrinks.
      */
     private val notYetTopo = setOf(
-        "ui/offline/OfflineMapsScreen.kt",
         "ui/share/ShareTripScreen.kt",
         "ui/steps/FromPhotosScreen.kt",
         "ui/trips/CoverPicker.kt",

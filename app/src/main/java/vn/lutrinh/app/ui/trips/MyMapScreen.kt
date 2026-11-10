@@ -3,7 +3,7 @@ package vn.lutrinh.app.ui.trips
 import androidx.compose.foundation.BorderStroke
 import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -86,10 +84,11 @@ import vn.lutrinh.app.ui.common.dateRange
 import vn.lutrinh.app.ui.common.BasemapFallbackNotice
 import vn.lutrinh.app.ui.common.MapStyleButton
 import vn.lutrinh.app.ui.common.MyLocationButton
+import vn.lutrinh.app.ui.common.TopoPanel
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.rememberMyLocation
 import vn.lutrinh.app.ui.theme.Palette
-import vn.lutrinh.app.ui.theme.hairline
+import vn.lutrinh.app.ui.theme.Lift
 import vn.lutrinh.app.ui.theme.numerals
 
 /** Trip colours on "Bản đồ của tôi" (R14): the 8 data colours of docs/08, signal orange first. */
@@ -201,12 +200,12 @@ fun MyMapScreen(
                 myLocation = me.fix,
                 myLocationSignal = me.signal,
             )
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                border = hairline,
-                modifier = Modifier.align(Alignment.TopCenter).padding(12.dp).fillMaxWidth()
+            // The stats panel over the map (docs/08 §5 "Stats"): card paper, 22 dp, the panel shadow.
+            TopoPanel(
+                Modifier.align(Alignment.TopCenter).padding(12.dp).fillMaxWidth()
                     .onSizeChanged { statsDp = with(density) { it.height.toDp().value.toInt() } },
+                floating = true,
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 12.dp),
             ) {
                 KmReadout(
                     km = data.stats.distanceKm,
@@ -216,16 +215,12 @@ fun MyMapScreen(
                         ReadoutCount(DisplayFormat.count(data.stats.stepCount.toLong()), stringResource(R.string.stat_steps)),
                     ),
                     compact = true,
-                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 4.dp),
                 )
             }
             if (data.trips.isEmpty()) {
-                Surface(
-                    shape = MaterialTheme.shapes.large,
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    border = hairline,
-                ) { Text(stringResource(R.string.my_map_empty), Modifier.padding(16.dp)) }
+                TopoPanel(Modifier.align(Alignment.Center).padding(24.dp), floating = true) {
+                    Text(stringResource(R.string.my_map_empty))
+                }
             }
             BasemapFallbackNotice(snackbar)
             // "Kiểu bản đồ" (R32) above "Vị trí của tôi".
@@ -251,24 +246,26 @@ fun MyMapScreen(
 }
 
 /**
- * A trip on "Bản đồ của tôi": white card on a hairline; the trip's colour is a short line sample
- * beside the title, the same stroke as on the map (a legend key, not a coloured edge). Selected =
- * a 2 dp forest border.
+ * A trip on "Bản đồ của tôi": a map card (docs/08 §5 "Map cards": card paper, 18 dp, chip shadow);
+ * the trip's colour is a short line sample beside the title, the same stroke as on the map (a
+ * legend key). Selected = a 2 dp forest edge. The stats line is in the numeral face.
  */
 @Composable
 private fun TripMapCard(t: MyMapTrip, selected: Boolean, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.width(250.dp).clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else hairline,
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.width(250.dp).padding(bottom = 6.dp),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shadowElevation = Lift.Chip,
+        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
     ) {
-        Column(Modifier.height(76.dp).padding(horizontal = 12.dp, vertical = 10.dp)) {
+        Column(Modifier.height(84.dp).padding(horizontal = 14.dp, vertical = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.width(16.dp).height(3.dp).background(t.color, MaterialTheme.shapes.small))
+                Box(Modifier.width(16.dp).height(4.dp).background(t.color, CircleShape))
                 Text(
                     t.summary.trip.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(start = 8.dp),
@@ -277,14 +274,15 @@ private fun TripMapCard(t: MyMapTrip, selected: Boolean, onClick: () -> Unit) {
             val openEnded = stringResource(R.string.trip_open_ended, "%s")
             Text(
                 dateRange(t.summary.trip.startDate, t.summary.trip.endDate) { openEnded.format(it) },
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
             )
             Text(
                 stringResource(R.string.my_map_trip_line, t.summary.stepCount, DisplayFormat.kmNumber(t.distanceKm)),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge.numerals(),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
             )
         }
     }

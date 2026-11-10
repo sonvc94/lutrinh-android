@@ -409,10 +409,10 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
 
 * **Purpose:** every trip on one map (R14).
 * **Drafts (R20)** are not on this map: no pin, not in the lines, the totals or the card counts.
-* **Content:** full-screen map; at the top a card with the compact km readout: the km total
+* **Content:** full-screen map; at the top a floating panel (22 dp, docs/08) with the compact km readout: the km total
   (sum of each trip's straight-line distance) with số chuyến đi and điểm dừng on its line, and the
   scale bar under it; at the bottom a carousel of trip cards (colour
-  line in the trip colour, title, dates, "N điểm dừng · M km"; hairline edge, the selected card a
+  line in the trip colour, title, dates, "N điểm dừng · M km" in the numeral face; map card, 18 dp, chip shadow, the selected card a
   2 dp forest edge, no coloured side bar). Each trip is drawn in its own colour on a white
   casing with a soft shadow; recorded tracks of every trip are drawn on top in forest
   (05-map.md); the camera fits all trips between the totals card and the carousel.
@@ -636,7 +636,7 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
 | waiting for network | "Mất mạng · 42% · sẽ tự tải tiếp khi có mạng" | "Tạm dừng", "Hủy tải" |
 | paused | "Đã tạm dừng · 42% · 11,0 MB" | "Tiếp tục", "Hủy tải" |
 | failed | error text: "Không có mạng. Hãy kết nối Wi‑Fi hoặc 4G rồi thử lại." / "Không đủ bộ nhớ trống (cần ~X). …" / "Máy chủ bản đồ đang lỗi, đang thử lại…" / "Không tải được vùng này. Hãy thử lại." | "Tải về" (retry) or "Tiếp tục", "Hủy tải" when something is stored |
-| downloaded | ✓ "Đã tải · 26,3 MB" (stored size); the card is `primaryContainer` (sand), the others card paper with a hairline | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng tới 26,3 MB (phần dùng chung với vùng khác được giữ lại). …" / Xóa · Hủy |
+| downloaded | ✓ "Đã tải · 26,3 MB" (stored size); the status is an Easy badge (green wash) with a check; every area is a topo card (card paper, 2 dp ledge) | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng tới 26,3 MB (phần dùng chung với vùng khác được giữ lại). …" / Xóa · Hủy |
 
 * **Behaviour:** downloads run in the app process, not in the screen: leaving the screen does
   not stop them; after the app is killed they resume at the next start (unless paused).
@@ -721,6 +721,11 @@ they still document behaviour and layout, not colours, type or shapes; a later b
 | before-/after-step-edit.png, before-/after-step-edit-2.png | Step editor: card-paper fields, location card, media strip |
 | before-/after-trip-map.png | Trip map: topo basemap repaint, signal legs on white casing, map chips, step carousel |
 | before-/after-map-style.png | Map style sheet "Kiểu bản đồ" |
+| b3-before-/b3-after-my-map.png | "Bản đồ của tôi" (batch 3): stats readout in a floating 22 dp panel, trip cards as map cards (18 dp, chip shadow, line key in the trip colour, numerals) |
+| b3-before-/b3-after-offline.png | "Bản đồ offline": eyebrow group, `TopoCard` per area, forest "Tải về" |
+| b3-after-offline-downloading.png, b3-after-offline-done.png | Offline area while downloading (6 dp progress bar, "Tạm dừng" / "Hủy tải") and stored (Easy badge + check, "Xóa") |
+| b3-before-/b3-after-battery.png | "Ghi hành trình ổn định": battery mark, `TopoCard` sections with numbered discs, forest main button |
+| b3-before-/b3-after-photo-viewer.png | Photo viewer: black stage, counter as a map chip, close as a map button |
 
 ### Design atlas, before/after (`img/design-atlas/`, docs/08)
 

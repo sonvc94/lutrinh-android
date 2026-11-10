@@ -1,7 +1,7 @@
 # 09 — Topo-outdoor redesign inventory
 
 Every piece of UI of Lữ Trình and whether it follows the topo-outdoor spec (`docs/08-design.md`)
-after batch 1 (branch `mate/lutrinh-topo-system`, 2026-11-10). Paths are under
+after batch 1 (branch `mate/lutrinh-topo-system`) and batch 3 (`mate/lutrinh-topo-b3`), 2026-11-10. Paths are under
 `app/src/main/java/vn/lutrinh/app/`.
 
 Status:
@@ -27,10 +27,10 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | S7 | Trip create / edit (cover, dates) | `ui/trips/TripEditScreen.kt` | tokens only | 2 |
 | S8 | Location picker + place search | `ui/picker/LocationPickerScreen.kt`, `ui/picker/PlaceSearchUi.kt`, `ui/common/PlaceUi.kt` | tokens only | 2 |
 | S9 | Add from photos "Thêm từ ảnh" | `ui/steps/FromPhotosScreen.kt` | tokens only | 2 |
-| S10 | My map "Bản đồ của tôi" | `ui/trips/MyMapScreen.kt` | tokens only | 3 |
-| S11 | Offline maps "Bản đồ offline" | `ui/offline/OfflineMapsScreen.kt` | tokens only | 3 |
-| S12 | Battery guide "Ghi hành trình ổn định" | `ui/tracks/BatteryGuideScreen.kt` | tokens only | 3 |
-| S13 | Photo viewer (black, full screen) | `ui/photos/PhotoViewerScreen.kt` | tokens only | 3 |
+| S10 | My map "Bản đồ của tôi" | `ui/trips/MyMapScreen.kt` | on spec | 3 |
+| S11 | Offline maps "Bản đồ offline" | `ui/offline/OfflineMapsScreen.kt` | on spec | 3 |
+| S12 | Battery guide "Ghi hành trình ổn định" | `ui/tracks/BatteryGuideScreen.kt` | on spec | 3 |
+| S13 | Photo viewer (black, full screen) | `ui/photos/PhotoViewerScreen.kt` | on spec | 3 |
 | S14 | Share trip "Chia sẻ" | `ui/share/ShareTripScreen.kt` | tokens only | 4 |
 
 ## Dialogs and popups
@@ -101,7 +101,7 @@ Each batch is a contained set of files; shared components (`ui/common/`, `ui/the
 * **Batch 2: create and place.** `ui/trips/TripEditScreen.kt`, `ui/trips/CoverPicker.kt`,
   `ui/picker/LocationPickerScreen.kt`, `ui/picker/PlaceSearchUi.kt`, `ui/common/PlaceUi.kt`,
   `ui/steps/FromPhotosScreen.kt` (S7–S9, D9, B3, B4).
-* **Batch 3: maps and tools.** `ui/trips/MyMapScreen.kt`, `ui/offline/OfflineMapsScreen.kt`,
+* **Batch 3: maps and tools (done, on spec).** `ui/trips/MyMapScreen.kt`, `ui/offline/OfflineMapsScreen.kt`,
   `ui/tracks/BatteryGuideScreen.kt`, `ui/photos/PhotoViewerScreen.kt` (S10–S13).
 * **Batch 4: share and transfer.** `ui/share/ShareTripScreen.kt`, `share/SummaryImage.kt`,
   `domain/usecase/TripPage.kt`, `ui/transfer/TransferUi.kt` (S14, D10–D13, X1, X2).

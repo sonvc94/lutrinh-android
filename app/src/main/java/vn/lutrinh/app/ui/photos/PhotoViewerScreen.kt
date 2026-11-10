@@ -13,9 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
 import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -45,6 +42,8 @@ import kotlinx.coroutines.flow.stateIn
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.ui.common.LocalPhoto
+import vn.lutrinh.app.ui.common.MapButton
+import vn.lutrinh.app.ui.common.MapChip
 import vn.lutrinh.app.ui.common.photoFile
 import android.net.Uri
 import android.view.Gravity
@@ -62,7 +61,11 @@ class PhotoViewerViewModel(c: AppContainer, handle: SavedStateHandle) : ViewMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 }
 
-/** Full-screen, swipeable, pinch-to-zoom viewer for the photos (and R29 videos) of one step, in their stored order (R27). */
+/**
+ * Full-screen, swipeable, pinch-to-zoom viewer for the photos (and R29 videos) of one step, in their stored order (R27).
+ * The stage stays black (a photo is judged on a neutral ground); the counter and close button are the
+ * topo map chip / map button (docs/08 §10).
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PhotoViewerScreen(
@@ -92,15 +95,17 @@ fun PhotoViewerScreen(
                     ZoomableBox { LocalPhoto(item.fileName, Modifier.fillMaxSize(), contentScale = ContentScale.Fit) }
                 }
             }
-            Text(
+            // Topo chrome on the dark stage (docs/08 §10): the counter is a card-paper map chip.
+            MapChip(
                 stringResource(R.string.photo_viewer_counter, pager.currentPage + 1, photos.size),
-                color = Color.White,
-                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 14.dp),
+                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 12.dp),
+                floating = false,
             )
         }
-        IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(4.dp)) {
-            Icon(TopoIcons.Close, stringResource(R.string.action_close), tint = Color.White)
-        }
+        MapButton(
+            TopoIcons.Close, stringResource(R.string.action_close), onClick = onClose,
+            modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(start = 12.dp, top = 8.dp),
+        )
     }
 }
 

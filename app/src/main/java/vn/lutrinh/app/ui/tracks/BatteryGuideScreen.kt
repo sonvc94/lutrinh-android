@@ -5,7 +5,12 @@ import vn.lutrinh.app.ui.theme.TopoIcons
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -37,6 +41,9 @@ import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.usecase.BatteryGuide
 import vn.lutrinh.app.domain.usecase.DeviceMaker
+import vn.lutrinh.app.ui.theme.Palette
+import vn.lutrinh.app.ui.common.TopoCard
+import vn.lutrinh.app.ui.theme.numerals
 
 private class GuideSection(val title: Int, val steps: List<Int>)
 
@@ -81,7 +88,10 @@ fun BatteryGuideScreen(onBack: () -> Unit) {
             Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(stringResource(R.string.battery_guide_intro), style = MaterialTheme.typography.bodyLarge)
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(TopoIcons.Battery, null, Modifier.size(28.dp), tint = Palette.SignalDeep)
+                Text(stringResource(R.string.battery_guide_intro), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 12.dp))
+            }
             if (own != null) {
                 SectionCard(stringResource(R.string.battery_guide_your_device, stringResource(own.title)), own.steps, highlighted = true)
             }
@@ -101,19 +111,27 @@ fun BatteryGuideScreen(onBack: () -> Unit) {
     }
 }
 
+/** A guide section as a topo card; the steps are numbered on forest discs (the device's own section) or sand discs. */
 @Composable
 private fun SectionCard(title: String, steps: List<Int>, highlighted: Boolean) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = if (highlighted) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            steps.forEachIndexed { i, res ->
-                Row(verticalAlignment = Alignment.Top) {
-                    Text("${i + 1}.", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(end = 10.dp))
-                    Text(stringResource(res), style = MaterialTheme.typography.bodyMedium)
+    TopoCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        steps.forEachIndexed { i, res ->
+            Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.Top) {
+                Box(
+                    Modifier.size(26.dp).background(
+                        if (highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        CircleShape,
+                    ),
+                    Alignment.Center,
+                ) {
+                    Text(
+                        "${i + 1}",
+                        style = MaterialTheme.typography.labelLarge.numerals(),
+                        color = if (highlighted) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    )
                 }
+                Text(stringResource(res), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 12.dp, top = 2.dp))
             }
         }
     }

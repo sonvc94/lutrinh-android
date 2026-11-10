@@ -225,7 +225,10 @@ docs/09 (guard: `topoIconsAndTypeWeights`). Path data (SVG, 24 × 24):
 | Empty state | Contour target mark (40 dp), 22 bold title, bodyLarge text, one filled button | `MessageState` |
 | Timeline (trip detail) | numbered discs (Trail start, Waypoint stops, Forest end, white ring, Barlow number; draft hollow Outline) on a Grid rail; each step a `TopoCard`; day labels as eyebrows; leg chips between | `StepRow`, `LegRow` |
 | Trip cover | the cover photo; without one, `RouteCover`: Sand ground, three Contour ovals, the route in Signal on a Card casing, Trail/Waypoint/Forest pins | `RouteCover` |
-| Map carousel card | Card, 18 dp, `Lift.Chip`, selected = 2 dp Forest edge | `TripMapScreen` |
+| Map carousel card | Card, 18 dp, `Lift.Chip`, selected = 2 dp Forest edge; on "Bản đồ của tôi" the trip colour is a 16 × 4 dp line key by the title, the stats line in `numerals()` | `TripMapScreen`, `MyMapScreen` |
+| Area card (offline maps) | `TopoCard`; titleMedium name, bodySmall description, status line (a done area = Easy `TopoBadge` + Trail check), 6 dp round Forest progress bar, Forest filled main button, outlined / text secondary; groups under an eyebrow | `OfflineMapsScreen` |
+| Guide section (battery guide) | `TopoCard`, titleMedium, numbered steps on 26 dp discs: Forest for the device's own section, Sand for the general one (Barlow number) | `BatteryGuideScreen` |
+| Photo / video viewer | the one dark screen: black stage (a photo is judged on a neutral ground), light status-bar icons; counter = `MapChip` (no shadow), close = `MapButton`; no other colour | `PhotoViewerScreen` |
 | Offline note on maps | in an area: Card chip with Download icon; outside: Forest callout with CloudOff, `Lift.Panel` | `OfflineIndicator` |
 | Video badge / photo tags | Forest at 85 % with Card text, 8 dp; cover tag Trail | `VideoBadge`, `PhotoTile` |
 | Copy | plain Vietnamese, no em dash (—) in user text; en dash only in ranges | — |

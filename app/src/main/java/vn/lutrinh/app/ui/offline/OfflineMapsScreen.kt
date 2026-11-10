@@ -7,15 +7,12 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -32,8 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -54,10 +51,13 @@ import vn.lutrinh.app.map.OfflineAreaState
 import vn.lutrinh.app.map.OfflineConfig
 import vn.lutrinh.app.map.OfflinePhase
 import vn.lutrinh.app.map.OfflineProblem
+import vn.lutrinh.app.ui.common.BadgeTone
 import vn.lutrinh.app.ui.common.ConfirmDeleteDialog
+import vn.lutrinh.app.ui.common.Eyebrow
+import vn.lutrinh.app.ui.common.TopoBadge
+import vn.lutrinh.app.ui.common.TopoCard
 import vn.lutrinh.app.ui.common.factory
 import vn.lutrinh.app.ui.common.formatBytes
-import vn.lutrinh.app.ui.theme.hairline
 
 /** "Tải vùng của chuyến đi này": the trip's area, or why there is none. */
 data class TripOffline(val title: String, val state: OfflineAreaState?, val tooBig: Boolean)
@@ -148,7 +148,7 @@ fun OfflineMapsScreen(
             if (!u.online) {
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(Icons.Outlined.CloudOff, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                        Icon(TopoIcons.CloudOff, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                         Text(stringResource(R.string.offline_offline_now), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -193,7 +193,7 @@ private class AreaActions(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 8.dp))
+    Eyebrow(text, modifier = Modifier.padding(start = 6.dp, top = 8.dp))
 }
 
 @Composable
@@ -222,11 +222,9 @@ private fun TripAreaCard(trip: TripOffline, actions: AreaActions) {
 
 @Composable
 private fun InfoCard(title: String, body: String) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+    TopoCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -235,15 +233,9 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
     val key = s.area.key
     val percent = (s.progress * 100).toInt()
     val done = s.phase == OfflinePhase.COMPLETE
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (done) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLowest,
-        ),
-        border = hairline,
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    TopoCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
             if (description.isNotEmpty()) {
                 Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -263,8 +255,13 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
                 }
                 OfflinePhase.COMPLETE -> stringResource(R.string.offline_complete, formatBytes(s.completedBytes))
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (done) Icon(TopoIcons.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+            if (done) {
+                // A stored area: the specimen's "easy" badge with its check.
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(TopoIcons.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.tertiary)
+                    TopoBadge(status, BadgeTone.Easy)
+                }
+            } else {
                 Text(
                     status,
                     style = MaterialTheme.typography.bodyMedium,
@@ -272,21 +269,27 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
                 )
             }
             if (s.phase in setOf(OfflinePhase.DOWNLOADING, OfflinePhase.WAITING_NETWORK, OfflinePhase.PAUSED)) {
-                LinearProgressIndicator(progress = { s.progress }, modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(
+                    progress = { s.progress },
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    strokeCap = StrokeCap.Round,
+                    gapSize = 0.dp,
+                    drawStopIndicator = {},
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when (s.phase) {
-                    OfflinePhase.NOT_DOWNLOADED -> FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = { actions.download(s.area) }) { Text(stringResource(R.string.offline_download)) }
+                    OfflinePhase.NOT_DOWNLOADED -> Button(shape = MaterialTheme.shapes.small, onClick = { actions.download(s.area) }) { Text(stringResource(R.string.offline_download)) }
                     OfflinePhase.DOWNLOADING, OfflinePhase.WAITING_NETWORK -> {
                         OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { actions.pause(key) }) { Text(stringResource(R.string.offline_pause)) }
                         TextButton(onClick = { actions.cancel(key) }) { Text(stringResource(R.string.offline_cancel)) }
                     }
                     OfflinePhase.PAUSED -> {
-                        FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = { actions.resume(key) }) { Text(stringResource(R.string.offline_resume)) }
+                        Button(shape = MaterialTheme.shapes.small, onClick = { actions.resume(key) }) { Text(stringResource(R.string.offline_resume)) }
                         TextButton(onClick = { actions.cancel(key) }) { Text(stringResource(R.string.offline_cancel)) }
                     }
                     OfflinePhase.FAILED -> {
-                        FilledTonalButton(shape = MaterialTheme.shapes.small, onClick = { actions.download(s.area) }) { Text(stringResource(R.string.action_retry)) }
+                        Button(shape = MaterialTheme.shapes.small, onClick = { actions.download(s.area) }) { Text(stringResource(R.string.action_retry)) }
                         TextButton(onClick = { actions.cancel(key) }) { Text(stringResource(R.string.offline_cancel)) }
                     }
                     OfflinePhase.COMPLETE -> OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { actions.delete(s) }) { Text(stringResource(R.string.action_delete)) }
