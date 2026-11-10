@@ -14,11 +14,16 @@ from) in the same branch: rules R1–R36 in `docs/04` with their test names, scr
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
-**Every change of look follows `docs/08-design.md`** ("Sổ bản đồ": limestone paper + one chàm
-accent, one type scale, radii 4/12, hairlines not shadows, real photos only). Colours only in
-`ui/theme/` (`Palette`; map code uses `Color.rgbHex()`); `DesignGuardTest` (in
-`testDebugUnitTest`) fails on colour literals elsewhere, gradients in `ui/` and unlicensed sample
-photos. A new token or text/background pair goes into the docs/08 contrast table.
+**Every screen, popup and change of look, now and later, follows `docs/08-design.md`** ("Topo
+outdoor", after the huashu-design specimen 06-topo-outdoor, captain 2026-11-10): Parchment topo
+paper + Card panels with a 2 dp `ledge()`, Forest dark chip for the main action, one Signal-orange
+route, Noto Sans + Barlow Condensed numerals, radii 8/12/18/22 (`Radii`), soft shadows (`Lift`)
+only over the map, `TopoIcons` only, real photos only. Colours only in `ui/theme/` (`Palette`; map
+code uses `Color.rgbHex()`); `DesignGuardTest` (in `testDebugUnitTest`) fails on colour literals,
+gradients, raw corner radii or shadows outside the tokens, FABs outside `Buttons.kt`, other fonts,
+and Material icons / off-scale weights outside its `notYetTopo` list (= the files `docs/09` still
+lists for a later batch: remove a file from it when you redo it). A new token or text/background
+pair goes into the docs/08 contrast table.
 
 ## Layout
 
@@ -63,13 +68,15 @@ app/src/main/java/vn/lutrinh/app/
             ui/steps/MediaStrip.kt (drag strip + camera contract); videos are `photos` rows (media_type)
   data/LocalPrefs.kt  on-device flags (SharedPreferences `lutrinh_prefs`: `battery_guide_seen`, R22;
             `map_style` = `light`|`satellite`, R32; `routing_enabled`, `routing_notice_seen`, R36)
-  ui/theme/ design tokens (docs/08): Theme.kt (Palette, Radii, hairline), Type.kt (scale, numerals())
-            + AtlasIcons.kt (own icons); ui/common/Buttons.kt (FlatFab, MapButton), Readout.kt (km readout
-            + scale bar, maths in domain/usecase/KmScale.kt)
+  ui/theme/ design tokens (docs/08): Theme.kt (Palette, Radii, Lift, ledge(), hairline), Type.kt
+            (Noto Sans scale, numerals() = Barlow) + TopoIcons.kt (own icons); ui/common/Topo.kt
+            (TopoCard, TopoPanel, Eyebrow, ScreenHeading, TopoBadge, MapChip, topoFieldColors),
+            Buttons.kt (ChipFab, MapButton), Readout.kt (stats panel + scale bar, maths in
+            domain/usecase/KmScale.kt); redesign status per screen: docs/09-redesign-inventory.md
   ui/       screens + view models; domain/usecase/DisplayFormat.kt has the km/duration/day formatters; ui/common/Common.kt has date helpers and VietnameseLocale
 app/src/test/         JVM tests (Robolectric for Room)
 app/src/androidTest/  Compose UI tests (TripFlowsTest)
-docs/                 spec 01–08 (08 = design) + img/
+docs/                 spec 01–08 (08 = design), 09 = redesign inventory + img/ (img/topo = current look)
 ```
 
 ## Build and test
@@ -153,7 +160,7 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   start it on a free port (`emulator -avd <name> -port 559x -no-window -no-audio -no-snapshot`), set
   `persist.sys.locale vi-VN` if you need Vietnamese system text, and seed sample data via the debug
   build. Record the 5580 DB counts before/after when a task forbids touching it.
-* The emulator is shared: another crew's `install -r` replaces your APK within seconds (check `pm path` + `unzip -l` for a resource of yours, e.g. `be_vietnam`) — reinstall right before each screenshot batch and script the whole batch in one command.
+* The emulator is shared: another crew's `install -r` replaces your APK within seconds (check `pm path` + `unzip -l` for a resource of yours, e.g. `noto_sans`) — reinstall right before each screenshot batch and script the whole batch in one command.
 * Dates, km and durations: only `domain/usecase/DisplayFormat.kt` (docs/03 "Display conventions"); never
   `String.format(Locale.US, …)` in `ui/`. The theme is light-only, so `MainActivity` forces the light
   system-bar style; a screen with a dark background (photo viewer) flips the status-bar icons itself.

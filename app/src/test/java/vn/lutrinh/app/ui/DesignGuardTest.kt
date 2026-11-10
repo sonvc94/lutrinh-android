@@ -108,7 +108,6 @@ class DesignGuardTest {
         "ui/offline/OfflineMapsScreen.kt",
         "ui/share/ShareTripScreen.kt",
         "ui/steps/FromPhotosScreen.kt",
-        "ui/steps/StopPhotosUi.kt",
         "ui/trips/CoverPicker.kt",
         "ui/trips/TripEditScreen.kt",
     )

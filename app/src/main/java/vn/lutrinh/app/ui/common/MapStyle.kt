@@ -52,7 +52,7 @@ fun MapStyleButton(modifier: Modifier = Modifier) {
     if (!open) return
     ModalBottomSheet(onDismissRequest = { open = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.navigationBarsPadding().padding(bottom = 12.dp)) {
-            Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp))
+            Text(label, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp))
             settings.registry.providers.forEach { provider ->
                 val selected = provider.id == chosen.id
                 ListItem(

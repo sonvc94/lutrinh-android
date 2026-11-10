@@ -34,19 +34,20 @@ ported 1:1 from `DisplayFormatTest`); no screen formats km, durations or in-trip
 | Stat order | trip detail and share image: the km readout first (number + scale bar, docs/08 §5), then điểm dừng, ảnh, ngày as one line of type; share page: điểm dừng, ảnh, km, ngày; My map: km, then chuyến đi, điểm dừng on the same line | |
 
 Theme: the app is light-only. The system bars are forced to the light style (dark icons) so the
-clock and icons stay readable on the limestone-paper app bar when the device is in dark mode (Android:
+clock and icons stay readable on the topo-paper app bar when the device is in dark mode (Android:
 `enableEdgeToEdge(SystemBarStyle.light(…))`; the photo viewer, which is black, switches the status
 bar icons to light while it is open). A dark palette is a separate decision. Library strings (sheet
 "Đóng trang tính", drag handle "Nút kéo", pickers) are Vietnamese whatever the device language
 (`MainActivity.attachBaseContext` sets a Vietnamese configuration on the activity's resources).
-Look: **docs/08-design.md** ("Sổ bản đồ", field atlas) is the design spec: palette tokens
-(limestone paper + one chàm accent), type scale, radii, hairlines, component and imagery rules.
-Typography: every text style uses **Be Vietnam Pro** (SIL OFL 1.1, Regular/Medium/SemiBold/Bold
-TTFs bundled in `res/font/`, licence in `assets/licenses/BeVietnamPro-OFL.txt`; no downloadable-font
-call, the app is offline) on one modular scale (ratio 1.2, 12–40 sp); stand-alone numbers (stat
-values, km) use **Barlow Condensed** with tabular figures (`TextStyle.numerals()`). Android:
-`ui/theme/Type.kt` (`AppTypography`); iOS: docs/07.
-Every `surfaceContainer*` role of the colour scheme is defined from the palette (limestone), so no
+Look: **docs/08-design.md** ("Topo outdoor", after the huashu-design specimen 06-topo-outdoor) is
+the design spec for every present and future screen: topo-paper ground + card-paper panels with a
+2 dp ledge, a forest dark chip for the main action, one signal-orange route, radii 8/12/18/22,
+component, map and imagery rules. `docs/09-redesign-inventory.md` lists which screens are redone.
+Typography: every text style uses **Noto Sans** (SIL OFL 1.1, Regular/Medium/Bold TTFs bundled
+in `res/font/`, licence in `assets/licenses/NotoSans-OFL.txt`; no downloadable-font call, the app
+is offline); stand-alone numbers (stats, km) use **Barlow Condensed** Bold with tabular figures
+(`TextStyle.numerals()`). Android: `ui/theme/Type.kt` (`AppTypography`); iOS: docs/07.
+Every `surfaceContainer*` role of the colour scheme is defined from the palette (Card paper), so no
 card falls back to the Material lavender default.
 
 ## Navigation graph
@@ -77,7 +78,7 @@ Step form ── "Thêm ảnh" ──▶ system Photo Picker ─▶ back with UR
 Step detail ── pencil ─▶ Step form (edit) │ bin ─▶ confirm ─▶ back │ tap photo ─▶ Photo viewer
 Trip map ── tap card ─▶ Step detail │ tap leg chip on a card / mode badge on the map ─▶ Leg mode sheet
 Trip map ── top-bar icon "Bản đồ offline" ─▶ Offline maps (with this trip's area first)
-Trip map / My map ── "Vị trí của tôi" ─▶ (rationale ─▶ system prompt) ─▶ chàm dot, camera flies there (R22)
+Trip map / My map ── "Vị trí của tôi" ─▶ (rationale ─▶ system prompt) ─▶ waypoint-blue dot, camera flies there (R22)
 Trip map / My map / Location picker ── "Kiểu bản đồ" ─▶ sheet "Bản đồ" | "Vệ tinh" ─▶ every map switches (R32)
 GPS card ── "Ghi hành trình ổn định" ─▶ Battery guide │ first recording ever starts ─▶ Battery guide (once)
 Share trip ── "Chia sẻ" ─▶ system share sheet │ "Lưu vào máy" ─▶ snackbar "Đã lưu vào …"
@@ -101,7 +102,7 @@ The picker returns its result to the step form through the previous screen's sav
 * **Actions:** tap → Trip detail; the card ⋮ (label "Tùy chọn: <tên chuyến đi>") or long-press → Sửa / Chia sẻ chuyến đi (§3d) / Xuất GPX (§12) / Xóa; FAB "Chuyến đi mới"; globe icon
   in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Tùy chọn khác") →
   "Bản đồ offline", "Nhập tệp GPX", "Sao lưu dữ liệu", "Khôi phục từ bản sao lưu" (§12), "Cài đặt" (§13, R36) (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
-* **Empty:** no icon (docs/08 "Empty states"): a short chàm rule, "Chưa có chuyến đi nào" +
+* **Empty:** a contour mark (docs/08 "Empty states"), "Chưa có chuyến đi nào" +
   invitation text, left-aligned; in debug builds a
   "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip; the
   Hà Giang trip also gets an ended sample track on day 1 (08:10–15:50) with three stays — at Dốc
@@ -147,9 +148,9 @@ The picker returns its result to the step form through the previous screen's sav
   title, date range, description, a hairline and the km readout; the collapsed **"Hành trình GPS" card** (§3b);
   then the timeline, so "Ngày 1" is on the first screen without scrolling.
 * **Content:** the km readout (docs/08 §5): the km total in large numerals with "km" and its
-  source ("đường chim bay", or "đã ghi GPS" when finished tracks cover the trip, R10), a chàm scale
-  bar of that length with round ticks (0 · 50 · 100 for 139 km), then "10 điểm dừng  12 ảnh  4 ngày"
-  as one line of type (no tiles). When at least one leg has a road route (R36), a line under it:
+  source ("đường chim bay", or "đã ghi GPS" when finished tracks cover the trip, R10) as the
+  eyebrow of a stats panel: one row of large numerals over muted labels (km, điểm dừng, ảnh, ngày),
+  then a signal-orange scale bar of the km total with its ticks (0 · 50 · 100 for 139 km). When at least one leg has a road route (R36), a line under it:
   "~10 giờ 20 phút di chuyển (ước tính)", or "… (ước tính, chưa tính 2 chặng)" when other legs
   have none (R10).
   Timeline grouped by day ("Ngày 2 · Thứ Bảy, 07/11"), each step with its number, time, note
@@ -294,10 +295,10 @@ The picker returns its result to the step form through the previous screen's sav
   (info icon) "Tệp chia sẻ có bản đồ, tên và thời gian các điểm dừng của bạn. Chỉ gửi cho người
   bạn tin."; buttons **"Lưu vào máy"** (outlined, download icon) and **"Chia sẻ"** (filled,
   share icon), both disabled until the file is ready.
-* **Ảnh dọc** — preview of the 1080 × 1920 PNG itself (R18): limestone paper background; title (Be Vietnam Pro
-  SemiBold, ink, max 2 lines), dates; the map (960 × 980 px, rounded) with the route, recorded tracks,
+* **Ảnh dọc** — preview of the 1080 × 1920 PNG itself (R18): topo paper background; title (Noto Sans
+  Bold, ink, max 2 lines), dates; the map (960 × 980 px, rounded) with the route, recorded tracks,
   numbered pins and the attribution; the km readout (km total in large Barlow Condensed, the counts
-  điểm dừng, ảnh, ngày on its baseline or on a line of their own when they do not fit, a chàm scale
+  điểm dừng, ảnh, ngày on its baseline or on a line of their own when they do not fit, a signal-orange scale
   bar); one row of up to four square photos; the app's route mark (docs/08 §5) + "Lữ Trình" at the bottom.
 * **Trang xem offline** — the generated HTML in a WebView (JavaScript and network off): title, dates,
   description, the map, the stats, then the timeline "Ngày N · <weekday>, dd/MM/yyyy" with each
@@ -346,31 +347,31 @@ The picker returns its result to the step form through the previous screen's sav
 
 * **Content:** map (muted OpenFreeMap vector basemap, Vietnamese labels) with all pins + legs
   styled per stroke kind with a mode badge at each leg's middle (05-map.md), the recorded tracks
-  (ink, under the badges and pins), stop-suggestion markers (§3c), the compact "Ghi hành trình" control at the top right
+  (forest, under the badges and pins), stop-suggestion markers (§3c), the compact "Ghi hành trình" control at the top right
   (§3b), fitted to the whole
   route (camera rules) in the area above the card carousel, so no pin hides under a card; first
-  pin white with a chàm ring (start), last pin ink (end); a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
+  pin trail green (start), last pin forest (end), the others waypoint blue; a horizontal carousel of step cards at the bottom (thumbnail, "1. Title",
   date · time; from card 2 on, the chip of the leg that arrives at this step, on card 1 the text "Điểm xuất phát"
-  — every card has the same height); three square map buttons (44 dp, hairline, docs/08 §5) stacked above the carousel's right end:
+  — every card has the same height); three square map buttons (44 dp map chips, docs/08 §5) stacked above the carousel's right end:
   **"Kiểu bản đồ"** (layers, R32, §4d) over **"Vị trí của tôi"** (crosshair, R22) over "Xem toàn bộ hành trình" (fit icon).
   Drafts (R20): a smaller hollow pin with a dashed outline and no number, no leg to or from it
   (the line joins the published steps around it); its card has no number and shows "Nháp" where the leg chip
   would be; start/end pins are the first/last published steps. `img/draft-cover/06-trip-map-draft-pin.png`
   (the draft was placed on Du Già's point, so the 9 → 10 leg ends under it).
 * **"Vị trí của tôi" (R22):** tap → (first time: dialog "Dùng vị trí của bạn?" explaining that the
-  position is taken only on tap, not recorded or sent; "Tiếp tục" → system prompt) → one fix: a chàm dot
+  position is taken only on tap, not recorded or sent; "Tiếp tục" → system prompt) → one fix: a waypoint-blue dot
   with a pale accuracy circle appears and the camera flies there (zoom ≥ 15, above the carousel).
   Tap again → a fresh fix and the camera re-centres. Refused → snackbar "Chưa được phép dùng vị trí của
   máy." with "Mở cài đặt" (app details); device location off → "Vị trí của máy đang tắt." with "Mở cài
   đặt" (location settings); no fix → "Chưa xác định được vị trí của bạn…". The dot is that tap's fix (not
   tracked), so it stays where it was while the user moves; it goes when the screen closes.
-* **Behaviour:** tapping a pin selects it (larger, bright-chàm ring + halo) and scrolls the carousel to
+* **Behaviour:** tapping a pin selects it (larger, signal-orange ring + halo) and scrolls the carousel to
   its card; the carousel **snaps** so one card is centred (the first and last can reach the centre), and
   when a swipe settles the centred card's step becomes the selected one (pin highlighted, camera flies to it);
   tapping a card selects its step, and the selected card shows "Xem chi tiết ›" — tapping it opens Step detail;
   "Xem toàn bộ hành trình" clears the selection and refits the whole route above the cards; each
   selection flies the camera to that step (zoom ≥ 11, never zooming the user out); tapping a badge, a leg line or a
-  card's leg chip opens the Leg mode sheet, and the leg turns bright chàm and is framed above the sheet. Empty
+  card's leg chip opens the Leg mode sheet, and the leg turns SignalDeep and is framed above the sheet. Empty
   trip: message "Chuyến đi chưa có điểm dừng nào để hiển thị."
 * **Screens:** `img/09-trip-map-route.png`, `img/16-sample-hagiang-map.png`,
   `img/20-trip-map-pins-above-cards.png`, `img/23-trip-map-leg-modes.png`,
@@ -382,7 +383,7 @@ The picker returns its result to the step form through the previous screen's sav
 * **Inspired by:** docs/22 §1.1/§2 (map with step-card carousel, fit-to-steps camera, transport
   mode per leg) and docs/23 (route rendering: casing + shadow on ground legs, zoom-dependent
   widths, flight arc, simplification). **Changed:** straight legs (no snap-to-roads), one route
-  colour (chàm, bright chàm when selected) instead of colour per trip, own stroke/badge per mode,
+  colour (signal orange, SignalDeep when selected) instead of colour per trip, own stroke/badge per mode,
   great-circle flight arc with a sideways lift, own pin design (numbered discs, distinct
   start/end), no map-style switcher.
 
@@ -412,14 +413,14 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
   (sum of each trip's straight-line distance) with số chuyến đi and điểm dừng on its line, and the
   scale bar under it; at the bottom a carousel of trip cards (colour
   line in the trip colour, title, dates, "N điểm dừng · M km"; hairline edge, the selected card a
-  2 dp chàm edge, no coloured side bar). Each trip is drawn in its own colour on a white
-  casing with a soft shadow; recorded tracks of every trip are drawn on top in ink
+  2 dp forest edge, no coloured side bar). Each trip is drawn in its own colour on a white
+  casing with a soft shadow; recorded tracks of every trip are drawn on top in forest
   (05-map.md); the camera fits all trips between the totals card and the carousel.
 * **Behaviour:** tap a trip's line or dots → that trip is selected (wider line, on top, card
   scrolled into view and highlighted); tap a card → Trip detail. No trips: "Chưa có chuyến đi nào để
   hiện trên bản đồ."
 * **"Vị trí của tôi" (R22):** the same square map button at the bottom right above the carousel, same
-  flow and messages as §4; the camera flies to the device (zoom ≥ 15) and the chàm dot is drawn above the
+  flow and messages as §4; the camera flies to the device (zoom ≥ 15) and the waypoint-blue dot is drawn above the
   trip lines. Screen: `img/my-location/02-my-map-my-location.png`.
 * **"Kiểu bản đồ" (R32):** layers button above "Vị trí của tôi" (§4d). Screen:
   `img/map-style/04-my-map-satellite.png`.
@@ -429,7 +430,7 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
 
 ## 4d. Map style — "Kiểu bản đồ" (R32–R34)
 
-* **Entry:** the square layers map button (`AtlasIcons.Layers`, content description "Kiểu bản
+* **Entry:** the square layers map button (`TopoIcons.Layers`, content description "Kiểu bản
   đồ") on the trip map (§4), "Bản đồ của tôi" (§4c) and the location picker (§6).
 * **Content:** modal bottom sheet titled "Kiểu bản đồ" with one row per basemap provider:
   * "Bản đồ" (map icon), subtitle "Dùng được offline với vùng đã tải";
@@ -635,7 +636,7 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
 | waiting for network | "Mất mạng · 42% · sẽ tự tải tiếp khi có mạng" | "Tạm dừng", "Hủy tải" |
 | paused | "Đã tạm dừng · 42% · 11,0 MB" | "Tiếp tục", "Hủy tải" |
 | failed | error text: "Không có mạng. Hãy kết nối Wi‑Fi hoặc 4G rồi thử lại." / "Không đủ bộ nhớ trống (cần ~X). …" / "Máy chủ bản đồ đang lỗi, đang thử lại…" / "Không tải được vùng này. Hãy thử lại." | "Tải về" (retry) or "Tiếp tục", "Hủy tải" when something is stored |
-| downloaded | ✓ "Đã tải · 26,3 MB" (stored size); the card is `primaryContainer` (chàm wash), the others raised paper with a hairline | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng tới 26,3 MB (phần dùng chung với vùng khác được giữ lại). …" / Xóa · Hủy |
+| downloaded | ✓ "Đã tải · 26,3 MB" (stored size); the card is `primaryContainer` (sand), the others card paper with a hairline | "Xóa" → dialog "Xóa bản đồ offline “Hà Giang”?" / "Giải phóng tới 26,3 MB (phần dùng chung với vùng khác được giữ lại). …" / Xóa · Hủy |
 
 * **Behaviour:** downloads run in the app process, not in the screen: leaving the screen does
   not stop them; after the app is killed they resume at the next start (unless paused).
@@ -694,6 +695,32 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 * **Screens:** `img/road-routing/01-notice.png`, `05-settings-on.png`, `06-settings-off.png`.
 
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
+
+### Topo outdoor, before/after (`img/topo/`, docs/08, batch 1)
+
+The current look. Same sample data ("Tạo dữ liệu mẫu"), same scripted flow on a separate vi-VN
+review AVD: `before-*` from main (6b6ad19, "Sổ bản đồ"), `after-*` from the topo-outdoor branch.
+540 px wide. **Every screenshot below this section shows an older look** (atlas, or earlier):
+they still document behaviour and layout, not colours, type or shapes; a later batch
+(docs/09) replaces them screen by screen.
+
+| File | Shows |
+| --- | --- |
+| specimen.png | The huashu-design specimen `06-topo-outdoor.html` (MIT) rendered in headless Chrome, 1200 × 750 |
+| specimen-vs-app.png | Specimen beside the restyled trip list and trip detail |
+| before-/after-empty.png | Trip list without trips: contour mark, heading, forest "Tạo dữ liệu mẫu" |
+| before-/after-routing-notice.png | Routing notice (R36): card-paper dialog, 22 dp corners, forest button |
+| before-/after-trip-list.png | Trip list: eyebrow + 28 sp heading, card-paper cards with a 2 dp ledge and a 12 dp photo thumbnail (contour cover when no photo), forest chip FAB |
+| before-/after-menu.png | Trip list ⋮ menu on card paper |
+| before-/after-settings.png | Settings "Cài đặt": routing switch in a ledge card |
+| before-/after-trip-detail.png | Hà Giang detail: header map with the signal route, trail/waypoint/forest pins, stats panel (Barlow numerals, signal scale bar) |
+| before-/after-trip-detail-2.png | Timeline: day eyebrows, step cards, leg chips with SignalDeep mode icons |
+| before-/after-leg-sheet.png | Leg mode sheet "Bạn di chuyển bằng gì?": 22 dp panel, chosen mode on signal wash |
+| before-/after-step-detail.png | Step detail: photo, 28 sp title, date/place in a ledge card, note, mini map with the selected pin |
+| before-/after-dialog.png | Confirm-delete dialog (generic `ConfirmDeleteDialog`) |
+| before-/after-step-edit.png, before-/after-step-edit-2.png | Step editor: card-paper fields, location card, media strip |
+| before-/after-trip-map.png | Trip map: topo basemap repaint, signal legs on white casing, map chips, step carousel |
+| before-/after-map-style.png | Map style sheet "Kiểu bản đồ" |
 
 ### Design atlas, before/after (`img/design-atlas/`, docs/08)
 

@@ -661,7 +661,7 @@ Code: `ui/common/MyLocation.kt` (state + button + rationale), `ui/picker/DeviceL
 **My location (trip map, My map)**
 
 * **One fix per tap.** Nothing is tracked while the screen is open and nothing is stored or sent;
-  the chàm dot is the fix of the last tap and goes with the screen.
+  the waypoint-blue dot is the fix of the last tap and goes with the screen.
 * **Flow.** Tap → location permission granted (fine or coarse)? No: the explanation dialog "Dùng vị
   trí của bạn?" (Hủy / Tiếp tục) → system prompt. Granted → location switched on in the system?
   No: snackbar "Vị trí của máy đang tắt." + "Mở cài đặt" (location settings). Yes → one fix

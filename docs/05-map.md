@@ -78,8 +78,8 @@ style has no `background`). The planner (`BasemapPlanner.plan`) then:
 
 * hides every non-label `fill`, `fill-extrusion` and `hillshade` layer and `waterway`, which
   would cover the photo;
-* keeps roads, rail and borders, with borders repainted Limestone `#E9EEF0` / LimestoneDim `#D2D9DC` (docs/08, cool, no warm sand);
-* draws labels in white `#FFFFFF` on a dark green halo `#26332C`.
+* keeps roads, rail and borders, with borders repainted Sand `#E8E3CE` / Contour `#C09A68` (docs/08 §2 "Map");
+* draws labels in white `#FFFFFF` on a Forest halo `#1F2A24`.
 
 Label layers are never hidden. In both styles the R30 filter goes on every label layer and the
 "Quần đảo Hoàng Sa/Trường Sa" labels are added.
@@ -125,7 +125,7 @@ providers stay as they are.
 | `OpenFreeMap.ATTRIBUTION` | `OpenFreeMap © OpenMapTiles © OpenStreetMap contributors` |
 | `MapConfig.USER_AGENT` | `LuTrinh/<versionName> (Android; vn.lutrinh.app)` |
 | `MapConfig.MAX_ZOOM` | 19 (vector tiles stop at z14 and are over-zoomed; streets stay sharp) |
-| `MapConfig.BACKGROUND` | `#EDF1F2` map paper (`Palette.MapPaper`, docs/08) — painted while the style loads and if it fails (never a black map) |
+| `MapConfig.BACKGROUND` | `#EFEBDA` topo map paper (`Palette.MapPaper` = Parchment, docs/08) — painted while the style loads and if it fails (never a black map) |
 | `Positron.REPAINT`, `Positron.LABEL_*` | runtime repaint, below |
 
 The style pulls everything from `tiles.openfreemap.org`: TileJSON `/planet`, vector tiles, fonts
@@ -151,7 +151,7 @@ OkHttp client whose network interceptor sets `User-Agent: MapConfig.USER_AGENT`.
 data is sent. On iOS set the header via `MLNNetworkConfiguration`.
 
 **Attribution.** Every map shows the attribution of the basemap shown (`BasemapProvider.attribution`, R34) in its bottom-right corner (9 sp,
-`#4F565C` (`Palette.MapCredit`), on white at 75 % opacity, drawn by the app). The MapLibre logo and the (i) button
+`#6B6A58` (`Palette.MapCredit`), on Card `#FBFAF2` at 80 % opacity, drawn by the app). The MapLibre logo and the (i) button
 are hidden because the label already gives the required credit.
 
 **Caching.** MapLibre keeps its default ambient HTTP cache (tiles seen online, in the same
@@ -161,18 +161,18 @@ database as the offline areas); areas the user downloads are kept until deleted 
 
 | Positron layer | Property | Colour |
 | --- | --- | --- |
-| `background` | background-color | `#EDF1F2` limestone map paper (docs/08) |
-| `park` | fill-color | `#E4E9DC` |
-| `landcover_wood` | fill-color | `#DFE6D7` |
-| `landuse_residential` | fill-color | `#E6EAEC` |
-| `water` | fill-color | `#BFD4DC` |
-| `waterway` | line-color | `#B3CBD4` |
-| `building` | fill / outline | `#E2E7E9` / `#D5DBDE` |
-| `boundary_2` / `boundary_3` | line-color | `#A8AFB4` / `#C5CBCF` |
+| `background` | background-color | `#EFEBDA` Parchment, the topo map paper (docs/08) |
+| `park` | fill-color | `#D8E4C4` Vegetation |
+| `landcover_wood` | fill-color | `#D8E4C4` Vegetation |
+| `landuse_residential` | fill-color | `#E8E3CE` Sand |
+| `water` | fill-color | `#BFDDE6` Water |
+| `waterway` | line-color | `#BFDDE6` Water |
+| `building` | fill / outline | `#E3DEC8` Grid / `#D9D4BE` Ledge |
+| `boundary_2` / `boundary_3` | line-color | `#C09A68` Contour / `#D9D4BE` Ledge |
 
 Labels: every symbol layer whose id starts with `label_`, `water_name`, `waterway_line_label`,
 `highway-name` or `airport` gets `text-field = coalesce(name:vi, name:latin, name)` (Vietnamese
-first — the tiles carry `name:vi`), text colour `#555C61` (5.98:1 on the map paper) and halo `#F5F7F8`. The share
+first — the tiles carry `name:vi`), text colour `#5A5948` MapLabel (5.94:1 on the map paper) and halo `#FBFAF2` Card. The share
 snapshot cannot list a style's layers, so the same label layers are also named one by one in
 `Positron.LABEL_LAYER_IDS` (another style needs its own list). Roads keep
 Positron's light greys. Result: the land is quiet and the route is the darkest thing on the map.
@@ -322,13 +322,13 @@ Screens: `img/road-routing/03-hagiang-trip-map-roads.png`, `04-share-image-roads
 ## Layers (bottom → top, `maplibre/OverlayLayers.kt` `addOverlayLayers`, above the basemap)
 
 Widths are dp and interpolate linearly with zoom between the stops z5 / z9 / z13 (clamped
-outside); "→" gives the selected-leg value. Colour = route chàm `#2A4D80` (theme primary, docs/08), the
-selected leg bright chàm `#3263C3`. Selected features have `line-sort-key` 2 (drawn on top).
+outside); "→" gives the selected-leg value. Colour = route Signal `#E4572E` (the specimen's route orange, docs/08), the
+selected leg SignalDeep `#B83A16`. Selected features have `line-sort-key` 2 (drawn on top).
 
 | # | Layer id | Filter `kind` | Paint |
 | --- | --- | --- | --- |
 | 1–55 | Positron basemap (tuned) | | |
-| 56 | `route-shadow` | `ground` | ink `#171E23`, width 5 / 8 / 16, blur 3 → 8 (z5 → z13), opacity 0.28 → 0.16, translate (0, 1 dp), round cap/join |
+| 56 | `route-shadow` | `ground` | Forest `#1F2A24`, width 5 / 8 / 16, blur 3 → 8 (z5 → z13), opacity 0.28 → 0.16, translate (0, 1 dp), round cap/join |
 | 57 | `route-casing` | `ground` | white, width 4.6 / 6.6 / 9 → 6 / 8.6 / 12, round cap/join |
 | 58 | `route-ground` | `ground` | route colour, width 2.2 / 3.4 / 5 → 3.4 / 5 / 7.5, round cap/join |
 | 59 | `route-walk` | `walk` | route colour, dots: dasharray `[0, 2.2]` + round cap, width 1.8 / 2.8 / 4 → 2.6 / 4 / 5.5, no casing |
@@ -347,20 +347,20 @@ filtered with `["==", ["get", "kind"], "<kind>"]`.
 
 ### Legs per transport mode (R12)
 
-| Mode | Stroke kind | Icon colour | Icon (Material) |
+| Mode | Stroke kind | Icon colour | Icon (`TopoIcons`, docs/08 §5) |
 | --- | --- | --- | --- |
-| Đi bộ | `walk` — thin dots | chàm `#2A4D80` | DirectionsWalk |
-| Xe máy | `ground` | chàm `#2A4D80` | TwoWheeler |
-| Ô tô | `ground` | chàm `#2A4D80` | DirectionsCar |
-| Xe buýt/xe khách | `ground` | chàm `#2A4D80` | DirectionsBus |
-| Tàu hỏa | `ground` | chàm `#2A4D80` | Train |
-| Máy bay | `flight` — dashed great-circle arc | chàm `#2A4D80` | Flight |
-| Thuyền | `boat` — dots | chàm `#2A4D80` | DirectionsBoat |
+| Đi bộ | `walk` — thin dots | SignalDeep `#B83A16` | Walk |
+| Xe máy | `ground` | SignalDeep `#B83A16` | Motorbike |
+| Ô tô | `ground` | SignalDeep `#B83A16` | Car |
+| Xe buýt/xe khách | `ground` | SignalDeep `#B83A16` | Bus |
+| Tàu hỏa | `ground` | SignalDeep `#B83A16` | Train |
+| Máy bay | `flight` — dashed great-circle arc | SignalDeep `#B83A16` | Plane |
+| Thuyền | `boat` — dots | SignalDeep `#B83A16` | Boat |
 | none | `ground` | — | — (no badge) |
 
-The line itself is always route chàm (bright chàm when selected): the mode reads from the stroke
+The line itself is always route Signal (SignalDeep when selected): the mode reads from the stroke
 kind and the badge icon, never from a hue (docs/08: one route colour family). `map/TransportStyle.kt`
-(one table for map, timeline chips and mode sheet) gives every mode the same chàm tint.
+(one table for map, timeline chips and mode sheet) gives every mode the same SignalDeep `#B83A16` tint.
 
 **Badges** (`rememberTransportBadges`, bitmaps drawn in code): 24 dp white disc with a soft
 shadow, a 1.5 dp ring in the mode colour at 55 % alpha, the icon (60 % of the disc) in the mode
@@ -370,17 +370,17 @@ opens the leg's mode sheet.
 
 ## Step pins (`map/Pins.kt`)
 
-Bitmaps drawn in code (no font glyphs or sprite sheet), each edged with a 1 dp 31 % ink line (`0x50171E23`, no drop shadow), the step
+Bitmaps drawn in code (no font glyphs or sprite sheet), each edged with a 1 dp 31 % Forest line (`0x501F2A24`, no drop shadow), the step
 number (R2 position, 1-based) in bold:
 
 | Kind | Used for | Look |
 | --- | --- | --- |
-| START | first step of a route | 28 dp **white** disc, 3 dp route-chàm ring, chàm number |
-| STEP | other steps; every pin when the route is hidden (Thêm từ ảnh) | 24 dp route-chàm disc, 2 dp white ring, white number |
-| END | last step of a route | 26 dp **ink** `#171E23` **square** (4 dp corners), 2.5 dp white ring, white number |
-| CONTEXT | other steps in the location picker | 22 dp ink disc, white ring |
-| DRAFT | a draft step (R20) on the trip map and the trip-detail / step-detail mini maps | 22 dp translucent white disc, dashed route-chàm ring, **no number**; never START/END, no leg to or from it (the route and legs join the published steps around it) |
-| selected / highlighted | tapped pin; step in Step detail / Step form | same pin ×1.3, bright-chàm `#3263C3` ring, on a 54 dp translucent bright-chàm halo |
+| START | first step of a route | 26 dp Trail `#2D7A46` disc, 3 dp white ring, white number |
+| STEP | other steps; every pin when the route is hidden (Thêm từ ảnh) | 24 dp Waypoint `#2B6CB0` disc, 3 dp white ring, white number |
+| END | last step of a route | 26 dp Forest `#1F2A24` disc, 3 dp white ring, white number |
+| CONTEXT | other steps in the location picker | 22 dp Forest disc, 2 dp white ring |
+| DRAFT | a draft step (R20) on the trip map and the trip-detail / step-detail mini maps | 22 dp translucent white disc, dashed Waypoint ring, **no number**; never START/END, no leg to or from it (the route and legs join the published steps around it) |
+| selected / highlighted | tapped pin; step in Step detail / Step form | same pin ×1.3, Signal `#E4572E` ring, on a 54 dp translucent Signal halo |
 
 No clustering: overlapping pins stay visible (a Hà Giang loop at country zoom is a tight group).
 
@@ -406,10 +406,10 @@ splits the line), properties `track` (id) and `live` (the open track).
 | Layer id | Paint (dp at z5 / z9 / z13) |
 | --- | --- |
 | `track-casing` | white, width 3.2 / 4.6 / 6.5, opacity 0.9, round cap/join |
-| `track-line` | ink `#171E23` (`Palette.Track`), width 1.6 / 2.6 / 4, round cap/join, solid |
+| `track-line` | Forest `#1F2A24` (`Palette.Track`), width 1.6 / 2.6 / 4, round cap/join, solid |
 
-Ink is the darkest colour on the map and is not a route colour (chàm), a leg mode or one of the 8
-trip colours of R14 (docs/08: one accent only, so the track is ink, not a second hue), and a
+Forest is the darkest colour on the map and is not the route colour (Signal), a leg mode or one of the 8
+trip colours of R14 (docs/08: one route colour only, so the track is Forest, not a second hue), and a
 thinner solid line on a thin casing reads as "where I really went" next to the thicker planned
 legs. Drawn on: the trip detail header map, the full trip map (above the legs, below badges and
 pins) and Bản đồ của tôi (every trip's tracks, above the trip lines, below the stop dots). Tracks
@@ -432,7 +432,7 @@ and step pins:
 
 | Layer id | Paint (radius dp at z5 / z10 / z14) |
 | --- | --- |
-| `stop-suggest-halo` | track ink `#171E23` fill, opacity 0.16, radius 7 / 11 / 18, 1 dp ink stroke at opacity 0.5 |
+| `stop-suggest-halo` | track Forest `#1F2A24` fill, opacity 0.16, radius 7 / 11 / 18, 1 dp ink stroke at opacity 0.5 |
 | `stop-suggest-dot` | white fill, radius 3.5 / 5 / 6, 2.5 dp ink stroke |
 
 Track colour on a soft halo says "found on your track"; a hollow white dot cannot be mistaken for
@@ -446,7 +446,7 @@ tracks, which the fit already includes). Screenshot: `img/stop-suggest/05-trip-m
 
 One GeoJSON source `my-location-src` (a single Point with property `r20`) and two circle layers,
 added by `TripMap` and `AllTripsMap` right above the tracks / stop suggestions and below the leg
-badges and step pins: `my-location-src-accuracy` (ChamBright `#3263C3`, docs/08, opacity 0.16, 1 dp stroke at
+badges and step pins: `my-location-src-accuracy` (Waypoint `#2B6CB0`, docs/08, opacity 0.16, 1 dp stroke at
 0.35; radius in dp = `accuracy / 0.07464 / cos(lat)` at zoom 20, interpolated with base 2 between
 zoom 0 → 0 and zoom 20) and `my-location-src-dot` (radius 8 dp, white 3 dp stroke). The source is
 the one fix of the last tap (`DeviceLocation.requestFix`: GPS with fine permission, else network,
@@ -472,9 +472,9 @@ without a visible map view. Two steps:
    the snapshotter's style (not tried): drawing it ourselves gives the same picture with and
    without a basemap (the fallback below needs the drawing anyway) and reuses the pin bitmaps. Points are placed with our own
    Web Mercator projection (`MapFit.project`: world = 512 · 2^zoom px, the MapLibre tile size),
-   which matches the snapshot. Order bottom → top: legs (ground: white casing 6.6 + chàm
-   `#2A4D80` 3.8 px per logical px; flight dashed, boat/walk dotted, paths from `LegGeometry` or the
-   stored road route (R36) like the live map), recorded tracks (white 4.6 + ink 2.6, `TrackMath.displayLines`),
+   which matches the snapshot. Order bottom → top: legs (ground: white casing 6.6 + Signal
+   `#E4572E` 3.8 px per logical px; flight dashed, boat/walk dotted, paths from `LegGeometry` or the
+   stored road route (R36) like the live map), recorded tracks (white 4.6 + Forest 2.6, `TrackMath.displayLines`),
    numbered step pins (`Pins.kt` bitmaps at the snapshot's pixel ratio; start and end on top),
    then the attribution text in a translucent box in the bottom-right corner (basemap credit,
    plus the router credit with the fix-the-map address when a leg is routed, R36).
@@ -484,7 +484,7 @@ px padding, zoom capped at `FIT_MAX_ZOOM` (14); one point → `SINGLE_POINT_ZOOM
 Vietnam overview (`FALLBACK_CENTER`, `OVERVIEW_ZOOM`) — the camera rules below.
 
 **No basemap.** Snapshot error or timeout (offline outside every downloaded area, style not
-cached) → the map is the overlay on the plain `MapConfig.BACKGROUND` (`#EDF1F2`), with the
+cached) → the map is the overlay on the plain `MapConfig.BACKGROUND` (`#EFEBDA`), with the
 attribution still drawn; the share screen says "Không tải được nền bản đồ …". Never a crash.
 Screens: `img/share-trip/06-airplane-image.png` (offline pack), `img/share-trip/07-no-basemap.png`.
 

@@ -3,6 +3,7 @@ package vn.lutrinh.app.ui.steps
 import android.net.Uri
 import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,13 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.Circle
-import androidx.compose.material.icons.outlined.PhotoLibrary
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -31,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -42,7 +37,9 @@ import coil3.compose.AsyncImage
 import vn.lutrinh.app.R
 import vn.lutrinh.app.data.GalleryAccess
 import vn.lutrinh.app.domain.usecase.GalleryPhoto
+import vn.lutrinh.app.ui.common.TopoCard
 import vn.lutrinh.app.ui.common.displayTime
+import vn.lutrinh.app.ui.theme.Radii
 
 private const val COLUMNS = 3
 
@@ -60,13 +57,10 @@ fun StopPhotosSection(
     onToggle: (String) -> Unit,
 ) {
     val range = "${s.window.from.displayTime()}–${s.window.to.displayTime()}"
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    TopoCard(Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.PhotoLibrary, null, tint = MaterialTheme.colorScheme.primary)
+                Icon(TopoIcons.Photo, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.padding(4.dp))
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.stop_photos_title), style = MaterialTheme.typography.titleSmall)
@@ -154,20 +148,30 @@ private fun GalleryTile(p: GalleryPhoto, selected: Boolean, onToggle: () -> Unit
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
         )
-        if (!selected) Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.55f)))
-        Icon(
-            if (selected) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
-            contentDescription = null,
-            tint = if (selected) MaterialTheme.colorScheme.primary else Color.White,
-            modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp)
-                .background(if (selected) Color.White else Color.Black.copy(alpha = 0.35f), CircleShape),
-        )
+        // Unticked = veiled in card paper with an empty ring; ticked = a forest disc with a check.
+        if (!selected) Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.55f)))
+        val tick = Modifier.align(Alignment.TopEnd).padding(6.dp).size(24.dp)
+        if (selected) {
+            Icon(
+                TopoIcons.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = tick.background(MaterialTheme.colorScheme.primary, CircleShape).padding(4.dp),
+            )
+        } else {
+            Box(
+                tick.background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.35f), CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.inverseOnSurface, CircleShape),
+            )
+        }
         p.takenAt?.let {
             Text(
                 it.displayTime(),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
-                modifier = Modifier.align(Alignment.BottomStart).background(Color.Black.copy(alpha = 0.5f)).padding(horizontal = 6.dp, vertical = 2.dp),
+                color = MaterialTheme.colorScheme.inverseOnSurface,
+                modifier = Modifier.align(Alignment.BottomStart).padding(4.dp)
+                    .background(MaterialTheme.colorScheme.inverseSurface.copy(alpha = 0.85f), RoundedCornerShape(Radii.Badge))
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
     }
