@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -57,7 +58,13 @@ fun LegChip(leg: Leg, measure: LegMeasure, onClick: () -> Unit, modifier: Modifi
     val label = style?.let { stringResource(it.label) } ?: stringResource(R.string.leg_set_mode)
     AssistChip(
         onClick = onClick,
-        label = { Text("$label · ${legDistanceText(measure)}", style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.sp)) },
+        label = {
+            Text(
+                "$label · ${legDistanceText(measure)}",
+                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.sp),
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+        },
         leadingIcon = {
             Icon(
                 style?.icon ?: TopoIcons.Route,

@@ -87,6 +87,9 @@ import vn.lutrinh.app.ui.common.rememberMyLocation
 
 private const val CARD_WIDTH_DP = 260
 
+/** Q-12: room kept at the right edge of the fit for the map buttons: 44 dp button + 12 dp margin + 16 dp gap. */
+private const val MAP_BUTTONS_RIGHT_DP = 44 + 12 + 16
+
 /** Full-screen trip map: numbered pins + route, a card carousel synced with the selected pin. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -175,6 +178,8 @@ fun TripMapScreen(
                 fitPaddingDp = 48,
                 // Cards height + their bottom offset, so the fit keeps every pin above the cards.
                 fitExtraBottomDp = carouselDp,
+                // Q-12: the button column (44 dp + 12 dp margin + 16 dp gap = 72 dp) never covers a leg at fit-all.
+                fitExtraRightDp = MAP_BUTTONS_RIGHT_DP - 48,
                 // The leg whose mode sheet is open is highlighted and framed above the sheet.
                 selectedLegTo = editLegTo,
                 onMarkerClick = { focus = focus.pick(it) },
@@ -201,8 +206,8 @@ fun TripMapScreen(
             val shown = detail.steps.firstOrNull { it.id == focus.camera }
             AnimatedVisibility(
                 visible = shown != null,
-                enter = fadeIn(tween(Motion.DAY_FLIP_MS)),
-                exit = fadeOut(tween(Motion.DAY_FLIP_MS)),
+                enter = fadeIn(tween(Motion.DAY_FLIP_MS, easing = Motion.EaseInOut)),
+                exit = fadeOut(tween(Motion.DAY_FLIP_MS, easing = Motion.EaseInOut)),
                 // Bottom left, just above the cards (the top holds the recording control and the offline note).
                 modifier = Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = carouselDp.dp + 12.dp),
             ) {
@@ -265,28 +270,26 @@ fun TripMapScreen(
                                         Alignment.Center,
                                     ) { Icon(TopoIcons.Photo, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                                 }
-                                Column(Modifier.padding(start = 12.dp)) {
+                                Column(Modifier.padding(start = 12.dp).weight(1f)) {
                                     // R20: a draft has no number and says "Nháp".
                                     val n = detail.numbers[step.id]
                                     Text(if (n != null) "$n. ${step.title}" else step.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Text(step.arrivedAt.displayDateTime(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
+                                // Q-3: the card says it opens with an arrow in the title row, so the leg chip below keeps the whole width.
+                                Icon(
+                                    TopoIcons.Next, stringResource(R.string.trip_map_details),
+                                    Modifier.size(22.dp),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                )
                             }
                             // Same row height on every card (F23): the leg that ends here (R12), or "Điểm xuất phát" on the first.
+                            // Its own line: a long chip ends in "…" instead of pushing the arrow out.
                             Row(Modifier.fillMaxWidth().height(32.dp).padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                 val leg = detail.legInto(step.id)
                                 if (leg != null) LegChip(leg, detail.measure(leg), onClick = { editLegTo = step.id }, Modifier.height(32.dp))
                                 else if (step.isDraft) DraftBadge()
                                 else Text(stringResource(R.string.trip_map_start), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Spacer(Modifier.weight(1f))
-                                // F5: the selected card says how to open it.
-                                if (isSel) {
-                                    Text(
-                                        stringResource(R.string.trip_map_details) + " ›",
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
                             }
                         }
                     }

@@ -20,7 +20,7 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | --- | --- | --- | --- | --- |
 | S1 | Trip list "Chuyến đi của tôi" (+ empty state) | `ui/trips/TripListScreen.kt` | on spec | 1 |
 | S2 | Trip detail (header, km readout, timeline, leg chips, GPS card, stop suggestions, record control) | `ui/trips/TripDetailScreen.kt`, `ui/trips/LegUi.kt`, `ui/tracks/GpsCard.kt`, `ui/tracks/StopSuggestionUi.kt`, `ui/tracks/TrackUi.kt` | on spec | 1 |
-| S3 | Trip map (carousel, map buttons, offline chip) | `ui/trips/TripMapScreen.kt`, `map/MapViews.kt`, `map/OfflineIndicator.kt` | on spec | 1 |
+| S3 | Trip map (carousel, map buttons, offline chip) | `ui/trips/TripMapScreen.kt`, `map/MapViews.kt`, `map/OfflineIndicator.kt` | on spec (standard 1: arrow in the card title row, chip on its own line, 72 dp right fit for the buttons, day chip `EaseInOut`; `img/std-map/`) | 1 |
 | S4 | Step detail | `ui/steps/StepDetailScreen.kt` | on spec | 1 |
 | S5 | Step editor (fields, location card, media strip, gallery photos R19) | `ui/steps/StepEditScreen.kt`, `ui/steps/MediaStrip.kt`, `ui/steps/StopPhotosUi.kt` | on spec | 1 |
 | S6 | Settings "Cài đặt" | `ui/settings/SettingsScreen.kt` | on spec | 1 |
@@ -83,7 +83,7 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 | --- | --- | --- | --- | --- |
 | O1 | Pins, legs, track, my location, route colours | `map/Pins.kt`, `map/maplibre/OverlayLayers.kt`, `map/maplibre/MyLocationLayers.kt`, `map/TransportStyle.kt` | on spec | 1 |
 | O2 | Basemap repaint (Bản đồ, Vệ tinh) | `map/basemap/OpenFreeMap.kt`, `map/basemap/EsriWorldImagery.kt` | on spec | 1 |
-| O3 | Map credit | `map/MapViews.kt` (`MapAttribution`) | on spec | 1 |
+| O3 | Map credit | `map/MapViews.kt` (`MapAttribution`) | on spec (standard 1: one text, OSM named once, paper panel under every live map) | 1 |
 
 ## Share outputs
 

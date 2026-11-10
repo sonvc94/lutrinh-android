@@ -369,7 +369,7 @@ The picker returns its result to the step form through the previous screen's sav
 * **Behaviour:** tapping a pin selects it (larger, signal-orange ring + halo) and scrolls the carousel to
   its card; the carousel **snaps** so one card is centred (the first and last can reach the centre), and
   when a swipe settles the centred card's step becomes the selected one (pin highlighted, camera flies to it);
-  tapping a card selects its step, and the selected card shows "Xem chi tiết ›" — tapping it opens Step detail;
+  tapping a card selects its step; every card has an arrow ›  (`TopoIcons.Next`, 22 dp, content description "Xem chi tiết") at the end of its title row, and tapping the selected card opens Step detail. The leg chip has its own line under the title row and ends in "…" when "Xe máy · 77 km · ~4 giờ 06 phút" is wider than the card (260 dp);
   "Xem toàn bộ hành trình" clears the selection and refits the whole route above the cards; each
   selection moves the camera to that step (R37); tapping a badge, a leg line or a
   card's leg chip opens the Leg mode sheet, and the leg turns SignalDeep and is framed above the sheet. Empty
@@ -906,7 +906,11 @@ EXIF photos), 27–28 (a historical upgrade from the v1 build).
 | stop-photos/07-access-denied.png | media permission revoked, "Don’t allow": the note and "Thêm ảnh" below |
 | stop-photos/08-partial-access-grid.png | "Allow limited access", 08:58 and 09:12 selected in the system sheet: "Đã chọn 2/2", "Bạn chỉ cho phép xem một số ảnh.", "Chọn thêm ảnh" |
 | stop-photos/09-partial-pick-more.png | "Chọn thêm ảnh" → "Allow limited access", 09:31 added: "Đã chọn 3/3" |
-| ux-flows/01-trip-map-selected.png | trip map after a swipe: centred, selected card with "Xem chi tiết ›", highlighted pin, fit-all button |
+| ux-flows/01-trip-map-selected.png | trip map after a swipe: centred, selected card, highlighted pin, fit-all button (older card layout; the current one is `std-map/01`) |
+| std-map/01-hagiang-cards-1-5.png, 02-hagiang-cards-6-10.png | every card of the Hà Giang sample: arrow in the title row, leg chip on its own line (ellipsis on the long ones) |
+| std-map/03-hagiang-fit-all.png, 04-ninhbinh-fit-all.png | full trip map at fit-all: the route ends left of the map-button column |
+| std-map/05-credit-one-line.png | trip detail mini map: the whole credit on one line, OSM named once |
+| std-map/06-return-to-map-frames.png | frames of map → step detail → back: paper under the map, no dark frame |
 | ux-flows/02-step-form-from-suggestion.png | step form from a stop suggestion: "gần …" place line, name "Điểm dừng 09:05", one "Ảnh (3)" grid |
 | ux-flows/03-step-form-one-photo-grid.png | the same form scrolled: gallery photos badged "Từ thư viện" and the card below ("Đã thêm 3/3 ảnh…") |
 | ux-flows/04-step-detail-prev-next.png | step detail with "Trước: …" / "Sau: …" bottom bar and the "gần …" place line |

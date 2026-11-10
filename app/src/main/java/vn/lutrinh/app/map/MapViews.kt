@@ -1,9 +1,7 @@
 package vn.lutrinh.app.map
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,18 +69,27 @@ fun MapAttribution(basemap: BasemapProvider, modifier: Modifier = Modifier, rout
     // The line height is fixed too: the default text style is ~20 sp tall and made two lines a 55 dp slab (a pin under it was hidden).
     val line = with(LocalDensity.current) { 12.dp.toSp() }
     val uri = LocalUriHandler.current
-    Column(modifier.background(Palette.Card.copy(alpha = 0.8f)).padding(horizontal = 4.dp, vertical = 1.dp), horizontalAlignment = Alignment.End) {
-        routing.forEach { credit ->
-            Text(
-                text = credit.text + " · " + stringResource(R.string.routing_fix_map),
-                fontSize = size,
-                lineHeight = line,
-                color = Palette.MapCredit,
-                modifier = Modifier.clickable { runCatching { uri.openUri(credit.fixUrl) } },
-            )
+    val fixMap = stringResource(R.string.routing_fix_map)
+    // One text, one run of credit: the basemap's line (it already names OpenStreetMap), then the routers' names and the
+    // "Sửa bản đồ" link, so OSM is named once and a wide map shows a single line (a narrow one wraps).
+    val text = remember(basemap, routing, fixMap) {
+        buildAnnotatedString {
+            append(basemap.attribution)
+            routing.forEach { append(" · " + it.onMapText) }
+            routing.firstOrNull()?.let { credit ->
+                append(" · ")
+                withLink(LinkAnnotation.Clickable("fix-map") { runCatching { uri.openUri(credit.fixUrl) } }) { append(fixMap) }
+            }
         }
-        Text(text = basemap.attribution, fontSize = size, lineHeight = line, color = Palette.MapCredit)
     }
+    Text(
+        text = text,
+        fontSize = size,
+        lineHeight = line,
+        color = Palette.MapCredit,
+        textAlign = TextAlign.End,
+        modifier = modifier.background(Palette.Card.copy(alpha = 0.8f)).padding(horizontal = 4.dp, vertical = 1.dp),
+    )
 }
 
 /** R36: the credits of the routers that made the shown road lines (by provider id). */
@@ -125,7 +136,8 @@ private fun EngineMap(
     val basemap = rememberShownBasemap()
     val center = remember { mutableStateOf<GeoPoint?>(null) }
     var controller by remember { mutableStateOf<MapController?>(null) }
-    Box(modifier) {
+    // The basemap paper under the GL surface: a map that is (re)created while a screen slides in shows paper, never a dark frame.
+    Box(modifier.background(Palette.MapPaper)) {
         engine.MapSurface(interactive, Modifier) { c ->
             c.setListener(listener(center))
             controller = c

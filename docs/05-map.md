@@ -153,8 +153,10 @@ ids the new style lacks are skipped.
 OkHttp client whose network interceptor sets `User-Agent: MapConfig.USER_AGENT`. No personal
 data is sent. On iOS set the header via `MLNNetworkConfiguration`.
 
-**Attribution.** Every map shows the attribution of the basemap shown (`BasemapProvider.attribution`, R34) in its bottom-right corner (9 sp,
-`#6B6A58` (`Palette.MapCredit`), on Card `#FBFAF2` at 80 % opacity, drawn by the app). The MapLibre logo and the (i) button
+**Attribution.** Every map shows the attribution of the basemap shown (`BasemapProvider.attribution`, R34) in its bottom-right corner (9 dp,
+`#6B6A58` (`Palette.MapCredit`), on Card `#FBFAF2` at 80 % opacity, drawn by the app) as **one text**: the basemap's line, then (R36) the
+router's name and host and the "Sửa bản đồ" link, joined with " · ", so OpenStreetMap is named once ("OpenFreeMap © OpenMapTiles © OpenStreetMap
+contributors · Valhalla · FOSSGIS · Sửa bản đồ"); it is one line on a 411 dp phone and wraps on a narrower map or with the satellite credit. The MapLibre logo and the (i) button
 are hidden because the label already gives the required credit.
 
 **Caching.** MapLibre keeps its default ambient HTTP cache (tiles seen online, in the same
@@ -315,8 +317,9 @@ An answer stored before the fallback existed (`NO_ROUTE`, `usedProfile` = motorb
 `LegRoute.needsCarRetry`) is pending once more and asked with the car profile.
 
 **Credit.** Wherever a routed line is drawn (trip map, Trip detail mini map, "Bản đồ của tôi",
-share image/page) the attribution adds a line "Đường đi: Valhalla · FOSSGIS · © OpenStreetMap
-(ODbL) · Sửa bản đồ"; "Sửa bản đồ" opens https://www.openstreetmap.org/fixthemap (the OSM routing
+share image/page) the attribution adds the router. A live map appends " · Valhalla · FOSSGIS · Sửa bản đồ" to the basemap's
+line (the "© OpenStreetMap (ODbL)" words are already in it: `RoutingCredit.onMapText`); the share image/page keep the full
+"Đường đi: Valhalla · FOSSGIS · © OpenStreetMap (ODbL) · Sửa bản đồ" line (`RoutingCredit.text`). "Sửa bản đồ" opens https://www.openstreetmap.org/fixthemap (the OSM routing
 servers' terms ask for the OSM credit and this link). The share image prints the address instead
 (wrapped at " · " when too wide). With routing off no router line is drawn and no credit shown.
 Screens: `img/road-routing/03-hagiang-trip-map-roads.png`, `04-share-image-roads.png`,
@@ -498,7 +501,7 @@ Screens: `img/share-trip/06-airplane-image.png` (offline pack), `img/share-trip/
 | --- | --- |
 | No steps | centre (16.0, 106.0) — Vietnam overview — zoom 5 |
 | One step | centre on it, zoom 12 |
-| Two or more | fit the bounds of **every drawn point** (steps and flight-arc points, so an arc never leaves the screen) inside the padded area, cap zoom at 14. Padding: 40 dp on the trip detail header and step detail (36 dp Thêm từ ảnh, 56 dp default); full trip map 48 dp on each side **plus the measured height of the card carousel at the bottom**, so no pin is drawn under the cards; **trip detail preview (180 dp)** 40 dp, plus 8 dp at the bottom (credit strip: two 12 dp lines ≈ 30 dp, then a 17 dp pin disc) and 36 dp on the right (the 44 dp expand button column), `PreviewFrame` + `PreviewFrameTest` (Ninh Bình and Hà Giang pins) |
+| Two or more | fit the bounds of **every drawn point** (steps and flight-arc points, so an arc never leaves the screen) inside the padded area, cap zoom at 14. Padding: 40 dp on the trip detail header and step detail (36 dp Thêm từ ảnh, 56 dp default); full trip map 48 dp on each side **plus the measured height of the card carousel at the bottom** (so no pin is drawn under the cards) **plus 24 dp on the right** (72 dp in all = 44 dp button + 12 dp margin + 16 dp gap, so the button column never covers a leg or pin at fit-all and at every step focus); **trip detail preview (180 dp)** 40 dp, plus 8 dp at the bottom (credit strip: two 12 dp lines ≈ 30 dp, then a 17 dp pin disc) and 36 dp on the right (the 44 dp expand button column), `PreviewFrame` + `PreviewFrameTest` (Ninh Bình and Hà Giang pins) |
 | Step focused (full trip map, R37) | after the carousel stops: glide (`animateTo(CameraMath.stepPlan)`) to centre the step in the visible map above the cards, zoom = fit of the step + its arriving leg (else leaving leg; no flights), ≤ `STEP_MAX_ZOOM` 13.5, ≥ 5, 12 with no leg |
 | Leg selected (mode sheet open) | animate to fit the leg's path, zoom ≤ 13, bottom padding = max(carousel padding, 55 % of the map height) so the leg stays visible above the sheet |
 | Picker opening | target point at zoom 13 (see R6 for which point); overview at zoom 5 when none |

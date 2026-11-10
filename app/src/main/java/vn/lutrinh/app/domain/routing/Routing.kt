@@ -54,7 +54,18 @@ data class RoutingCredit(
     val text: String,
     /** Where users report a wrong road ("Sửa bản đồ"). */
     val fixUrl: String,
-)
+) {
+    /**
+     * The credit on a live map: the router and its host only ("Valhalla · FOSSGIS"); the OSM words are in the
+     * basemap's credit line and "Đường đi:" is implied by the leg, so the whole credit stays on one line.
+     */
+    val onMapText: String get() = text.removePrefix(ROUTE_PREFIX).removeSuffix(OSM_ODBL)
+
+    private companion object {
+        const val ROUTE_PREFIX = "Đường đi: "
+        const val OSM_ODBL = " · © OpenStreetMap (ODbL)"
+    }
+}
 
 /** One router behind the app's routing interface (R36). */
 interface RoutingProvider {

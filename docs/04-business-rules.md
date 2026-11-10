@@ -1160,9 +1160,10 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
   request carries the app's User-Agent (`LuTrinh/<version> (Android; vn.lutrinh.app)`).
 * **Shown.** Leg chip and leg sheet: road km + "~" time, or "N km chim bay" (R12). Trip numbers:
   R10. Lines: trip map, Trip detail mini map, "Bản đồ của tôi", the share image and page.
-  Everywhere a routed line is drawn the router's credit is shown: "Đường đi: Valhalla · FOSSGIS ·
-  © OpenStreetMap (ODbL) · Sửa bản đồ" (opens https://www.openstreetmap.org/fixthemap); the share
-  image and page print the address instead of a link.
+  Everywhere a routed line is drawn the router's credit is shown: on a live map " · Valhalla · FOSSGIS ·
+  Sửa bản đồ" joins the basemap's one-line credit (which already names OpenStreetMap; "Sửa bản đồ" opens
+  https://www.openstreetmap.org/fixthemap); the share image and page print the full "Đường đi: Valhalla ·
+  FOSSGIS · © OpenStreetMap (ODbL) · Sửa bản đồ" with the address instead of a link.
 * **Unchanged.** GPS tracks (R16) still draw separately on top; GPX export (R25) has no `rte`;
   backup (R26) includes `leg_routes`; offline basemap (R15/R33) as before.
 

@@ -226,7 +226,7 @@ docs/09 (guard: `topoIconsAndTypeWeights`). Path data (SVG, 24 × 24):
 | Empty state | Contour target mark (40 dp), 22 bold title, bodyLarge text, one filled button | `MessageState` |
 | Timeline (trip detail) | numbered discs (Trail start, Waypoint stops, Forest end, white ring, Barlow number; draft hollow Outline) on a Grid rail; each step a `TopoCard`; day labels as eyebrows; leg chips between | `StepRow`, `LegRow` |
 | Trip cover | the cover photo; without one, `RouteCover`: Sand ground, three Contour ovals, the route in Signal on a Card casing, Trail/Waypoint/Forest pins | `RouteCover` |
-| Map carousel card | Card, 18 dp, `Lift.Chip`, selected = 2 dp Forest edge; on "Bản đồ của tôi" the trip colour is a 16 × 4 dp line key by the title, the stats line in `numerals()` | `TripMapScreen`, `MyMapScreen` |
+| Map carousel card | Card, 18 dp, `Lift.Chip`, selected = 2 dp Forest edge; title row = 56 dp photo, date + title, then a `TopoIcons.Next` arrow (22 dp, Ink) on every card; the leg chip sits on its own line below and ellipsizes (card 260 dp); on "Bản đồ của tôi" the trip colour is a 16 × 4 dp line key by the title, the stats line in `numerals()` | `TripMapScreen`, `MyMapScreen` |
 | Area card (offline maps) | `TopoCard`; titleMedium name, bodySmall description, status line (a done area = Easy `TopoBadge` + Trail check), 6 dp round Forest progress bar, Forest filled main button, outlined / text secondary; groups under an eyebrow | `OfflineMapsScreen` |
 | Guide section (battery guide) | `TopoCard`, titleMedium, numbered steps on 26 dp discs: Forest for the device's own section, Sand for the general one (Barlow number) | `BatteryGuideScreen` |
 | Photo / video viewer | the one dark screen: black stage (a photo is judged on a neutral ground), light status-bar icons; counter = `MapChip` (no shadow), close = `MapButton`; no other colour | `PhotoViewerScreen` |
@@ -244,7 +244,7 @@ ease in-out** `cubic-bezier(0.65, 0, 0.35, 1)` (`Motion.EaseInOut`).
 | Camera step move | 400–1800 ms: `350 + 1.5 ms/km + 160 ms per zoom level`, clamped (`CameraMath`) | trip map camera to the focused step, ease in-out, never while the cards move |
 | `EXPAND_MS` | 400 ms | card → Step detail shared bounds (and back) |
 | `CONTENT_FADE_MS` / `CONTENT_FADE_DELAY_MS` | 200 ms after 150 ms | the detail's content fades in once the bounds are growing; out at once (200 ms) on Back |
-| `DAY_FLIP_MS` | 260 ms | "Ngày N/M": the number slides by its own height and fades, up when N grows, down when it shrinks |
+| `DAY_FLIP_MS` | 260 ms | "Ngày N/M": the number slides by its own height and fades, up when N grows, down when it shrinks; the chip itself fades in and out with the same duration and `EaseInOut` |
 
 The day counter is a Card chip over the map (Ink "Ngày" label, Barlow numerals, InkMuted "/M",
 `Radii` small, `Lift.Chip`); no new colour pair. Reduced motion: with the system's animator
@@ -258,7 +258,7 @@ The basemap is repainted to the specimen's map (§2 "Map"): paper, vegetation, w
 borders; the route is the only strong colour. The leg the camera has just travelled (R37) keeps
 that colour: SignalDeep line on top plus a soft, wide Signal halo (opacity 0.38, blurred), no
 second colour. Map overlays (chips, buttons, panels) float with
-`Lift`; the credit sits on Card at 80 %. Static maps (share image, `StaticTripMap`) use the same
+`Lift`; the credit sits on Card at 80 %, one text (basemap line + router + "Sửa bản đồ", OSM named once). The map buttons (44 dp, 12 dp margin) keep a 72 dp strip at the right of the fit, so the route never sits under them. Under every live map there is a `Palette.MapPaper` panel, so a map being created shows paper, never a dark frame. Static maps (share image, `StaticTripMap`) use the same
 tokens.
 
 ## 8. Share outputs
