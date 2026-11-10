@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -305,6 +306,36 @@ class MigrationTest {
         assertEquals(3, back.path.size)
         steps.deleteStep("s2")
         assertEquals(emptyList<LegRoute>(), routes.observeAll().first())
+    }
+
+    @Test fun version8UpgradesWithUsedProfileAndKeepsStoredRoutes() = runTest {
+        createVersion(8)
+        SQLiteDatabase.openDatabase(ctx.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("UPDATE steps SET transport_mode = 'motorbike', latitude = 23.0688, longitude = 104.993 WHERE id = 's2'")
+            db.execSQL(
+                "INSERT INTO leg_routes (to_step_id, from_lat, from_lng, to_lat, to_lng, profile, provider, status, distance_m, duration_s, geometry, fetched_at) " +
+                    "VALUES ('s2', 22.82, 104.98, 23.0688, 104.993, 'motorbike', 'valhalla', 'no_route', 0, 0, '', 5)",
+            )
+        }
+        val db = open()
+        assertEquals(listOf("s1", "s2"), RoomStepRepository(db).getSteps("t1").map { it.id })
+        assertEquals("Vòng cung Hà Giang", RoomTripRepository(db).getTrip("t1")!!.title)
+
+        // The stored v8 row survives; its answer counts as given by its own profile (NULL used_profile).
+        val routes = RoomLegRouteRepository(db)
+        val old = routes.observeAll().first().single()
+        assertEquals(LegRouteStatus.NO_ROUTE to RouteProfile.MOTORBIKE, old.status to old.profile)
+        assertEquals(RouteProfile.MOTORBIKE, old.usedProfile)
+        assertTrue(old.needsCarRetry)
+
+        // The car answer replaces it and reads back with the profile that was used.
+        val path = listOf(GeoPoint(22.82, 104.98), GeoPoint(22.95, 104.97), GeoPoint(23.0688, 104.993))
+        val car = old.copy(status = LegRouteStatus.OK, distanceM = 61_000.0, durationS = 5400.0, path = path, usedProfile = RouteProfile.CAR)
+        routes.save(car)
+        val back = routes.observeAll().first().single()
+        assertEquals(RouteProfile.MOTORBIKE to RouteProfile.CAR, back.profile to back.usedProfile)
+        assertTrue(back.carFallback)
+        assertFalse(back.needsCarRetry)
     }
 
     private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)

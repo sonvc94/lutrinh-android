@@ -186,7 +186,7 @@ data class StopDecisionEntity(
 )
 
 /**
- * The stored road route of one leg (R36, DB version 8), keyed like the leg's mode by the step where
+ * The stored road route of one leg (R36, DB version 8, `used_profile` from 9), keyed like the leg's mode by the step where
  * the leg ends. Valid only while from/to/profile equal the leg's current inputs; a stale row is
  * ignored and replaced on the next fetch. Goes with its step (cascade).
  */
@@ -218,4 +218,9 @@ data class LegRouteEntity(
     /** The road line as polyline6 (empty unless ok), simplified to about 10 m. */
     val geometry: String,
     @ColumnInfo(name = "fetched_at") val fetchedAt: Long,
+    /**
+     * RouteProfile.id that produced the answer (DB version 9): `car` on a `motorbike` row = the
+     * car-route fallback ("tuyến ô tô"); null (rows of v8) = the same as `profile`.
+     */
+    @ColumnInfo(name = "used_profile") val usedProfile: String? = null,
 )

@@ -1115,7 +1115,7 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
 * **Router.** Routing goes through the app's routing interface (`RoutingProvider`, like R35 for
   maps). Primary: Valhalla on the FOSSGIS OpenStreetMap server (keyless, ≤ 1 request/s);
   motorbike → Valhalla `motor_scooter`, the only profile that keeps off expressways (motorbikes are
-  not allowed on them). Fallback for **car only** when the primary is unavailable: OSRM
+  not allowed on them), tried again with `auto` when it has no route (car fallback below). Fallback for **car only** when the primary is unavailable: OSRM
   (FOSSGIS `routed-car`). The server addresses live in one registry, never in screens.
 * **What is sent.** Per leg: the two stop positions and the profile, nothing else (no names,
   notes, photos, dates, account). It is the only data that leaves the device in this phase.
@@ -1137,7 +1137,19 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
   Example: Tràng An (20.2546, 105.8954) snaps 713 m away; its legs stay straight (6.1 km, not
   25–29 km).
 * **No route.** `no_route` (the router found none, e.g. Valhalla 442) is stored and the leg stays
-  straight; it is not asked again until its inputs change.
+  straight; it is not asked again until its inputs change. Exception, the car fallback below.
+* **Car fallback ("tuyến ô tô").** A Xe máy or "Chưa chọn" leg (profile motorbike) for which the
+  motorbike profile has **no route** is asked once more with the **car** profile (Valhalla `auto`;
+  OSRM car when Valhalla is unavailable). Motorbikes are banned on Vietnamese expressways, so the
+  car line may use roads a motorbike cannot: that is why it is marked. A car route that passes the
+  off-road guard (500 m / 5×, unchanged) is stored, drawn along the road and measured like any
+  road route (km, "~" time), and the leg chip / leg sheet end with **"tuyến ô tô"** ("48 km ·
+  ~1 giờ 33 phút · tuyến ô tô"). The row keeps `profile` = the leg's profile (so it stays valid
+  only for that mode) and records the profile that answered in `used_profile` (`car`). Both
+  profiles without a route (or the car answer too far): stored (`used_profile` = `car`), straight
+  "chim bay" as before, not asked again until the inputs change. Other modes (Ô tô, Xe buýt,
+  Đi bộ) have no fallback. A `no_route` stored by an earlier version (`used_profile` empty =
+  `motorbike`) is asked with the car profile **once** after the update, then final like any other.
 * **Queue.** Pending legs of all trips are fetched one at a time, at most one request per second,
   only while routing is on, the notice was shown and the device is online. Offline or server
   failure: the leg stays straight ("chim bay") and is retried later (30 s, doubling, at most
@@ -1156,18 +1168,23 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
 `trangAnOffRoadSampleStaysStraightInsteadOf29Km`, `aDetourOfMoreThanFiveTimesStaysStraight`,
 `storedRouteAppliesOnlyWhileStopsAndProfileMatch`, `roadLineIsJoinedToTheStopsByShortConnectors`,
 `storedLineIsSimplified`, `tripTotalsUseRoadKmAndTimeAndMarkPartialTotals`,
-`approximateDurationsAlwaysCarryATilde`, `polyline6RoundTrips`); `RouteSyncTest`
+`approximateDurationsAlwaysCarryATilde`, `polyline6RoundTrips`,
+`carFallbackRouteIsUsedOnlyForTheMotorbikeLegItAnswered`); `RouteSyncTest`
 (`nothingIsSentBeforeTheNoticeIsShownThenEveryRoutedLegOnce`, `requestsAreAtLeastOneSecondApart`,
 `switchOffMeansNoNetworkCallsAndStraightLines`, `turningOffMidwayStopsTheQueue`,
 `offlineWaitsAndFetchesWhenBackOnline`, `unavailableCarLegFallsBackToOsrmMotorbikeLegIsRetriedLater`,
-`noRouteIsStoredAndNotAskedAgain`, `noticeAndSwitchFlagsArePersisted`); adapters:
+`noRouteIsStoredAndNotAskedAgain`, `motorbikeLegWithoutMotorbikeRouteIsStoredWithTheCarProfile`,
+`carAnswerStillFacesTheOffRoadGuard`, `bothProfilesWithoutRouteKeepTheStraightLegAndAreNotAskedAgain`,
+`motorbikeNoRouteStoredBeforeTheFallbackIsRetriedOnceWithCar`, `noticeAndSwitchFlagsArePersisted`); adapters:
 `RouterAdaptersTest` (`valhallaCostingPerProfileNotChosenIsMotorScooter`,
 `valhallaRequestCarriesOnlyTheTwoStopsAndTheCosting`, `valhallaAnswerIsConverted`,
 `osrmIsCarOnlyAndConverted`, `registryHasValhallaFirstAndOsrmAsFallbackWithAUserAgent`,
 `shareImageCreditWrapsAtSeparatorsInsteadOfBeingCut`); boundary: `RoutingBoundaryTest`
 (`valhallaApiOnlyInItsAdapter`, `osrmApiOnlyInItsAdapter`, `routerAddressesOnlyInTheRegistry`,
 `appUsesRoutingOnlyThroughTheDomainInterface`, `httpClientOnlyInAdapters`); storage:
-`MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`. Screens: docs/img/road-routing/.
+`MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`,
+`MigrationTest.version8UpgradesWithUsedProfileAndKeepsStoredRoutes`. Screens: docs/img/road-routing/
+(`13`–`15-lung-cu-car-route-*.png` = the Lũng Cú leg with "tuyến ô tô").
 *Changed from the study* (docs/routing-feasibility.md): snap limit 500 m instead of 1 km, because
 the Tràng An sample snaps 713 m away with a 4.1–4.8× detour, which 1 km / 5× would have accepted.
 

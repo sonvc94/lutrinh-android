@@ -9,6 +9,7 @@ import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.model.Trip
+import vn.lutrinh.app.domain.routing.LegMeasure
 import vn.lutrinh.app.domain.routing.LegRoute
 import vn.lutrinh.app.domain.routing.LegRouteStatus
 import vn.lutrinh.app.domain.routing.LegRoutes
@@ -106,6 +107,32 @@ class LegRoutesTest {
         val leg = legsOf(listOf(step("a", "2026-10-20T08:00", haGiang), step("b", "2026-10-20T11:00", quanBa))).single()
         val row = LegRoutes.judge(LegRoutes.requestOf(leg)!!, found(140.0, 300.0, haGiang, quanBa), "valhalla", 5L)
         assertEquals(LegRouteStatus.TOO_FAR, row.status)
+    }
+
+    @Test fun carFallbackRouteIsUsedOnlyForTheMotorbikeLegItAnswered() {
+        val a = step("a", "2026-10-20T08:00", haGiang)
+        val b = step("b", "2026-10-20T11:00", quanBa, TransportMode.MOTORBIKE)
+        val leg = legsOf(listOf(a, b)).single()
+        val road = listOf(haGiang, north(haGiang, 5_000.0), quanBa)
+        val viaCar = ok("b", haGiang, quanBa, RouteProfile.MOTORBIKE, 61.0, 90.0, road).copy(usedProfile = RouteProfile.CAR)
+        assertTrue(viaCar.carFallback)
+        assertEquals(viaCar, LegRoutes.usable(leg, mapOf("b" to viaCar)))
+        assertTrue(LegRoutes.pending(listOf(leg), mapOf("b" to viaCar)).isEmpty())
+        assertEquals(LegMeasure(61.0, true, 5400.0, carRoute = true), LegRoutes.measure(leg, viaCar))
+        assertEquals(listOf(haGiang) + road.drop(1), LegRoutes.path(leg, viaCar))
+        // A Ô tô leg answered by car is not "tuyến ô tô"; the motorbike answer is not either.
+        assertFalse(ok("b", haGiang, quanBa, RouteProfile.CAR, 61.0, 90.0, road).carFallback)
+        assertFalse(LegRoutes.measure(leg, ok("b", haGiang, quanBa, RouteProfile.MOTORBIKE, 48.5, 92.0, road)).carRoute)
+        // The same stored car answer does not apply when the user switches the leg to Ô tô (profile differs).
+        val carLeg = legsOf(listOf(a, b.copy(arrivalTransport = TransportMode.CAR))).single()
+        assertNull(LegRoutes.usable(carLeg, mapOf("b" to viaCar)))
+        // A motorbike "no route" with no car attempt yet is pending again; once the car was asked it is final.
+        val before = LegRoutes.noRoute(LegRoutes.requestOf(leg)!!, "valhalla", 1L)
+        assertEquals(1, LegRoutes.pending(listOf(leg), mapOf("b" to before)).size)
+        val after = LegRoutes.noRoute(LegRoutes.requestOf(leg)!!, "valhalla", 2L, RouteProfile.CAR)
+        assertTrue(LegRoutes.pending(listOf(leg), mapOf("b" to after)).isEmpty())
+        assertEquals(listOf(RouteProfile.MOTORBIKE, RouteProfile.CAR), LegRoutes.profilesFor(LegRoutes.requestOf(leg)!!))
+        assertEquals(listOf(RouteProfile.CAR), LegRoutes.profilesFor(LegRoutes.requestOf(carLeg)!!))
     }
 
     @Test fun storedRouteAppliesOnlyWhileStopsAndProfileMatch() {

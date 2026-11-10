@@ -42,13 +42,28 @@ data class LegRoute(
     /** The road line (simplified to about 10 m), without the connectors to the stops. */
     val path: List<GeoPoint>,
     val fetchedAt: Long,
-)
+    /**
+     * The profile that produced this answer: [profile] itself, or [RouteProfile.CAR] when a Xe máy
+     * leg had no motorbike route and the car route was used instead ("tuyến ô tô", [carFallback]).
+     */
+    val usedProfile: RouteProfile = profile,
+) {
+    /** A Xe máy / "Chưa chọn" leg answered with the car profile (the screens say "tuyến ô tô"). */
+    val carFallback: Boolean get() = usedProfile != profile
+
+    /**
+     * A motorbike "no route" that the car profile has not been asked about yet (an answer stored
+     * before the car fallback existed): the leg is pending once more, see [LegRoutes.pending].
+     */
+    val needsCarRetry: Boolean
+        get() = profile == RouteProfile.MOTORBIKE && status == LegRouteStatus.NO_ROUTE && usedProfile == RouteProfile.MOTORBIKE
+}
 
 /** A leg that needs a route: what is sent to the router (only the two stop positions and the profile). */
 data class LegRouteRequest(val toStepId: String, val from: GeoPoint, val to: GeoPoint, val profile: RouteProfile)
 
 /** Distance (and, for a road route, travel time) shown for one leg. */
-data class LegMeasure(val km: Double, val byRoad: Boolean, val durationS: Double?)
+data class LegMeasure(val km: Double, val byRoad: Boolean, val durationS: Double?, val carRoute: Boolean = false)
 
 /**
  * R36 rules for road-following legs. Pure Kotlin, mirrored 1:1 in Swift (docs/07): which legs need
@@ -90,7 +105,7 @@ object LegRoutes {
     /** Routed legs without a stored answer for their current inputs, in the given order. */
     fun pending(legs: List<Leg>, routes: Map<String, LegRoute>): List<LegRouteRequest> =
         legs.mapNotNull { leg ->
-            requestOf(leg)?.takeIf { r -> routes[leg.to.id]?.let { matches(it, r) } != true }
+            requestOf(leg)?.takeIf { r -> routes[leg.to.id]?.let { matches(it, r) && !it.needsCarRetry } != true }
         }
 
     /**
@@ -98,7 +113,13 @@ object LegRoutes {
      * or [LegRouteStatus.TOO_FAR] when a stop is more than [MAX_SNAP_M] from the route's ends or the
      * route is more than [MAX_DETOUR] times the straight line.
      */
-    fun judge(request: LegRouteRequest, found: RouteResult.Found, provider: String, now: Long): LegRoute {
+    fun judge(
+        request: LegRouteRequest,
+        found: RouteResult.Found,
+        provider: String,
+        now: Long,
+        usedProfile: RouteProfile = request.profile,
+    ): LegRoute {
         val straightM = Geo.distanceKm(request.from, request.to) * 1000
         val snapM = snapM(request, found.path)
         val tooFar = found.path.isEmpty() || snapM > MAX_SNAP_M ||
@@ -109,15 +130,23 @@ object LegRoutes {
             status = if (tooFar) LegRouteStatus.TOO_FAR else LegRouteStatus.OK,
             distanceM = found.distanceM, durationS = found.durationS,
             path = if (tooFar) emptyList() else Polyline.simplify(found.path, STORE_EPSILON_DEG),
-            fetchedAt = now,
+            fetchedAt = now, usedProfile = usedProfile,
         )
     }
 
     /** The row to store when the router has no route: the leg stays straight until its inputs change. */
-    fun noRoute(request: LegRouteRequest, provider: String, now: Long): LegRoute = LegRoute(
-        request.toStepId, request.from, request.to, request.profile, provider, LegRouteStatus.NO_ROUTE,
-        0.0, 0.0, emptyList(), now,
-    )
+    fun noRoute(request: LegRouteRequest, provider: String, now: Long, usedProfile: RouteProfile = request.profile): LegRoute =
+        LegRoute(
+            request.toStepId, request.from, request.to, request.profile, provider, LegRouteStatus.NO_ROUTE,
+            0.0, 0.0, emptyList(), now, usedProfile,
+        )
+
+    /**
+     * The profiles asked for [request], in order: Xe máy / "Chưa chọn" ([RouteProfile.MOTORBIKE])
+     * falls back to [RouteProfile.CAR] when the motorbike profile has no route; the others ask once.
+     */
+    fun profilesFor(request: LegRouteRequest): List<RouteProfile> =
+        if (request.profile == RouteProfile.MOTORBIKE) listOf(RouteProfile.MOTORBIKE, RouteProfile.CAR) else listOf(request.profile)
 
     /** Larger of the two gaps between a stop and the end of the road line next to it, in metres. */
     fun snapM(request: LegRouteRequest, path: List<GeoPoint>): Double {
@@ -142,7 +171,7 @@ object LegRoutes {
 
     /** Km of [leg]: the road distance of a usable [route], else the straight line (labelled "chim bay"). */
     fun measure(leg: Leg, route: LegRoute?): LegMeasure =
-        if (route != null && route.status == LegRouteStatus.OK) LegMeasure(route.distanceM / 1000, true, route.durationS)
+        if (route != null && route.status == LegRouteStatus.OK) LegMeasure(route.distanceM / 1000, true, route.durationS, route.carFallback)
         else LegMeasure(leg.distanceKm, false, null)
 
     private fun same(a: GeoPoint, b: GeoPoint) =

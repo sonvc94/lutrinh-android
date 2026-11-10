@@ -86,10 +86,11 @@ fun LegRouteEntity.toDomain(): LegRoute? {
     return LegRoute(
         toStepId, GeoPoint(fromLat, fromLng), GeoPoint(toLat, toLng), p, provider, LegRouteStatus.fromId(status),
         distanceM, durationS, if (geometry.isEmpty()) emptyList() else Polyline.decode6(geometry), fetchedAt,
+        RouteProfile.fromId(usedProfile) ?: p,
     )
 }
 
 fun LegRoute.toEntity() = LegRouteEntity(
     toStepId, from.latitude, from.longitude, to.latitude, to.longitude, profile.id, provider, status.id,
-    distanceM, durationS, Polyline.encode6(path), fetchedAt,
+    distanceM, durationS, Polyline.encode6(path), fetchedAt, usedProfile.id,
 )

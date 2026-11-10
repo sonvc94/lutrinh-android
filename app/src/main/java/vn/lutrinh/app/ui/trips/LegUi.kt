@@ -30,13 +30,15 @@ import vn.lutrinh.app.map.TransportStyle
 
 /**
  * The distance part of a leg chip (R36): "48,5 km · ~1 giờ 32 phút" along the road, "27,3 km chim
- * bay" for a straight leg (no stored route, routing off, or a train/plane/boat leg).
+ * bay" for a straight leg (no stored route, routing off, or a train/plane/boat leg). A Xe máy leg
+ * drawn with the car profile (no motorbike route) ends with "· tuyến ô tô".
  */
 @Composable
 fun legDistanceText(m: LegMeasure): String =
     if (m.byRoad) {
         val km = stringResource(R.string.leg_km, DisplayFormat.kmNumber(m.km))
-        m.durationS?.let { "$km · ${DisplayFormat.approxDuration(it)}" } ?: km
+        val road = m.durationS?.let { "$km · ${DisplayFormat.approxDuration(it)}" } ?: km
+        if (m.carRoute) "$road · ${stringResource(R.string.leg_car_route)}" else road
     } else stringResource(R.string.leg_km_straight, DisplayFormat.kmNumber(m.km))
 
 /** Compact chip on the timeline / map card: the leg's mode (or a prompt), its distance and (road) time. */
@@ -74,7 +76,10 @@ fun LegModeSheet(leg: Leg, measure: LegMeasure, onPick: (TransportMode?) -> Unit
             )
             Text(
                 if (measure.byRoad && measure.durationS != null) {
-                    stringResource(R.string.leg_sheet_subtitle_road, DisplayFormat.kmNumber(measure.km), DisplayFormat.approxDuration(measure.durationS))
+                    stringResource(
+                        if (measure.carRoute) R.string.leg_sheet_subtitle_road_car else R.string.leg_sheet_subtitle_road,
+                        DisplayFormat.kmNumber(measure.km), DisplayFormat.approxDuration(measure.durationS),
+                    )
                 } else stringResource(R.string.leg_sheet_subtitle, DisplayFormat.kmNumber(leg.distanceKm)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

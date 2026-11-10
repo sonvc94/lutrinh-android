@@ -303,7 +303,13 @@ OSRM fallback). A new router = one adapter + registration; no screen changes.
 legs one at a time (≥ 1 s apart, FOSSGIS' limit) while routing is on, the one-time notice was shown
 and `NetworkMonitor.online` is true. Answers go to `leg_routes` (02-data-model.md); the screens
 observe them, so a fetched leg redraws by itself. Off-road guard (500 m / 5×), retry and fallback:
-R36.
+R36. **Car fallback:** when a `motorbike` request gets `NoRoute` (Valhalla `motor_scooter` has no
+path to Lũng Cú, error 442), `RouteSync.fetch` asks the same routers again with `car`
+(`LegRoutes.profilesFor`: motorbike → [motorbike, car], every other profile → itself); the stored
+row keeps `profile` = motorbike and sets `usedProfile` = car (`LegRoute.carFallback`), the line is
+drawn like any routed line and `LegMeasure.carRoute` makes the leg chip/sheet add "tuyến ô tô".
+An answer stored before the fallback existed (`NO_ROUTE`, `usedProfile` = motorbike,
+`LegRoute.needsCarRetry`) is pending once more and asked with the car profile.
 
 **Credit.** Wherever a routed line is drawn (trip map, Trip detail mini map, "Bản đồ của tôi",
 share image/page) the attribution adds a line "Đường đi: Valhalla · FOSSGIS · © OpenStreetMap

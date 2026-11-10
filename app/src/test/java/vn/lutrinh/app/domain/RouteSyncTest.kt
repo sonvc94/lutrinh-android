@@ -11,15 +11,18 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.model.TransportMode
 import vn.lutrinh.app.domain.repository.Clock
+import vn.lutrinh.app.domain.routing.LegMeasure
 import vn.lutrinh.app.domain.routing.LegRoute
 import vn.lutrinh.app.domain.routing.LegRouteRepository
 import vn.lutrinh.app.domain.routing.LegRouteStatus
+import vn.lutrinh.app.domain.routing.LegRoutes
 import vn.lutrinh.app.domain.routing.RouteProfile
 import vn.lutrinh.app.domain.routing.RouteResult
 import vn.lutrinh.app.domain.routing.RouteSync
@@ -28,6 +31,7 @@ import vn.lutrinh.app.domain.routing.RoutingProvider
 import vn.lutrinh.app.domain.routing.RoutingProviders
 import vn.lutrinh.app.domain.routing.RoutingSettings
 import vn.lutrinh.app.domain.routing.RoutingStore
+import vn.lutrinh.app.domain.usecase.legsOf
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -51,11 +55,14 @@ class RouteSyncTest {
         var answer: (GeoPoint, GeoPoint) -> RouteResult = { a, b -> RouteResult.Found(10_000.0, 900.0, listOf(a, b)) },
     ) : RoutingProvider {
         val calls = mutableListOf<Pair<Long, RouteProfile>>()
+
+        /** Answers per profile before [answer] is used (null = no special answer). */
+        var byProfile: (RouteProfile) -> RouteResult? = { null }
         override val credit = RoutingCredit(id, "https://www.openstreetmap.org/fixthemap")
         override fun supports(profile: RouteProfile) = only == null || profile == only
         override suspend fun route(from: GeoPoint, to: GeoPoint, profile: RouteProfile): RouteResult {
             calls += clock.nowMillis() to profile
-            return answer(from, to)
+            return byProfile(profile) ?: answer(from, to)
         }
     }
 
@@ -174,6 +181,93 @@ class RouteSyncTest {
         assertEquals(LegRouteStatus.NO_ROUTE, rig.routes.rows.value.getValue("b").status)
         advanceTimeBy(3_600_000)
         assertEquals(asked, rig.valhalla.calls.size)
+    }
+
+    private val noMotorbikeRoute: (RouteProfile) -> RouteResult? =
+        { if (it == RouteProfile.MOTORBIKE) RouteResult.NoRoute else null }
+
+    @Test fun motorbikeLegWithoutMotorbikeRouteIsStoredWithTheCarProfile() = runTest {
+        val rig = Rig(this, MemoryStore(routingNoticeSeen = true))
+        rig.valhalla.byProfile = noMotorbikeRoute
+        settle()
+        // b ("Chưa chọn" = Xe máy): motorbike → no route, then car → found; c (Ô tô) asked once.
+        assertEquals(
+            listOf(RouteProfile.MOTORBIKE, RouteProfile.CAR, RouteProfile.CAR),
+            rig.valhalla.calls.map { it.second },
+        )
+        val b = rig.routes.rows.value.getValue("b")
+        assertEquals(LegRouteStatus.OK, b.status)
+        assertEquals(RouteProfile.MOTORBIKE, b.profile)
+        assertEquals(RouteProfile.CAR, b.usedProfile)
+        assertTrue(b.carFallback)
+        assertFalse(rig.routes.rows.value.getValue("c").carFallback)
+        // The leg is drawn along the road with road km and ~time, flagged "tuyến ô tô".
+        val leg = legsOf(fourStops).first()
+        val used = LegRoutes.usable(leg, rig.routes.rows.value)!!
+        assertEquals(LegMeasure(10.0, true, 900.0, carRoute = true), LegRoutes.measure(leg, used))
+        // Not asked again.
+        val asked = rig.valhalla.calls.size
+        advanceTimeBy(3_600_000)
+        assertEquals(asked, rig.valhalla.calls.size)
+    }
+
+    @Test fun carAnswerStillFacesTheOffRoadGuard() = runTest {
+        val rig = Rig(this, MemoryStore(routingNoticeSeen = true))
+        rig.valhalla.byProfile = {
+            if (it == RouteProfile.MOTORBIKE) RouteResult.NoRoute
+            else RouteResult.Found(10_000.0, 900.0, listOf(GeoPoint(22.80, 105.02), GeoPoint(22.85, 105.0)))
+        }
+        settle()
+        val b = rig.routes.rows.value.getValue("b")
+        assertEquals(LegRouteStatus.TOO_FAR, b.status)
+        assertEquals(RouteProfile.CAR, b.usedProfile)
+        assertNull(LegRoutes.usable(legsOf(fourStops).first(), rig.routes.rows.value))
+    }
+
+    @Test fun bothProfilesWithoutRouteKeepTheStraightLegAndAreNotAskedAgain() = runTest {
+        val rig = Rig(this, MemoryStore(routingNoticeSeen = true))
+        rig.valhalla.answer = { _, _ -> RouteResult.NoRoute }
+        settle()
+        assertEquals(
+            listOf(RouteProfile.MOTORBIKE, RouteProfile.CAR, RouteProfile.CAR),
+            rig.valhalla.calls.map { it.second },
+        )
+        val b = rig.routes.rows.value.getValue("b")
+        assertEquals(LegRouteStatus.NO_ROUTE, b.status)
+        assertEquals(RouteProfile.CAR, b.usedProfile)
+        val leg = legsOf(fourStops).first()
+        assertNull(LegRoutes.usable(leg, rig.routes.rows.value))
+        assertEquals(listOf(leg.from.location, leg.to.location), LegRoutes.path(leg, LegRoutes.usable(leg, rig.routes.rows.value)))
+        assertFalse(LegRoutes.measure(leg, null).byRoad)
+        val asked = rig.valhalla.calls.size
+        advanceTimeBy(3_600_000)
+        assertEquals(asked, rig.valhalla.calls.size)
+    }
+
+    @Test fun motorbikeNoRouteStoredBeforeTheFallbackIsRetriedOnceWithCar() = runTest {
+        val rig = Rig(this, MemoryStore(routingNoticeSeen = true))
+        // What v8 stored: motorbike asked, no route (usedProfile defaults to motorbike).
+        val old = LegRoute("b", GeoPoint(22.80, 105.0), GeoPoint(22.85, 105.0), RouteProfile.MOTORBIKE, "valhalla", LegRouteStatus.NO_ROUTE, 0.0, 0.0, emptyList(), 1L)
+        assertTrue(old.needsCarRetry)
+        rig.routes.rows.value = mapOf("b" to old)
+        rig.valhalla.byProfile = noMotorbikeRoute
+        settle()
+        assertEquals(RouteProfile.CAR, rig.routes.rows.value.getValue("b").usedProfile)
+        assertEquals(LegRouteStatus.OK, rig.routes.rows.value.getValue("b").status)
+        val asked = rig.valhalla.calls.size
+        advanceTimeBy(3_600_000)
+        assertEquals("once, then never again", asked, rig.valhalla.calls.size)
+        // Same when the car profile has no route either: stored, then left alone.
+        rig.valhalla.calls.clear()
+        rig.routes.rows.value = rig.routes.rows.value + ("b" to old)
+        rig.valhalla.answer = { _, _ -> RouteResult.NoRoute }
+        rig.valhalla.byProfile = { null }
+        settle()
+        val again = rig.valhalla.calls.size
+        assertEquals(listOf(RouteProfile.MOTORBIKE, RouteProfile.CAR), rig.valhalla.calls.map { it.second })
+        assertFalse(rig.routes.rows.value.getValue("b").needsCarRetry)
+        advanceTimeBy(3_600_000)
+        assertEquals(again, rig.valhalla.calls.size)
     }
 
     @Test fun noticeAndSwitchFlagsArePersisted() {

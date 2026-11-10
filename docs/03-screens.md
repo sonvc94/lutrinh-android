@@ -23,7 +23,7 @@ ported 1:1 from `DisplayFormatTest`); no screen formats km, durations or in-trip
 | Recorded track distance | "N m" under 1 km, one decimal under 100 km, whole above | "850 m", "51,5 km" |
 | Duration (finished track, stop) | words, whole minutes rounded down | "35 phút", "6 giờ 45 phút", "1 giờ" |
 | Travel-time estimate (leg, trip, R36) | "~" + the duration rule, rounded to whole minutes (at least 1); only from a stored road route | "~1 giờ 33 phút", "~18 phút" |
-| Leg distance (chip, sheet, R12/R36) | road: "N km · ~T"; no road route: "N km chim bay" | "48 km · ~1 giờ 33 phút", "4,1 km chim bay" |
+| Leg distance (chip, sheet, R12/R36) | road: "N km · ~T"; no road route: "N km chim bay" | "48 km · ~1 giờ 33 phút", "4,1 km chim bay"; a Xe máy leg drawn with the car profile (no motorbike route, R36): "61 km · ~1 giờ 30 phút · tuyến ô tô" |
 | Live timer (recording panel, notification) | clock | "0:45", "2:05:09" |
 | Day inside a trip (timeline, suggestions, tracks, step detail, trip map cards) | weekday + dd/MM | "Thứ Hai, 20/10"; with the time "Thứ Hai, 20/10 · 08:10" |
 | Trip dates (list, header, pickers, errors) | "d MMM, yyyy" with year | "20 thg 10 – 23 thg 10, 2025" |
@@ -877,6 +877,9 @@ EXIF photos), 27–28 (a historical upgrade from the v1 build).
 | road-routing/10-airplane-stored-routes-draw.png | airplane mode: stored routes still draw ("Không có mạng" banner), the new leg straight |
 | road-routing/11-online-leg-fetched.png | back online: the queued leg is fetched, "Đi bộ · 9,1 km · ~2 giờ 56 phút" |
 | road-routing/12-ninhbinh-partial-trangan-straight.png | Ninh Bình: Tràng An legs stay straight (off-road guard, "Ô tô · 3,7 km chim bay"), partial time |
+| road-routing/13-lung-cu-car-route-chip.png | Yên Minh → Lũng Cú: no motorbike route, the car route is drawn and measured, chip "Xe máy · 59 km · ~1 giờ 43 phút · tuyến ô tô" |
+| road-routing/14-lung-cu-car-route-sheet.png | the same leg's sheet: "(59 km theo đường đi, ~1 giờ 43 phút · tuyến ô tô)" |
+| road-routing/15-lung-cu-car-route-trip-map.png | trip map: the Lũng Cú leg follows the road (car route) |
 | sovereignty/before-hoang-sa-z8.png | before R30 (main APK), "Bản đồ của tôi" at z8 over the Paracels: Chinese admin labels "Tam Sa", "Yongle Qundao" |
 | sovereignty/before-truong-sa-z7.png | before R30, z7 over the Spratlys: "Quận Nam Sa", "Zhubi" |
 | sovereignty/after-hoang-sa-z8.png | R30: same view, Chinese admin labels hidden, "Quần đảo Hoàng Sa" drawn |

@@ -145,7 +145,8 @@ Port `domain/routing/` 1:1 (pure) and write one adapter per router; screens neve
 | `LegRoutes.kt` (input match 1e-4°, guard 500 m / 5×, connectors, `measure`), `Polyline.encode6/decode6` | same pure functions; port `LegRoutesTest` 1:1 (Hà Giang→Quản Bạ 48.5 km, Tràng An stays straight, partial totals) |
 | `RouteSync` (coroutines: `combine` of steps, stored routes, switch, notice flag, online; `collectLatest` drain; ≥ 1 s pacing; retry 30 s doubling to 10 min; 429 → 60 s pause) | an `actor RouteSync` with `AsyncStream`s (or Combine) and `Task.sleep`; online from `NWPathMonitor`; port `RouteSyncTest` with a fake clock |
 | `routing/valhalla/ValhallaRouter`, `routing/osrm/OsrmRouter` on OkHttp (`RouterHttp`, User-Agent `Routers.USER_AGENT`), JSON with `org.json` | `URLSession` (`httpAdditionalHeaders["User-Agent"]`), `JSONDecoder` structs for Valhalla `trip.summary`/`trip.legs[].shape` and OSRM `routes[0]`; port `RouterAdaptersTest`; URLs only in `Routers.swift` |
-| Room table `leg_routes` (v8, `RoomLegRouteRepository`), in the backup | SwiftData `@Model LegRouteRecord` (same columns, cascade with its step); the same SQLite table name in a backup |
+| `LegRoute.usedProfile` / `carFallback` / `needsCarRetry`, `LegRoutes.profilesFor` (motorbike → motorbike, then car), `RouteSync.fetch` asking the next profile on `NoRoute`, `LegMeasure.carRoute` → "tuyến ô tô" on the chip and sheet | same fields and functions; port the `RouteSyncTest` car-fallback tests (motorbike NoRoute + car found, both without route, a pre-fallback `no_route` asked once) |
+| Room table `leg_routes` (v9: `used_profile` nullable, `RoomLegRouteRepository`), in the backup | SwiftData `@Model LegRouteRecord` (same columns, cascade with its step); the same SQLite table name in a backup |
 | `LocalPrefs` keys `routing_enabled` (default true), `routing_notice_seen` → `RoutingSettings` | `UserDefaults`, same keys; `@Observable RoutingSettings` |
 | "Cài đặt" (`ui/settings/SettingsScreen`, from the trip list menu) + `RoutingNoticeDialog` shown once from the nav root when `RouteSync.noticeDue` | a `Form` with a `Toggle`, and an `.alert` with "Đã hiểu" / "Tắt tính đường" |
 | Router credit in `MapAttribution` (tap "Sửa bản đồ" → `LocalUriHandler`), printed on the share image | the same text; `Link` to https://www.openstreetmap.org/fixthemap |
@@ -189,7 +190,7 @@ Port `domain/routing/` 1:1 (pure) and write one adapter per router; screens neve
    camera/video pickers (Info.plist usage strings), stills and the player page; a backup with videos
    restored across platforms.
 4h. Legs along the road (R36): `domain/routing` with `LegRoutesTest`, `RouteSyncTest`, the V7→V8
-   table (`MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`), the adapters with
+   and V8→V9 tables (`MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`, `…version8UpgradesWithUsedProfileAndKeepsStoredRoutes`), the adapters with
    `RouterAdaptersTest`, then the notice, "Cài đặt" and the credit.
 5. Screens in the order of 03-screens.md; check each against its screenshot in `img/`.
 6. Strings: all user-visible text from `strings.xml`, Vietnamese.

@@ -34,7 +34,7 @@ app/src/main/java/vn/lutrinh/app/
             ONLY place for offline areas/zooms/limits), Pins.kt, StaticTripMap.kt
   domain/routing/  routing interface (R36, pure): RoutingProvider + RouteProfile ("Chưa chọn" =
             motorbike), LegRoutes (stored answer, input match, off-road guard 500 m / 5×), RouteSync
-            (fetch queue: notice first, online, ≤ 1 req/s, retry, OSRM car fallback), RoutingSettings
+            (fetch queue: notice first, online, ≤ 1 req/s, retry, OSRM car fallback; a Xe máy leg with no motorbike route is asked again as car = "tuyến ô tô", `LegRoute.usedProfile`), RoutingSettings
   routing/  router adapters: Routers.kt (ONLY place for router URLs, User-Agent, registry),
             valhalla/ValhallaRouter (primary, `motor_scooter` for Xe máy), osrm/OsrmRouter (car only);
             RoutingBoundaryTest keeps router words/hosts inside; stored per leg in Room `leg_routes`
@@ -224,7 +224,7 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   Nothing is sent before the one-time notice; to see it again `am force-stop` and remove
   `routing_notice_seen` from `shared_prefs/lutrinh_prefs.xml`. FOSSGIS Valhalla answers from this
   network (curl `POST https://valhalla1.openstreetmap.de/route` ≤ 1/s with a User-Agent).
-  Valhalla `motor_scooter` has no path to Lũng Cú (error 442, the sample's leg 3→4 stays straight),
+  Valhalla `motor_scooter` has no path to Lũng Cú (error 442; the car fallback draws the sample's leg 3→4 as "tuyến ô tô"),
   and Tràng An snaps 713 m off-road (its legs stay straight by the 500 m guard): data, not bugs.
   `NetworkMonitor.onLost` sets offline directly (asking `activeNetwork` there still returned the
   lost network, so the queue tried to fetch in airplane mode).

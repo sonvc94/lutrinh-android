@@ -75,7 +75,8 @@ class RoutingSettings(private val store: RoutingStore) {
  *   route, too far) is stored and the leg leaves the queue. Moving a stop or changing the mode
  *   makes exactly that leg pending again.
  * * "Unavailable" (offline, server error) is retried later with a growing pause; a rate limit
- *   pauses the whole queue. The primary router's fallbacks are asked only when it is unavailable.
+ *   pauses the whole queue. The primary router's fallbacks are asked only when it is unavailable; a Xe máy leg with no
+ *   motorbike route is asked again with the car profile (once: the answer is stored).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RouteSync(
@@ -138,48 +139,62 @@ class RouteSync(
         }
     }
 
-    /** One leg: asks the routers and stores the answer. False when it must be retried later. */
+    /**
+     * One leg: asks the routers and stores the answer. False when it must be retried later. A Xe máy
+     * leg with no motorbike route is asked again with the car profile ([LegRoutes.profilesFor]); the
+     * stored row says which profile answered. Both without a route: stored as no route (straight).
+     */
     internal suspend fun fetch(request: LegRouteRequest): Boolean = gate.withLock {
+        var row: LegRoute? = null
+        for (profile in LegRoutes.profilesFor(request)) {
+            row = ask(request, profile)
+            if (row == null || row.status != LegRouteStatus.NO_ROUTE) break
+            log("no ${profile.id} route -> ${request.toStepId}")
+        }
+        if (row != null) {
+            log("stored ${row.status.id} ${row.usedProfile.id} ${"%.1f".format(row.distanceM / 1000)} km ${row.durationS.toLong()} s -> ${row.toStepId}")
+            try {
+                routes.save(row)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // The step was deleted meanwhile (foreign key): nothing to keep.
+                log("not stored: ${e.message}")
+            }
+            failures.remove(request)
+            retryAt.remove(request)
+            return@withLock true
+        }
+        val n = (failures[request] ?: 0) + 1
+        failures[request] = n
+        retryAt[request] = clock.nowMillis() + (RETRY_BASE_MS shl (n - 1).coerceAtMost(5)).coerceAtMost(RETRY_MAX_MS)
+        false
+    }
+
+    /** The row for [request] answered with [profile] by the first router that answers, or null when none is available. */
+    private suspend fun ask(request: LegRouteRequest, profile: RouteProfile): LegRoute? {
         for (provider in providers.all) {
-            if (!provider.supports(request.profile)) continue
+            if (!provider.supports(profile)) continue
             pace()
-            log("request ${provider.id} ${request.profile.id} -> ${request.toStepId}")
+            log("request ${provider.id} ${profile.id} -> ${request.toStepId}")
             val result = try {
-                provider.route(request.from, request.to, request.profile)
+                provider.route(request.from, request.to, profile)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 RouteResult.Unavailable(e.message ?: e.javaClass.simpleName)
             }
             val now = clock.nowMillis()
-            val row = when (result) {
-                is RouteResult.Found -> LegRoutes.judge(request, result, provider.id, now)
-                RouteResult.NoRoute -> LegRoutes.noRoute(request, provider.id, now)
+            when (result) {
+                is RouteResult.Found -> return LegRoutes.judge(request, result, provider.id, now, profile)
+                RouteResult.NoRoute -> return LegRoutes.noRoute(request, provider.id, now, profile)
                 is RouteResult.Unavailable -> {
                     log("unavailable ${provider.id}: ${result.reason}")
                     if (result.rateLimited) pausedUntil = now + RATE_LIMIT_PAUSE_MS
-                    null
                 }
-            }
-            if (row != null) {
-                log("stored ${row.status.id} ${"%.1f".format(row.distanceM / 1000)} km ${row.durationS.toLong()} s -> ${row.toStepId}")
-                try {
-                    routes.save(row)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // The step was deleted meanwhile (foreign key): nothing to keep.
-                    log("not stored: ${e.message}")
-                }
-                failures.remove(request)
-                retryAt.remove(request)
-                return@withLock true
             }
         }
-        val n = (failures[request] ?: 0) + 1
-        failures[request] = n
-        retryAt[request] = clock.nowMillis() + (RETRY_BASE_MS shl (n - 1).coerceAtMost(5)).coerceAtMost(RETRY_MAX_MS)
-        false
+        return null
     }
 
     /** Waits until the next request respects [minIntervalMs] and any rate-limit pause. */
