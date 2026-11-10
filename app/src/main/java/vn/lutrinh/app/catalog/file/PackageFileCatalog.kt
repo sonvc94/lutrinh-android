@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import vn.lutrinh.app.catalog.PackageJson
+import vn.lutrinh.app.catalog.PackageRead
 import vn.lutrinh.app.domain.catalog.ByteSink
 import vn.lutrinh.app.domain.catalog.CatalogError
 import vn.lutrinh.app.domain.catalog.CatalogResult
@@ -49,7 +50,11 @@ class PackageFileCatalog(private val source: File) : RouteCatalog {
 
     override suspend fun resolve(code: RouteCode): CatalogResult<RouteSummary> = withContext(Dispatchers.IO) {
         val bytes = bytes("route.json") ?: return@withContext CatalogResult.Refused(CatalogError.BAD_PACKAGE)
-        val pkg = PackageJson.parse(bytes.toString(Charsets.UTF_8)) ?: return@withContext CatalogResult.Refused(CatalogError.BAD_PACKAGE)
+        val pkg = when (val read = PackageJson.read(bytes.toString(Charsets.UTF_8))) {
+            is PackageRead.Ok -> read.pkg
+            is PackageRead.Unsupported -> return@withContext CatalogResult.Refused(CatalogError.FORMAT_UNSUPPORTED)
+            is PackageRead.Invalid -> return@withContext CatalogResult.Refused(CatalogError.BAD_PACKAGE)
+        }
         val own = manifestCode()?.let { RouteCode.of(it) }
         if (own != null && own != code) return@withContext CatalogResult.Refused(CatalogError.CODE_NOT_FOUND)
         CatalogResult.Ok(summaryOf(code, pkg))
@@ -57,8 +62,11 @@ class PackageFileCatalog(private val source: File) : RouteCatalog {
 
     override suspend fun fetchRoute(ticket: DownloadTicket): CatalogResult<FetchedRoute> = withContext(Dispatchers.IO) {
         val bytes = bytes("route.json") ?: return@withContext CatalogResult.Refused(CatalogError.BAD_PACKAGE)
-        val pkg = PackageJson.parse(bytes.toString(Charsets.UTF_8)) ?: return@withContext CatalogResult.Refused(CatalogError.BAD_PACKAGE)
-        CatalogResult.Ok(FetchedRoute(PackageJson.sha256(bytes), pkg))
+        when (val read = PackageJson.read(bytes.toString(Charsets.UTF_8))) {
+            is PackageRead.Ok -> CatalogResult.Ok(FetchedRoute(PackageJson.sha256(bytes), read.pkg))
+            is PackageRead.Unsupported -> CatalogResult.Refused(CatalogError.FORMAT_UNSUPPORTED)
+            is PackageRead.Invalid -> CatalogResult.Refused(CatalogError.BAD_PACKAGE)
+        }
     }
 
     override suspend fun fetchMedia(ticket: DownloadTicket, ref: MediaRef, sink: ByteSink, from: Long): CatalogResult<Unit> =

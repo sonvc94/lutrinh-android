@@ -147,6 +147,22 @@ class BackupManagerTest {
         assertFalse(prepared.dir.exists())
     }
 
+    /** R40 + R26: a downloaded trip's route link goes into the backup and comes back with its trip. */
+    @Test fun routeLinksTravelWithTheBackup() = runTest {
+        seedA()
+        val routes = RoomRouteRepository(db, photoDir) { }
+        val link = vn.lutrinh.app.domain.catalog.RouteLink(
+            "tA", "rt_5f3c9a1e", vn.lutrinh.app.domain.catalog.RouteCode.of("HG4N7KQE")!!, 3, "ab".repeat(32), 7L,
+            checkedAt = 9L, credits = "Ảnh: Lữ Trình", latestVersion = 4, skippedVersion = 4,
+        )
+        routes.saveLink(link)
+        val (_, zip) = backupBytes()
+        replaceWithB()
+        assertNull(routes.link("tA"))
+        backup.restore(backup.prepare(ByteArrayInputStream(zip)))
+        assertEquals(link, routes.link("tA"))
+    }
+
     @Test fun restoreFailureLeavesCurrentDataIntact() = runTest {
         seedA()
         val (_, zip) = backupBytes()

@@ -23,7 +23,8 @@ class RoutingBoundaryTest {
 
     @Test fun valhallaApiOnlyInItsAdapter() {
         val words = listOf("motor_scooter", "\"costing\"", "valhalla1.", "/route\"")
-        assertEquals(emptyList<String>(), leaks({ it.under("routing/valhalla") || it.name == "Routers.kt" }) { l -> words.any { it in l } })
+        // catalog/: our own route server and route.json (R40), not Valhalla.
+        assertEquals(emptyList<String>(), leaks({ it.under("routing/valhalla") || it.name == "Routers.kt" || it.under("catalog") }) { l -> words.any { it in l } })
         assertEquals(emptyList<String>(), leaks({ it.under("routing") }) { "routing.valhalla" in it })
     }
 
@@ -50,6 +51,7 @@ class RoutingBoundaryTest {
     }
 
     @Test fun httpClientOnlyInAdapters() {
-        assertEquals(emptyList<String>(), leaks({ it.under("routing") || it.under("map/maplibre") }) { "okhttp3" in it })
+        // catalog/server is the route server's adapter (R40, CatalogBoundaryTest).
+        assertEquals(emptyList<String>(), leaks({ it.under("routing") || it.under("map/maplibre") || it.under("catalog/server") }) { "okhttp3" in it })
     }
 }

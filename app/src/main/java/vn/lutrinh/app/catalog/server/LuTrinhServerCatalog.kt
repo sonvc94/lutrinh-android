@@ -11,6 +11,7 @@ import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
 import vn.lutrinh.app.catalog.PackageJson
+import vn.lutrinh.app.catalog.PackageRead
 import vn.lutrinh.app.catalog.PackageJson.objects
 import vn.lutrinh.app.catalog.PackageJson.optIntOrNull
 import vn.lutrinh.app.catalog.PackageJson.optStringOrNull
@@ -35,7 +36,8 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.coroutineContext
 
 /**
- * The Lữ Trình route server, public API v1 (docs/02 "Route server API"). Sends only the code (or
+ * The Lữ Trình route server, public API v1 (docs/02 "Route server API"; server repo
+ * `spec/README.md` "Public API /api/v1", built in lutrinh-server @df870f7). Sends only the code (or
  * the codes + versions of downloaded routes), our User-Agent and the Accept type: no cookie, no
  * device id, nothing about the user's trips. The address comes from `Catalogs` (CatalogBoundaryTest).
  */
@@ -61,9 +63,11 @@ class LuTrinhServerCatalog(
     override suspend fun fetchRoute(ticket: DownloadTicket): CatalogResult<FetchedRoute> = io {
         call(get("$base/dl/${ticket.token}/route")) { r ->
             val bytes = r.body!!.bytes()
-            val pkg = PackageJson.parse(bytes.toString(Charsets.UTF_8))
-                ?: return@call CatalogResult.Refused(CatalogError.BAD_PACKAGE)
-            CatalogResult.Ok(FetchedRoute(PackageJson.sha256(bytes), pkg))
+            when (val read = PackageJson.read(bytes.toString(Charsets.UTF_8))) {
+                is PackageRead.Ok -> CatalogResult.Ok(FetchedRoute(PackageJson.sha256(bytes), read.pkg))
+                is PackageRead.Unsupported -> CatalogResult.Refused(CatalogError.FORMAT_UNSUPPORTED)
+                is PackageRead.Invalid -> CatalogResult.Refused(CatalogError.BAD_PACKAGE)
+            }
         }
     }
 
@@ -103,7 +107,7 @@ class LuTrinhServerCatalog(
     private fun checkMeta(): CatalogResult<Nothing>? {
         if (metaChecked) return null
         return try {
-            client.newCall(get("$base/meta").build()).execute().use { r ->
+            client.newCall(headers(get("$base/meta")).build()).execute().use { r ->
                 if (!r.isSuccessful) return null // meta is advice: a missing one never blocks a lookup
                 metaChecked = true
                 val o = JSONObject(r.body!!.string())
@@ -123,10 +127,13 @@ class LuTrinhServerCatalog(
 
     private fun get(url: String) = Request.Builder().url(url).get()
 
+    /** The only headers we send: our User-Agent and the format we read. */
+    private fun headers(r: Request.Builder) = r.header("User-Agent", userAgent).header("Accept", ACCEPT)
+
     /** Runs [request]; a status in [okCodes] goes to [onOk], an API error to its [CatalogResult]. */
     private inline fun <T> call(request: Request.Builder, okCodes: Set<Int> = setOf(200), onOk: (Response) -> CatalogResult<T>): CatalogResult<T> =
         try {
-            client.newCall(request.header("User-Agent", userAgent).header("Accept", ACCEPT).build()).execute().use { r ->
+            client.newCall(headers(request).build()).execute().use { r ->
                 if (r.code in okCodes) {
                     try { onOk(r) } catch (e: org.json.JSONException) { CatalogResult.Refused(CatalogError.BAD_PACKAGE) }
                 } else {
@@ -141,8 +148,11 @@ class LuTrinhServerCatalog(
         val retryHeader = r.header("Retry-After")?.trim()?.toIntOrNull()
         val err = runCatching { JSONObject(r.body!!.string()).getJSONObject("error") }.getOrNull()
         val retry = err?.optIntOrNull("retryAfterS") ?: retryHeader
-        val code = CatalogError.fromCode(err?.optStringOrNull("code"))
+        val name = err?.optStringOrNull("code")
+        val code = CatalogError.fromCode(name)
         return when {
+            // A file the token's version does not hold: the package and the server disagree.
+            name == "not_found" -> CatalogResult.Refused(CatalogError.BAD_PACKAGE)
             code != null -> CatalogResult.Refused(code, retry)
             r.code == 400 -> CatalogResult.Refused(CatalogError.BAD_FORMAT)
             r.code == 401 -> CatalogResult.Refused(CatalogError.TOKEN_EXPIRED)
@@ -198,6 +208,7 @@ class LuTrinhServerCatalog(
                     ),
                 )
             }
+            "current" -> RouteStatus(link, RemoteStatus.ACTIVE)
             else -> RouteStatus(link, RemoteStatus.fromId(s))
         }
     }

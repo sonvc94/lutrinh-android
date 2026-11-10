@@ -338,6 +338,33 @@ class MigrationTest {
         assertFalse(back.needsCarRetry)
     }
 
+    @Test fun version9UpgradesWithRouteLinksAndKeepsEverything() = runTest {
+        createVersion(9)
+        SQLiteDatabase.openDatabase(ctx.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("UPDATE steps SET transport_mode = 'motorbike', latitude = 23.0688, longitude = 104.993 WHERE id = 's2'")
+            db.execSQL(
+                "INSERT INTO leg_routes (to_step_id, from_lat, from_lng, to_lat, to_lng, profile, provider, status, distance_m, duration_s, geometry, fetched_at, used_profile) " +
+                    "VALUES ('s2', 22.82, 104.98, 23.0688, 104.993, 'motorbike', 'valhalla', 'ok', 30000, 3000, '', 5, 'motorbike')",
+            )
+        }
+        val db = open()
+        assertEquals(listOf("s1", "s2"), RoomStepRepository(db).getSteps("t1").map { it.id })
+        assertEquals("Vòng cung Hà Giang", RoomTripRepository(db).getTrip("t1")!!.title)
+        assertEquals(listOf("a.jpg"), RoomStepRepository(db).getSteps("t1").flatMap { it.photos }.map { it.fileName })
+        assertEquals(1, RoomLegRouteRepository(db).observeAll().first().size)
+
+        // No existing trip has a link; a link can be written and goes with its trip (R7).
+        val routes = RoomRouteRepository(db, ctx.filesDir) { }
+        assertNull(routes.link("t1"))
+        val link = vn.lutrinh.app.domain.catalog.RouteLink(
+            "t1", "rt_5f3c9a1e", vn.lutrinh.app.domain.catalog.RouteCode.of("HG4N7KQE")!!, 3, "ab".repeat(32), 7L, credits = "Ảnh: Lữ Trình",
+        )
+        routes.saveLink(link)
+        assertEquals(link, routes.link("t1"))
+        RoomTripRepository(db).deleteTrip("t1")
+        assertNull(routes.link("t1"))
+    }
+
     private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
         .addMigrations(*AppDatabase.MIGRATIONS)
         .allowMainThreadQueries()

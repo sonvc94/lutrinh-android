@@ -105,7 +105,7 @@ data class MediaRef(val sha256: String, val bytes: Long, val video: Boolean)
 /** `route.json` as received: its bytes' sha256 (the package hash) and the parsed package. */
 data class FetchedRoute(val sha256: String, val pkg: RoutePackage)
 
-/** A downloaded route, as sent to "POST /updates" (nothing about the user's trip). */
+/** A downloaded route, as sent to the update check (nothing about the user's trip). */
 data class LinkRef(val code: RouteCode, val routeId: String, val version: Int)
 
 /** Remote state of a downloaded route. */
