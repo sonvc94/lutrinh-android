@@ -88,9 +88,25 @@ docs/                 spec 01–08 (08 = design), 09 = redesign inventory + img/
 ```bash
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
 export ANDROID_HOME=/Volumes/wdblack/flutter/android-sdk
-./gradlew clean assembleDebug testDebugUnitTest          # JVM tests
+export GRADLE_USER_HOME=/Volumes/wdblack/tmp/gradle-home
+export TMPDIR=/Volumes/wdblack/tmp/<task>; mkdir -p "$TMPDIR"   # <task> = your crew/worktree name
+./gradlew clean assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin   # the gate
 ANDROID_SERIAL=emulator-5580 ./gradlew connectedDebugAndroidTest   # UI tests on the AVD below
 ```
+
+**Builds, caches and scratch live on `/Volumes/wdblack/tmp` (captain 2026-11-10), never `/tmp`,
+`/private/tmp` or `~/.gradle`:**
+
+* Gradle user home = `/Volumes/wdblack/tmp/gradle-home` and scratch = `$TMPDIR` as above, in every shell.
+* Project build output: root `build.gradle.kts` redirects every module to
+  `/Volumes/wdblack/tmp/lutrinh-build/<checkout dir name>/<module>`, so each worktree has its own
+  (nothing is written to `build/` or `app/build/` any more). Override with
+  `-Plutrinh.buildRoot=<dir>` or env `LUTRINH_BUILD_ROOT`; if the disk is absent the default `build/`
+  is used. `./gradlew -q printBuildDir` prints the resolved dirs.
+* The debug APK is `/Volumes/wdblack/tmp/lutrinh-build/<checkout dir name>/app/outputs/apk/debug/app-debug.apk`
+  (reports: `.../app/reports/`).
+* APKs, screenshots, scripts, recordings and DB copies go under `/Volumes/wdblack/tmp/<task>/`.
+* Before any install: `export ANDROID_SERIAL=<your own device>` (see Emulator and Traps).
 
 `connectedDebugAndroidTest` uninstalls the app afterwards (app data is gone); run `installDebug`
 again before manual checks.

@@ -26,7 +26,8 @@ Requirements: JDK 17, Android SDK with platform 35 (build-tools are fetched by G
 export JAVA_HOME=/path/to/jdk-17            # e.g. /Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
 export ANDROID_HOME=/path/to/android-sdk    # or put sdk.dir=... in local.properties
 ./gradlew clean assembleDebug
-# → app/build/outputs/apk/debug/app-debug.apk
+# → $BUILD/app/outputs/apk/debug/app-debug.apk, where $BUILD = `./gradlew -q printBuildDir` line for :app
+#   (default /Volumes/wdblack/tmp/lutrinh-build/<checkout dir>/app; `build/` in the checkout if that disk is absent)
 ```
 
 Versions: Gradle 8.12 (wrapper), AGP 8.7.3, Kotlin 2.0.21, compileSdk/targetSdk 35, minSdk 26.
@@ -35,7 +36,7 @@ All library versions are in `gradle/libs.versions.toml`.
 ## Run
 
 ```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r "$BUILD/outputs/apk/debug/app-debug.apk"   # $BUILD = the :app dir above
 adb shell am start -n vn.lutrinh.app/.MainActivity
 ```
 
@@ -51,7 +52,7 @@ sample trips (a Hà Giang loop and Ninh Bình) with generated pictures.
 JVM unit tests: validation (`ValidationTest`), ordering/route/stats/defaults (`OrderingTest`), use
 cases with in-memory fakes (`UseCasesTest`) and the Room database incl. cascade deletes, run on
 Robolectric with an in-memory database (`RoomRepositoryTest`), photo import sizing/orientation
-(`PhotoImportPlanTest`). Reports: `app/build/reports/tests/testDebugUnitTest/index.html`.
+(`PhotoImportPlanTest`). Reports: `$BUILD/reports/tests/testDebugUnitTest/index.html`.
 
 Instrumented Compose UI tests (create / edit / delete a trip, add a step via a quick-place chip)
 run on a connected device or emulator:
@@ -61,7 +62,7 @@ ANDROID_SERIAL=<device> ./gradlew connectedDebugAndroidTest
 ```
 
 They clean up the trips they create (titles starting with `UITEST`). Report:
-`app/build/reports/androidTests/connected/debug/index.html`.
+`$BUILD/reports/androidTests/connected/debug/index.html`.
 
 ## Photos
 
