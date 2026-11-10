@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import vn.lutrinh.app.ui.theme.Lift
@@ -115,16 +114,16 @@ fun TopoBadge(text: String, tone: BadgeTone, modifier: Modifier = Modifier) {
 
 /**
  * The specimen's map chip (`.chip`): bold 14 text on card paper over the map, 12 dp corners,
- * chip shadow. [dark] = the forest chip that marks the current point.
+ * chip shadow over the map ([floating]). [dark] = the forest chip that marks the current point.
  */
 @Composable
-fun MapChip(text: String, modifier: Modifier = Modifier, dark: Boolean = false, elevation: Dp = Lift.Chip) {
+fun MapChip(text: String, modifier: Modifier = Modifier, dark: Boolean = false, floating: Boolean = true) {
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
         color = if (dark) MaterialTheme.colorScheme.inverseSurface else MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = if (dark) MaterialTheme.colorScheme.inverseOnSurface else MaterialTheme.colorScheme.onSurface,
-        shadowElevation = elevation,
+        shadowElevation = if (floating) Lift.Chip else 0.dp,
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp), maxLines = 1)
     }

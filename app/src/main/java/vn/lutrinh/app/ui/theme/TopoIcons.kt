@@ -90,6 +90,8 @@ object TopoIcons {
     const val PAUSE = "M9 6v12M15 6v12"
     const val STOP = "M8 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
     val RECORD_DOT = dot(12f, 12f, 6f)
+    /** Offline (R15): a cloud struck through. */
+    const val CLOUD_OFF = "M7 18h10a3.5 3.5 0 0 0 .6-6.95A5.5 5.5 0 0 0 7.2 9.1 4.5 4.5 0 0 0 7 18zM4 4l16 16"
     /** Battery on its side with a charge bolt (R22 "Ghi hành trình ổn định"). */
     const val BATTERY = "M5 8h12a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM21 10.5v3M11.5 9.5L9.5 12h3l-2 2.5"
     /** "Bản đồ" basemap: a folded sheet. */
@@ -158,4 +160,5 @@ object TopoIcons {
     val Stop = icon("Stop", STOP)
     val Record = icon("Record", "", RECORD_DOT)
     val Battery = icon("Battery", BATTERY)
+    val CloudOff = icon("CloudOff", CLOUD_OFF)
 }

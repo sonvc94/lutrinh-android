@@ -31,6 +31,7 @@ import androidx.compose.ui.zIndex
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.usecase.MediaOrder
 import vn.lutrinh.app.domain.usecase.VideoRules
+import vn.lutrinh.app.ui.theme.Lift
 
 /**
  * R27: the step editor's photo strip. Long-press a tile, then drag it sideways; the others make
@@ -72,7 +73,7 @@ fun ReorderableMediaRow(
                                 translationX = dragOffset
                                 scaleX = 1.06f
                                 scaleY = 1.06f
-                                shadowElevation = 12f
+                                shadowElevation = Lift.Panel.toPx()
                             }
                         } else Modifier.animateItem(),
                     )

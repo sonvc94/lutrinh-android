@@ -1,13 +1,10 @@
 package vn.lutrinh.app.ui.tracks
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PinDrop
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +25,8 @@ import vn.lutrinh.app.ui.common.rememberGazetteer
 import vn.lutrinh.app.ui.common.displayDay
 import vn.lutrinh.app.ui.common.displayTime
 import vn.lutrinh.app.ui.common.formatCoord
+import vn.lutrinh.app.ui.theme.TopoIcons
+import vn.lutrinh.app.ui.theme.ledge
 
 /**
  * "Gợi ý điểm dừng" (R17, docs/03-screens.md): places where a finished track stayed ≥ 20 min
@@ -71,13 +70,13 @@ private fun SuggestionCard(s: StopSuggestion, galleryCount: Int?, steps: List<St
     val end = s.dwell.endAt.localDateTime()
     val defaultTitle = DisplayFormat.defaultStepTitle(start)
     Surface(
-        shape = MaterialTheme.shapes.large,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        modifier = Modifier.fillMaxWidth().ledge(),
     ) {
         Column(Modifier.padding(start = 12.dp, end = 8.dp, top = 10.dp, bottom = 4.dp)) {
             Row(verticalAlignment = Alignment.Top) {
-                Icon(Icons.Outlined.PinDrop, null, tint = TrackInk, modifier = Modifier.padding(top = 2.dp))
+                Icon(TopoIcons.Place, null, tint = TrackInk, modifier = Modifier.padding(top = 2.dp))
                 Column(Modifier.padding(start = 10.dp).weight(1f)) {
                     Text(
                         "${start.toLocalDate().displayDay()} · ${start.displayTime()}–${end.displayTime()}",

@@ -5,9 +5,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Design guard (docs/08-design.md "Guard"): colours come from the tokens in `ui/theme/` and the
- * app draws no decorative gradients or generated pictures. Scans the main sources as text, so it
- * runs in `testDebugUnitTest` (Gradle runs JVM tests from the module directory).
+ * Design guard (docs/08-design.md §11 "Guard"), the checkable rules of the topo-outdoor style:
+ * colours, radii and shadows come from the tokens in `ui/theme/` (Palette, Radii, Lift), icons are
+ * TopoIcons, only the licensed fonts are bundled, and the app draws no gradients or generated
+ * pictures. Scans the main sources as text, so it runs in `testDebugUnitTest` (Gradle runs JVM
+ * tests from the module directory).
  */
 class DesignGuardTest {
     private val root = File("src/main/java/vn/lutrinh/app")
@@ -40,16 +42,16 @@ class DesignGuardTest {
     }
 
     @Test
-    fun noShadowedFabs() {
-        // docs/08 §5 "Buttons": flat FlatFab / MapButton only; the Material FABs live in Buttons.kt.
+    fun fabsOnlyInButtons() {
+        // docs/08 §6 "FAB": the forest ChipFab / MapButton only; the Material FABs live in Buttons.kt.
         val ui = sources().filter { rel(it).startsWith("ui/") && rel(it) != "ui/common/Buttons.kt" }
         val found = hits(ui, Regex("""\b(Small|Large|Extended)?FloatingActionButton\("""))
-        assertTrue("Material FABs (shadow, pill) outside ui/common/Buttons.kt:\n" + found.joinToString("\n"), found.isEmpty())
+        assertTrue("Material FABs (pill, own shadow) outside ui/common/Buttons.kt (use ChipFab):\n" + found.joinToString("\n"), found.isEmpty())
     }
 
     @Test
     fun noPillButtons() {
-        // docs/08 §4: 4 dp corners; M3 filled/tonal/outlined buttons default to a full pill.
+        // docs/08 §6 "Buttons": 12 dp corners (shapes.small); M3 filled/tonal/outlined buttons default to a full pill.
         val ui = sources().filter { rel(it).startsWith("ui/") }
         val found = ui.flatMap { f ->
             Regex("""(?<![\w.])(Button|OutlinedButton|FilledTonalButton|ElevatedButton)\(""").findAll(f.readText())
@@ -61,9 +63,66 @@ class DesignGuardTest {
 
     @Test
     fun noSystemBlueOnMaps() {
-        // The my-location dot is the ChamBright token, not the Google blue.
+        // The my-location dot is the Waypoint token (specimen #2B6CB0), not the Google blue.
         val found = hits(sources(), Regex("""1A73E8""", RegexOption.IGNORE_CASE))
         assertTrue("system blue left:\n" + found.joinToString("\n"), found.isEmpty())
+    }
+
+    @Test
+    fun cornerRadiiOnlyFromTokens() {
+        // docs/08 §4: the four radii 8/12/18/22 are Radii tokens (or MaterialTheme.shapes); CircleShape is for dots.
+        val outside = sources().filterNot { rel(it).startsWith("ui/theme/") }
+        val found = hits(outside, Regex("""RoundedCornerShape\((?!Radii\.)|CutCornerShape\("""))
+        assertTrue("corner radii not from Radii/MaterialTheme.shapes:\n" + found.joinToString("\n"), found.isEmpty())
+    }
+
+    @Test
+    fun shadowsOnlyFromLiftTokens() {
+        // docs/08 §4 "Elevation": cards sit on a ledge; only things over the map lift, by Lift.Chip / Lift.Panel.
+        val found = hits(sources(), Regex("""shadowElevation\s*=|\.shadow\(|Elevation\(\s*defaultElevation\s*=\s*[1-9]"""))
+            .filterNot { "Lift." in it }
+        assertTrue("shadows not from the Lift tokens:\n" + found.joinToString("\n"), found.isEmpty())
+    }
+
+    @Test
+    fun bundledFontsAreTheSpecFontsWithALicence() {
+        // docs/08 §3: Noto Sans (body) + Barlow Condensed (numerals), SIL OFL, licence text shipped in assets/licenses.
+        val fonts = File("src/main/res/font").listFiles().orEmpty().map { it.name }.sorted()
+        assertTrue("no fonts in res/font", fonts.isNotEmpty())
+        val families = mapOf("noto_sans_" to "NotoSans-OFL.txt", "barlow_condensed_" to "BarlowCondensed-OFL.txt")
+        fonts.forEach { name ->
+            val licence = families.entries.firstOrNull { name.startsWith(it.key) }?.value
+            assertTrue("font $name is not a docs/08 font", licence != null)
+            assertTrue("$name: licence $licence missing", File("src/main/assets/licenses/$licence").isFile)
+        }
+        val old = hits(sources(), Regex("""be_vietnam|AtlasIcons|\bFlatFab\b|\bCham(Bright)?\b"""))
+        assertTrue("references to the old atlas design:\n" + old.joinToString("\n"), old.isEmpty())
+    }
+
+    /**
+     * Files not yet redone in the topo style (docs/09-redesign-inventory.md, batches 2-4). They may
+     * still use stock Material icons and other font weights; each later batch removes its files
+     * here, and a listed file that is already clean fails the test so the list only shrinks.
+     */
+    private val notYetTopo = setOf(
+        "ui/offline/OfflineMapsScreen.kt",
+        "ui/share/ShareTripScreen.kt",
+        "ui/steps/FromPhotosScreen.kt",
+        "ui/steps/StopPhotosUi.kt",
+        "ui/trips/CoverPicker.kt",
+        "ui/trips/TripEditScreen.kt",
+    )
+
+    private val legacyLook = Regex("""import androidx\.compose\.material\.icons|FontWeight\.(Thin|ExtraLight|Light|SemiBold|ExtraBold|Black)\b""")
+
+    @Test
+    fun topoIconsAndTypeWeights() {
+        // docs/08 §3/§5: TopoIcons only; Noto Sans 400/500/700 (Barlow 500-700 via numerals()).
+        val files = sources().filterNot { rel(it).startsWith("ui/theme/") }
+        val found = hits(files.filterNot { rel(it) in notYetTopo }, legacyLook)
+        assertTrue("stock Material icons or off-scale font weights (use TopoIcons / the type scale):\n" + found.joinToString("\n"), found.isEmpty())
+        val clean = notYetTopo.filter { name -> files.none { rel(it) == name } || hits(files.filter { rel(it) == name }, legacyLook).isEmpty() }
+        assertTrue("already topo, remove from notYetTopo: $clean", clean.isEmpty())
     }
 
     @Test

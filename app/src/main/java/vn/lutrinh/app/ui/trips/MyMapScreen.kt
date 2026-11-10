@@ -92,7 +92,7 @@ import vn.lutrinh.app.ui.theme.Palette
 import vn.lutrinh.app.ui.theme.hairline
 import vn.lutrinh.app.ui.theme.numerals
 
-/** Trip colours on "Bản đồ của tôi" (R14): the 8 data colours of docs/08, chàm first. */
+/** Trip colours on "Bản đồ của tôi" (R14): the 8 data colours of docs/08, signal orange first. */
 private val TripPalette = Palette.TripColors
 
 data class MyMapTrip(
@@ -253,7 +253,7 @@ fun MyMapScreen(
 /**
  * A trip on "Bản đồ của tôi": white card on a hairline; the trip's colour is a short line sample
  * beside the title, the same stroke as on the map (a legend key, not a coloured edge). Selected =
- * a 2 dp chàm border.
+ * a 2 dp forest border.
  */
 @Composable
 private fun TripMapCard(t: MyMapTrip, selected: Boolean, onClick: () -> Unit) {

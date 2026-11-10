@@ -40,7 +40,7 @@ object SummaryImage {
     private val PAPER = Palette.Parchment.toArgb()
     private val INK = Palette.Ink.toArgb()
     private val MUTED = Palette.InkMuted.toArgb()
-    private val CHAM = Palette.Signal.toArgb()
+    private val SIGNAL = Palette.Signal.toArgb()
     private val LINE = Palette.Grid.toArgb()
     private val CARD = Palette.Card.toArgb()
     private val LEDGE = Palette.Ledge.toArgb()
@@ -167,7 +167,7 @@ object SummaryImage {
         c.translate(bx, by)
         c.scale(glyph / 24f, glyph / 24f)
         c.drawPath(PathParser.createPathFromPathData(TopoIcons.ROUTE), Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = CHAM; style = Paint.Style.STROKE; strokeWidth = 2f; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+            color = SIGNAL; style = Paint.Style.STROKE; strokeWidth = 2f; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
         })
         c.drawPath(PathParser.createPathFromPathData(TopoIcons.ROUTE_DOT), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = FOREST })
         c.restore()
@@ -184,8 +184,8 @@ object SummaryImage {
         val stroke = 3f
         val barH = 16f
         val bar = RectF(x + stroke / 2, top + stroke / 2, x + w - stroke / 2, top + barH)
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = CHAM }
-        val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = CHAM; style = Paint.Style.STROKE; strokeWidth = stroke }
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = SIGNAL }
+        val line = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = SIGNAL; style = Paint.Style.STROKE; strokeWidth = stroke }
         val label = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = MUTED; textSize = 30f; typeface = numerals; fontFeatureSettings = "tnum" }
         scale.ticks.forEachIndexed { i, t ->
             if (i % 2 == 0) {

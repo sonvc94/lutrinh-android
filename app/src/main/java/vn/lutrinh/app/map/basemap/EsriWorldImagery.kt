@@ -29,7 +29,7 @@ class EsriWorldImagery(apiKey: String) : BasemapProvider {
         labelColor = "#FFFFFF",
         labelHalo = Palette.Forest.rgbHex(),
         repaint = mapOf(
-            // Cool limestone (docs/08 Map), light enough to read on imagery; no warm sand.
+            // Sand and contour brown (docs/08 §7 Map), light enough to read on imagery.
             "boundary_2" to mapOf("line-color" to Palette.Sand.rgbHex()),
             "boundary_3" to mapOf("line-color" to Palette.Contour.rgbHex()),
         ),

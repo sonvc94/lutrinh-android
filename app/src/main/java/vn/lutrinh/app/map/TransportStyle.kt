@@ -25,7 +25,7 @@ import vn.lutrinh.app.ui.theme.Palette
 import vn.lutrinh.app.ui.theme.rgbHex
 
 /**
- * How a leg line is drawn (docs/05-map.md "Legs"): every line is the route chàm; the kind only
+ * How a leg line is drawn (docs/05-map.md "Legs"): every line is the route signal orange; the kind only
  * changes the stroke. GROUND = solid with white casing + soft shadow, FLIGHT = dashed lifted
  * great-circle arc, BOAT = dotted, WALK = thin dotted. [code] is the map feature property value.
  */
@@ -34,7 +34,7 @@ enum class LegLine(val code: String) { GROUND("ground"), FLIGHT("flight"), BOAT(
 /**
  * Look of each transport mode: one table used by the map, the timeline and the mode sheet.
  * [color] tints the mode's icon (map badge, timeline chip, sheet): one colour for all modes, the
- * route chàm (docs/08 "one accent"); modes differ by icon and by the line kind, not by hue.
+ * route signal orange (docs/08 "one route colour"); modes differ by icon and by the line kind, not by hue.
  */
 data class TransportStyle(
     val color: Color,

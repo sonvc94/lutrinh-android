@@ -6,9 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.OfflinePin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,7 +21,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.GeoPoint
-import vn.lutrinh.app.ui.theme.hairline
+import vn.lutrinh.app.ui.theme.Lift
+import vn.lutrinh.app.ui.theme.TopoIcons
 
 /**
  * Offline indicator drawn over every map (R15). Nothing while online. Offline, a small chip
@@ -42,12 +40,12 @@ internal fun OfflineIndicator(center: GeoPoint?, modifier: Modifier = Modifier) 
     if (area != null) {
         Surface(
             modifier = modifier.padding(8.dp),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = 0.94f),
-            border = hairline,
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+            shadowElevation = Lift.Chip,
         ) {
-            Row(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.OfflinePin, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(TopoIcons.Download, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(stringResource(R.string.offline_indicator, area.name), style = MaterialTheme.typography.labelMedium)
             }
         }
@@ -55,11 +53,12 @@ internal fun OfflineIndicator(center: GeoPoint?, modifier: Modifier = Modifier) 
         Surface(
             modifier = modifier.padding(8.dp).widthIn(max = 320.dp),
             shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
-            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            color = MaterialTheme.colorScheme.inverseSurface,
+            contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+            shadowElevation = Lift.Panel,
         ) {
-            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.CloudOff, null, Modifier.size(20.dp))
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(TopoIcons.CloudOff, null, Modifier.size(20.dp))
                 Column {
                     Text(stringResource(R.string.offline_no_network), style = MaterialTheme.typography.labelLarge)
                     Text(stringResource(R.string.offline_not_downloaded), style = MaterialTheme.typography.bodySmall)

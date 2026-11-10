@@ -14,8 +14,8 @@ import vn.lutrinh.app.ui.theme.rgbHex
 import kotlin.math.cos
 
 /*
- * "Vị trí của tôi" (docs/05-map.md): the fix of the last tap as a bright-chàm dot with its accuracy
- * circle (docs/08 token ChamBright: the map-only chàm, never the system blue).
+ * "Vị trí của tôi" (docs/05-map.md): the fix of the last tap as a waypoint-blue dot with its accuracy
+ * circle (docs/08 token Waypoint, the specimen waypoint blue, never the system blue).
  */
 
 private val BLUE: String = Palette.Waypoint.rgbHex()

@@ -64,7 +64,7 @@ fun MapAttribution(basemap: BasemapProvider, modifier: Modifier = Modifier, rout
     // Fixed 9 dp (not sp): the credit must not grow with the font scale and cover a small map (F25).
     val size = with(LocalDensity.current) { 9.dp.toSp() }
     val uri = LocalUriHandler.current
-    Column(modifier.background(Color.White.copy(alpha = 0.75f)).padding(horizontal = 4.dp, vertical = 1.dp), horizontalAlignment = Alignment.End) {
+    Column(modifier.background(Palette.Card.copy(alpha = 0.8f)).padding(horizontal = 4.dp, vertical = 1.dp), horizontalAlignment = Alignment.End) {
         routing.forEach { credit ->
             Text(
                 text = credit.text + " · " + stringResource(R.string.routing_fix_map),
