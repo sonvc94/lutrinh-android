@@ -17,7 +17,7 @@ import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.KmScale
 import vn.lutrinh.app.domain.usecase.ShareStats
 import androidx.compose.ui.graphics.toArgb
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import vn.lutrinh.app.ui.theme.Palette
 
 /**
@@ -36,14 +36,21 @@ object SummaryImage {
     const val MAP_PIXEL_RATIO = 2.5f
     const val MAP_PADDING = 70
 
-    // docs/08-design.md tokens: limestone paper, ink text, one chàm accent, hairlines.
-    private val PAPER = Palette.Paper.toArgb()
+    // docs/08-design.md tokens: topo parchment, ink text, the signal-orange route accent, grid lines.
+    private val PAPER = Palette.Parchment.toArgb()
     private val INK = Palette.Ink.toArgb()
     private val MUTED = Palette.InkMuted.toArgb()
-    private val CHAM = Palette.Cham.toArgb()
-    private val LINE = Palette.Hairline.toArgb()
+    private val CHAM = Palette.Signal.toArgb()
+    private val LINE = Palette.Grid.toArgb()
+    private val CARD = Palette.Card.toArgb()
+    private val LEDGE = Palette.Ledge.toArgb()
+    private val FOREST = Palette.Forest.toArgb()
 
-    /** Faces of the image: Be Vietnam Pro for words, Barlow Condensed for numbers (as in the app). */
+    /** The specimen's radii at 3 px per dp (1080 px ≈ a 360 dp phone): panel 22, thumbnail 12. */
+    private const val PANEL_R = 66f
+    private const val THUMB_R = 36f
+
+    /** Faces of the image: Noto Sans for words, Barlow Condensed for numbers (as in the app). */
     data class Fonts(
         val title: Typeface = Typeface.DEFAULT_BOLD,
         val text: Typeface = Typeface.DEFAULT,
@@ -77,7 +84,7 @@ object SummaryImage {
         c.drawText(TextUtils.ellipsize(input.dates, datePaint, contentW.toFloat(), TextUtils.TruncateAt.END).toString(), MARGIN.toFloat(), y - datePaint.ascent(), datePaint)
         y += datePaint.descent() - datePaint.ascent() + 36f
 
-        // Map with rounded corners and a hairline border.
+        // Map as a panel: 22 dp corners and a grid line.
         val mapRect = RectF(MARGIN.toFloat(), y, (MARGIN + MAP_WIDTH).toFloat(), y + MAP_HEIGHT)
         val shader = BitmapShader(input.map, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).apply {
             setLocalMatrix(Matrix().apply {
@@ -85,23 +92,28 @@ object SummaryImage {
                 postTranslate(mapRect.left, mapRect.top)
             })
         }
-        c.drawRoundRect(mapRect, 36f, 36f, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { this.shader = shader })
-        c.drawRoundRect(mapRect, 36f, 36f, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2f; color = LINE })
+        c.drawRoundRect(mapRect, PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { this.shader = shader })
+        c.drawRoundRect(mapRect, PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 2f; color = LINE })
         y = mapRect.bottom + 40f
 
-        // Stats as a readout (docs/08 §5): the km total large, the counts on its baseline to the
-        // right (or under it when they do not fit), then a chàm scale bar of the total.
+        // Stats as a readout panel (docs/08 §5, the specimen's `.pan`): a Card panel with a solid
+        // ledge; the km total large, the counts on its baseline to the right (or under it when they
+        // do not fit), then a signal-orange scale bar of the total.
         val s = input.stats
+        val pad = 48f
+        val panelTop = y
+        val panelX = MARGIN.toFloat()
+        val panelW = contentW.toFloat()
         val gap = 20f
         val num = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 112f; typeface = input.fonts.numerals; fontFeatureSettings = "tnum" }
         val unit = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 44f; typeface = input.fonts.title }
         val countNum = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 60f; typeface = input.fonts.numerals; fontFeatureSettings = "tnum" }
         val lab = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = MUTED; textSize = 32f; typeface = input.fonts.text }
         val kmText = DisplayFormat.kmNumber(s.distanceKm.toLong())
-        val baseline = y - num.ascent() * 0.86f
-        c.drawText(kmText, MARGIN.toFloat(), baseline, num)
-        val kmEnd = MARGIN + num.measureText(kmText) + 14f
-        c.drawText("km", kmEnd, baseline, unit)
+        val inL = panelX + pad
+        val inR = panelX + panelW - pad
+        val baseline = y + pad - num.ascent() * 0.86f
+        val kmEnd = inL + num.measureText(kmText) + 14f
         val counts = listOf(
             DisplayFormat.count(s.stepCount.toLong()) to "điểm dừng",
             DisplayFormat.count(s.photoCount.toLong()) to "ảnh",
@@ -109,20 +121,27 @@ object SummaryImage {
         )
         val countW = counts.map { (v, l) -> countNum.measureText(v) + 10f + lab.measureText(l) }
         val countsW = countW.sum() + 36f * (counts.size - 1)
-        val countsFit = kmEnd + unit.measureText("km") + 48f + countsW <= WIDTH - MARGIN
+        val countsFit = kmEnd + unit.measureText("km") + 48f + countsW <= inR
         var countsY = baseline
-        var cx = WIDTH - MARGIN - countsW
+        var cx = inR - countsW
         if (!countsFit) {
             countsY = baseline + 84f
-            cx = MARGIN.toFloat()
+            cx = inL
         }
+        val scale = KmScale.of(s.distanceKm.toDouble())
+        val panelBottom = countsY + 28f + (if (scale != null) 16f + 12f + 4f + 40f else 0f) + pad
+        c.drawRoundRect(RectF(panelX, panelTop + 6f, panelX + panelW, panelBottom + 6f), PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = LEDGE })
+        c.drawRoundRect(RectF(panelX, panelTop, panelX + panelW, panelBottom), PANEL_R, PANEL_R, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = CARD })
+        c.drawText(kmText, inL, baseline, num)
+        c.drawText("km", kmEnd, baseline, unit)
         counts.forEachIndexed { i, (v, l) ->
             c.drawText(v, cx, countsY, countNum)
             c.drawText(l, cx + countNum.measureText(v) + 10f, countsY, lab)
             cx += countW[i] + 36f
         }
         y = countsY + 28f
-        y = drawScaleBar(c, KmScale.of(s.distanceKm.toDouble()), MARGIN.toFloat(), y, contentW.toFloat(), input.fonts.numerals) + 36f
+        drawScaleBar(c, scale, inL, y, inR - inL, input.fonts.numerals)
+        y = panelBottom + 6f + 36f
 
         // Photos: one row of up to four squares, centre-cropped.
         if (input.photos.isNotEmpty()) {
@@ -130,12 +149,12 @@ object SummaryImage {
             val rowW = input.photos.size * size + (input.photos.size - 1) * gap
             var x = MARGIN + (contentW - rowW) / 2
             input.photos.take(4).forEach { bmp ->
-                drawCropped(c, bmp, RectF(x, y, x + size, y + size), 12f)
+                drawCropped(c, bmp, RectF(x, y, x + size, y + size), THUMB_R)
                 x += size + gap
             }
         }
 
-        // Brand mark, bottom centre: the app's own route glyph (AtlasIcons.ROUTE, as in the app
+        // Brand mark, bottom centre: the app's own route glyph (TopoIcons.ROUTE, as in the app
         // icon: open start ring, a switchback, the end dot) and the app name.
         val brand = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color = INK; textSize = 40f; typeface = input.fonts.title }
         val name = "Lữ Trình"
@@ -147,17 +166,17 @@ object SummaryImage {
         c.save()
         c.translate(bx, by)
         c.scale(glyph / 24f, glyph / 24f)
-        c.drawPath(PathParser.createPathFromPathData(AtlasIcons.ROUTE), Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = CHAM; style = Paint.Style.STROKE; strokeWidth = 1.8f; strokeCap = Paint.Cap.SQUARE; strokeJoin = Paint.Join.MITER
+        c.drawPath(PathParser.createPathFromPathData(TopoIcons.ROUTE), Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = CHAM; style = Paint.Style.STROKE; strokeWidth = 2f; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
         })
-        c.drawPath(PathParser.createPathFromPathData(AtlasIcons.ROUTE_DOT), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = INK })
+        c.drawPath(PathParser.createPathFromPathData(TopoIcons.ROUTE_DOT), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = FOREST })
         c.restore()
         c.drawText(name, bx + glyph + 18f, by + glyph / 2 - (brand.ascent() + brand.descent()) / 2, brand)
         return out
     }
 
     /**
-     * The km scale bar ([KmScale], docs/08 §5) from ([x], [top]), [w] wide: a 16 px chàm bar with
+     * The km scale bar ([KmScale], docs/08 §5) from ([x], [top]), [w] wide: a 16 px signal bar with
      * alternate blocks filled, ticks and their km labels under it. Returns the bottom; nothing for 0 km.
      */
     private fun drawScaleBar(c: Canvas, scale: KmScale?, x: Float, top: Float, w: Float, numerals: Typeface): Float {

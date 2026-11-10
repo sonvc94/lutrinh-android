@@ -2,7 +2,7 @@ package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.BorderStroke
 import vn.lutrinh.app.ui.common.MapButton
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -122,10 +122,10 @@ fun TripMapScreen(
             TopAppBar(
                 title = { Text(detail?.trip?.title ?: stringResource(R.string.trip_map_title), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
                 actions = {
-                    IconButton(onClick = onOpenOffline) { Icon(AtlasIcons.Download, stringResource(R.string.offline_title)) }
+                    IconButton(onClick = onOpenOffline) { Icon(TopoIcons.Download, stringResource(R.string.offline_title)) }
                 },
             )
         },
@@ -181,7 +181,7 @@ fun TripMapScreen(
                 MapStyleButton()
                 MyLocationButton(me)
                 if (detail.steps.size > 1 || selected != null) {
-                    MapButton(AtlasIcons.Fit, stringResource(R.string.trip_map_fit), onClick = { selected = null; fitAll++ })
+                    MapButton(TopoIcons.Fit, stringResource(R.string.trip_map_fit), onClick = { selected = null; fitAll++ })
                 }
             }
             // One card is centred and snapped to; the padding lets the first and last one reach the centre.
@@ -212,7 +212,7 @@ fun TripMapScreen(
                                 if (cover != null) {
                                     LocalPhoto(cover.fileName, Modifier.size(56.dp).clip(MaterialTheme.shapes.small))
                                 } else {
-                                    Box(Modifier.size(56.dp), Alignment.Center) { Icon(AtlasIcons.Photo, null) }
+                                    Box(Modifier.size(56.dp), Alignment.Center) { Icon(TopoIcons.Photo, null) }
                                 }
                                 Column(Modifier.padding(start = 10.dp)) {
                                     // R20: a draft has no number and says "Nháp".

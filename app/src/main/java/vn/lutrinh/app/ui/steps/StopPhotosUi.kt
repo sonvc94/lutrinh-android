@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.steps
 
 import android.net.Uri
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -127,7 +127,7 @@ fun StopPhotosSection(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         TextButton(onClick = onRequestAccess) {
-                            Icon(AtlasIcons.AddPhotos, null)
+                            Icon(TopoIcons.AddPhotos, null)
                             Spacer(Modifier.padding(3.dp))
                             Text(stringResource(R.string.stop_photos_pick_more))
                         }

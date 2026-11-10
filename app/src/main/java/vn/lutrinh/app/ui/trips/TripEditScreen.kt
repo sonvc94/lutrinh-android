@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.activity.compose.BackHandler
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -175,7 +175,7 @@ fun TripEditScreen(
             TopAppBar(
                 title = { Text(stringResource(if (isNew) R.string.trip_create_title else R.string.trip_edit_title)) },
                 navigationIcon = {
-                    IconButton(onClick = back) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = back) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
                 actions = {
                     TextButton(onClick = vm::save) { Text(stringResource(R.string.action_save)) }
@@ -262,7 +262,7 @@ fun TripEditScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
-                        Icon(AtlasIcons.Delete, null)
+                        Icon(TopoIcons.Delete, null)
                         Spacer(Modifier.padding(4.dp))
                         Text(stringResource(R.string.trip_delete_button))
                     }
@@ -294,7 +294,7 @@ private fun CoverRow(f: TripForm, onChange: () -> Unit) {
     OutlinedButton(shape = MaterialTheme.shapes.small, onClick = onChange, modifier = Modifier.fillMaxWidth().height(72.dp), contentPadding = PaddingValues(8.dp)) {
         Box(Modifier.size(56.dp).clip(MaterialTheme.shapes.small).background(MaterialTheme.colorScheme.surfaceVariant), Alignment.Center) {
             if (cover != null) LocalPhoto(cover.fileName, Modifier.fillMaxSize())
-            else Icon(AtlasIcons.Photo, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            else Icon(TopoIcons.Photo, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {

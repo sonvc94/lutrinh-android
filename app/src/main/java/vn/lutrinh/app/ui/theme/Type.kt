@@ -10,33 +10,35 @@ import androidx.compose.ui.unit.sp
 import vn.lutrinh.app.R
 
 /**
- * Be Vietnam Pro (SIL OFL, licence in assets/licenses/) is bundled, never downloaded: the app is
- * local-only. It sets all text, titles and body alike (docs/08-design.md "Type").
+ * Noto Sans (SIL OFL, licence in assets/licenses/) for every word, bundled, never downloaded (the
+ * app is local-only). The specimen sets text in Noto Sans SC; its Latin + Vietnamese member is Noto
+ * Sans, subset to Latin/Vietnamese (docs/08 §3). Weights as in the specimen: 400, 500, 700.
  */
 val TextFont = FontFamily(
-    Font(R.font.be_vietnam_pro_regular, FontWeight.Normal),
-    Font(R.font.be_vietnam_pro_medium, FontWeight.Medium),
-    Font(R.font.be_vietnam_pro_semibold, FontWeight.SemiBold),
-    Font(R.font.be_vietnam_pro_bold, FontWeight.Bold),
+    Font(R.font.noto_sans_regular, FontWeight.Normal),
+    Font(R.font.noto_sans_medium, FontWeight.Medium),
+    Font(R.font.noto_sans_bold, FontWeight.Bold),
 )
 
 /**
- * Barlow Condensed (SIL OFL, licence in assets/licenses/) for numbers that stand alone (counts,
- * km, times): Be Vietnam Pro has no tabular figures, Barlow has `tnum`, and a condensed face reads
- * like a map readout. Never for words (its stacked Vietnamese marks get tight at small sizes).
+ * Barlow Condensed (SIL OFL, licence in assets/licenses/) for numbers that stand alone (km, times,
+ * counts, the specimen's `.n` readouts): tabular lining figures, condensed like a GPS readout.
+ * Never for words (its stacked Vietnamese marks get tight at small sizes).
  */
 val NumeralFont = FontFamily(
     Font(R.font.barlow_condensed_medium, FontWeight.Medium),
     Font(R.font.barlow_condensed_semibold, FontWeight.SemiBold),
+    Font(R.font.barlow_condensed_bold, FontWeight.Bold),
 )
 
-/** A number set as a readout: Barlow Condensed with tabular lining figures. */
-fun TextStyle.numerals(): TextStyle = copy(fontFamily = NumeralFont, fontFeatureSettings = "tnum")
+/** A number set as a readout (specimen `.n`): Barlow Condensed 700, tabular figures, +0.01 em. */
+fun TextStyle.numerals(): TextStyle =
+    copy(fontFamily = NumeralFont, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum", letterSpacing = 0.01.em)
 
 /**
- * One modular scale, ratio 1.2 from a 16 sp body: 12 · 14 · 16 · 19 · 23 · 28 · 33 · 40 sp
- * (13.3 is raised to the 14 sp body floor; nothing under 12 sp). Weights: 400 body, 500 labels,
- * 600 titles.
+ * The specimen's scale (px at 360 px width = dp): 40 readout · 28 screen title · 26 sheet title ·
+ * 17 card title / callout · 15 status · 14 meta and chips · 13 labels (700, +0.06 em) · 12 floor.
+ * Weights: 400 body, 500 fields, 700 titles, labels and chips (the specimen has no 600).
  */
 private fun style(size: Int, line: Int, weight: FontWeight, tracking: Double = 0.0) = TextStyle(
     fontFamily = TextFont,
@@ -47,19 +49,19 @@ private fun style(size: Int, line: Int, weight: FontWeight, tracking: Double = 0
 )
 
 val AppTypography = Typography(
-    displayLarge = style(40, 48, FontWeight.SemiBold, -0.01),
-    displayMedium = style(33, 40, FontWeight.SemiBold, -0.01),
-    displaySmall = style(28, 34, FontWeight.SemiBold),
-    headlineLarge = style(33, 40, FontWeight.SemiBold, -0.01),
-    headlineMedium = style(28, 34, FontWeight.SemiBold),
-    headlineSmall = style(23, 30, FontWeight.SemiBold),
-    titleLarge = style(23, 30, FontWeight.Medium),
-    titleMedium = style(19, 26, FontWeight.SemiBold),
-    titleSmall = style(16, 22, FontWeight.SemiBold),
-    bodyLarge = style(16, 24, FontWeight.Normal),
-    bodyMedium = style(14, 20, FontWeight.Normal),
-    bodySmall = style(12, 16, FontWeight.Normal, 0.01),
-    labelLarge = style(14, 20, FontWeight.Medium, 0.01),
-    labelMedium = style(12, 16, FontWeight.Medium, 0.02),
-    labelSmall = style(12, 16, FontWeight.Medium, 0.02),
+    displayLarge = style(40, 40, FontWeight.Bold),
+    displayMedium = style(34, 40, FontWeight.Bold),
+    displaySmall = style(30, 36, FontWeight.Bold),
+    headlineLarge = style(32, 40, FontWeight.Bold),
+    headlineMedium = style(28, 36, FontWeight.Bold),
+    headlineSmall = style(26, 34, FontWeight.Bold),
+    titleLarge = style(22, 30, FontWeight.Bold),
+    titleMedium = style(17, 24, FontWeight.Bold),
+    titleSmall = style(15, 22, FontWeight.Bold),
+    bodyLarge = style(17, 26, FontWeight.Normal),
+    bodyMedium = style(14, 21, FontWeight.Normal),
+    bodySmall = style(13, 19, FontWeight.Normal),
+    labelLarge = style(14, 20, FontWeight.Bold),
+    labelMedium = style(13, 18, FontWeight.Bold, 0.06),
+    labelSmall = style(12, 16, FontWeight.Bold, 0.04),
 )

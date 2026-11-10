@@ -27,11 +27,11 @@ class EsriWorldImagery(apiKey: String) : BasemapProvider {
         labelLayerIds = Positron.LABEL_LAYER_IDS,
         labelField = Positron.LABEL_FIELD,
         labelColor = "#FFFFFF",
-        labelHalo = "#26332C",
+        labelHalo = Palette.Forest.rgbHex(),
         repaint = mapOf(
             // Cool limestone (docs/08 Map), light enough to read on imagery; no warm sand.
-            "boundary_2" to mapOf("line-color" to Palette.Limestone.rgbHex()),
-            "boundary_3" to mapOf("line-color" to Palette.LimestoneDim.rgbHex()),
+            "boundary_2" to mapOf("line-color" to Palette.Sand.rgbHex()),
+            "boundary_3" to mapOf("line-color" to Palette.Contour.rgbHex()),
         ),
         imagery = RasterImagery(listOf(tileUrl(apiKey)), tileSize = 256, minZoom = 0, maxZoom = MAX_ZOOM, attribution = IMAGERY_CREDIT),
         imageryAbove = Positron.BACKGROUND_LAYER,

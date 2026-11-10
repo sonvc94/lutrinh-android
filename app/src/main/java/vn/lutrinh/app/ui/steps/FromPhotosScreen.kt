@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.steps
 
 import android.Manifest
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -273,7 +273,7 @@ fun FromPhotosScreen(
                 title = { Text(stringResource(R.string.from_photos_title)) },
                 navigationIcon = {
                     IconButton(onClick = { if (reviewing) confirmDiscard = true else onBack() }) {
-                        Icon(AtlasIcons.Back, stringResource(R.string.action_back))
+                        Icon(TopoIcons.Back, stringResource(R.string.action_back))
                     }
                 },
             )

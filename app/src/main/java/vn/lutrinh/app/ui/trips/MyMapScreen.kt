@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.BorderStroke
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -173,7 +173,7 @@ fun MyMapScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.my_map_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },

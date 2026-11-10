@@ -1,13 +1,11 @@
 package vn.lutrinh.app.ui.steps
 
 import android.net.Uri
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import android.content.ActivityNotFoundException
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -43,8 +41,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -602,7 +598,7 @@ fun StepEditScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { if (f.dirty) confirmDiscard = true else onBack() }) {
-                        Icon(AtlasIcons.Back, stringResource(R.string.action_back))
+                        Icon(TopoIcons.Back, stringResource(R.string.action_back))
                     }
                 },
                 actions = { TextButton(onClick = { vm.save() }, enabled = !f.importing) { Text(stringResource(R.string.action_save)) } },
@@ -635,7 +631,7 @@ fun StepEditScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateField(stringResource(R.string.step_field_date), f.date.display(), Modifier.weight(1f)) { pickDate = true }
                     OutlinedButton(shape = MaterialTheme.shapes.small, onClick = { pickTime = true }, modifier = Modifier.weight(0.7f).height(64.dp)) {
-                        Icon(Icons.Outlined.Schedule, null)
+                        Icon(TopoIcons.Time, null)
                         Spacer(Modifier.padding(4.dp))
                         Column(Modifier.weight(1f)) {
                             Text(stringResource(R.string.step_field_time), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -697,7 +693,7 @@ fun StepEditScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
-                        Icon(AtlasIcons.Delete, null)
+                        Icon(TopoIcons.Delete, null)
                         Spacer(Modifier.padding(4.dp))
                         Text(stringResource(R.string.step_delete_button))
                     }
@@ -797,9 +793,9 @@ private fun PhotosSection(
         // R28/R29: picker (photos and videos), system camera photo, system camera video.
         val canAdd = !f.importing && f.photoCount < Limits.PHOTOS_PER_STEP_MAX
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AddMediaButton(AtlasIcons.AddPhotos, stringResource(R.string.step_photos_add), canAdd, onAdd)
-            AddMediaButton(Icons.Outlined.PhotoCamera, stringResource(R.string.step_photos_take), canAdd, onTakePhoto)
-            AddMediaButton(Icons.Outlined.Videocam, stringResource(R.string.step_photos_record), canAdd, onRecordVideo)
+            AddMediaButton(TopoIcons.AddPhotos, stringResource(R.string.step_photos_add), canAdd, onAdd)
+            AddMediaButton(TopoIcons.Camera, stringResource(R.string.step_photos_take), canAdd, onTakePhoto)
+            AddMediaButton(TopoIcons.Video, stringResource(R.string.step_photos_record), canAdd, onRecordVideo)
         }
         if (f.importing) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (f.importFailed > 0) Text(stringResource(R.string.step_photos_import_failed, f.importFailed), color = MaterialTheme.colorScheme.error)
@@ -892,7 +888,7 @@ private fun PhotoTile(
         IconButton(
             onClick = onRemove,
             modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(26.dp).background(Color.Black.copy(alpha = 0.55f), CircleShape),
-        ) { Icon(AtlasIcons.Close, stringResource(R.string.step_photo_remove), tint = Color.White, modifier = Modifier.size(16.dp)) }
+        ) { Icon(TopoIcons.Close, stringResource(R.string.step_photo_remove), tint = Color.White, modifier = Modifier.size(16.dp)) }
     }
 }
 

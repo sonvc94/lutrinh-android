@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.tracks
 
 import android.Manifest
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -237,7 +237,7 @@ fun RecordTrackControl(
     when (dialog) {
         TrackDialog.RATIONALE -> AlertDialog(
             onDismissRequest = { dialog = null },
-            icon = { Icon(AtlasIcons.Route, null, tint = TrackInk) },
+            icon = { Icon(TopoIcons.Route, null, tint = TrackInk) },
             title = { Text(stringResource(R.string.track_permission_title)) },
             text = { Text(stringResource(R.string.track_permission_body)) },
             confirmButton = {
@@ -296,7 +296,7 @@ fun TrackList(tracks: List<Track>, onDelete: (String) -> Unit, modifier: Modifie
         )
         tracks.forEach { t ->
             Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(AtlasIcons.Route, null, tint = TrackInk)
+                Icon(TopoIcons.Route, null, tint = TrackInk)
                 Column(Modifier.padding(start = 12.dp).weight(1f)) {
                     Text(t.startedAt.localDateTime().displayDateTime(), style = MaterialTheme.typography.titleSmall)
                     Text(
@@ -315,7 +315,7 @@ fun TrackList(tracks: List<Track>, onDelete: (String) -> Unit, modifier: Modifie
                     }
                 }
                 if (!t.isOpen) {
-                    IconButton(onClick = { confirm = t }) { Icon(AtlasIcons.Delete, stringResource(R.string.track_delete)) }
+                    IconButton(onClick = { confirm = t }) { Icon(TopoIcons.Delete, stringResource(R.string.track_delete)) }
                 }
             }
         }

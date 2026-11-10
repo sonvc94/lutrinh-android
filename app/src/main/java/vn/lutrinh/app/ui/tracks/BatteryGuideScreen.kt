@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.tracks
 
 import android.content.Intent
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -72,7 +72,7 @@ fun BatteryGuideScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text(stringResource(R.string.battery_guide_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },

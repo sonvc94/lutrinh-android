@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.common
 
 import android.content.Context
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import android.content.Intent
 import android.net.Uri
 import android.os.CancellationSignal
@@ -104,7 +104,7 @@ fun rememberMyLocation(snackbar: SnackbarHostState): MyLocationState {
 /** Square map button ([MapButton], same look as "Xem toàn bộ hành trình") + the one-time permission explanation. */
 @Composable
 fun MyLocationButton(state: MyLocationState, modifier: Modifier = Modifier) {
-    MapButton(AtlasIcons.MyLocation, stringResource(R.string.my_location), state::onClick, modifier)
+    MapButton(TopoIcons.MyLocation, stringResource(R.string.my_location), state::onClick, modifier)
     if (state.askPermission) {
         AlertDialog(
             onDismissRequest = { state.askPermission = false },

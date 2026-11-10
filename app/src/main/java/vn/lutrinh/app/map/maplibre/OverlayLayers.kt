@@ -205,7 +205,7 @@ internal fun isSelected(): Expression = Expression.eq(Expression.get("selected")
 private fun kindIs(kind: LegLine): Expression = Expression.eq(Expression.get("kind"), Expression.literal(kind.code))
 
 /** The soft halo under route lines: ink (docs/08), kept faint so the stroke, not a shadow, carries the line. */
-private val LINE_SHADOW: String = Palette.Ink.rgbHex()
+private val LINE_SHADOW: String = Palette.Forest.rgbHex()
 
 /** Pins and badges shrink a little at country zoom so a long trip does not turn into a blob. */
 internal val SYMBOL_SIZE_BY_ZOOM: Expression get() = byZoom(4f to 0.75f, 8f to 0.9f, 10f to 1f)

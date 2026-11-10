@@ -53,9 +53,11 @@ object StaticTripMap {
     /** R36: one router's credit as plain text, with the OSM "fix the map" address. */
     fun routingLine(credit: RoutingCredit): String = "${credit.text} · Sửa bản đồ: ${credit.fixUrl.removePrefix("https://")}"
 
-    private val ROUTE = Palette.Cham.toArgb()
-    private val END = Palette.Ink.toArgb()
-    private val ACCENT = Palette.ChamBright.toArgb()
+    private val ROUTE = Palette.Signal.toArgb()
+    private val STEP = Palette.Waypoint.toArgb()
+    private val START = Palette.Trail.toArgb()
+    private val END = Palette.Forest.toArgb()
+    private val ACCENT = Palette.Signal.toArgb()
     private val TRACK = Color.parseColor(TRACK_COLOR)
 
     /**
@@ -134,7 +136,7 @@ object StaticTripMap {
             paint.color = TRACK; paint.strokeWidth = 2.6f * r; c.drawPath(p, paint)
         }
         // Pins: later steps on top, start and end above the rest (docs/05 "Step pins").
-        val colors = PinColors(ROUTE, END, ACCENT, END)
+        val colors = PinColors(STEP, START, END, ACCENT, END)
         val routed = input.steps.size >= 2
         val order = input.steps.indices.sortedBy { i -> if (routed && (i == 0 || i == input.steps.lastIndex)) input.steps.size + i else i }
         order.forEach { i ->

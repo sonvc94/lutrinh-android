@@ -18,7 +18,7 @@ import kotlin.math.cos
  * circle (docs/08 token ChamBright: the map-only chàm, never the system blue).
  */
 
-private val BLUE: String = Palette.ChamBright.rgbHex()
+private val BLUE: String = Palette.Waypoint.rgbHex()
 private const val METRES_PER_PX_Z20 = 0.07464 // 512 px world tile at the equator
 
 /** Adds the accuracy circle and the dot (own source [src]) above the route lines, below pins and badges. */

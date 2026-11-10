@@ -10,7 +10,7 @@ import vn.lutrinh.app.ui.common.ReadoutCount
 import vn.lutrinh.app.ui.common.KmReadout
 import vn.lutrinh.app.ui.common.MapButton
 import vn.lutrinh.app.ui.common.FlatFab
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import vn.lutrinh.app.domain.model.StopDecision
 import vn.lutrinh.app.domain.model.StopDecisionKind
 import vn.lutrinh.app.domain.model.StopSuggestion
@@ -26,7 +26,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.ui.draw.alpha
-import androidx.compose.material.icons.outlined.EditNote
 import vn.lutrinh.app.domain.usecase.stepNumbers
 import vn.lutrinh.app.ui.common.DraftBadge
 import androidx.compose.foundation.clickable
@@ -48,8 +47,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -336,31 +333,31 @@ fun TripDetailScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
                 actions = {
                     if (detail != null) {
-                        IconButton(onClick = onShare) { Icon(AtlasIcons.Share, stringResource(R.string.share_trip)) }
-                        IconButton(onClick = { menu = true }) { Icon(AtlasIcons.More, stringResource(R.string.action_more)) }
+                        IconButton(onClick = onShare) { Icon(TopoIcons.Share, stringResource(R.string.share_trip)) }
+                        IconButton(onClick = { menu = true }) { Icon(TopoIcons.More, stringResource(R.string.action_more)) }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.trip_edit_title)) },
-                                leadingIcon = { Icon(AtlasIcons.Edit, null) },
+                                leadingIcon = { Icon(TopoIcons.Edit, null) },
                                 onClick = { menu = false; onEdit() },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.trip_cover_change)) },
-                                leadingIcon = { Icon(AtlasIcons.Photo, null) },
+                                leadingIcon = { Icon(TopoIcons.Photo, null) },
                                 onClick = { menu = false; pickCover = true },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.gpx_export)) },
-                                leadingIcon = { Icon(AtlasIcons.Route, null) },
+                                leadingIcon = { Icon(TopoIcons.Route, null) },
                                 onClick = { menu = false; detail?.trip?.id?.let(transfer.exportGpx) },
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.trip_delete_button)) },
-                                leadingIcon = { Icon(AtlasIcons.Delete, null) },
+                                leadingIcon = { Icon(TopoIcons.Delete, null) },
                                 onClick = { menu = false; confirmDelete = true },
                             )
                         }
@@ -373,16 +370,16 @@ fun TripDetailScreen(
             // on scroll and opens a menu with the two ways to add a step.
             val fabLabel = stringResource(R.string.trip_fab_add)
             if (detail != null) Box {
-                FlatFab(fabLabel, AtlasIcons.Add, onClick = { fabMenu = true }, expanded = fabExpanded)
+                FlatFab(fabLabel, TopoIcons.Add, onClick = { fabMenu = true }, expanded = fabExpanded)
                 DropdownMenu(expanded = fabMenu, onDismissRequest = { fabMenu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.trip_add_step)) },
-                        leadingIcon = { Icon(AtlasIcons.AddStep, null) },
+                        leadingIcon = { Icon(TopoIcons.AddStep, null) },
                         onClick = { fabMenu = false; onAddStep() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.from_photos_title)) },
-                        leadingIcon = { Icon(AtlasIcons.AddPhotos, null) },
+                        leadingIcon = { Icon(TopoIcons.AddPhotos, null) },
                         onClick = { fabMenu = false; onAddFromPhotos() },
                     )
                 }
@@ -457,7 +454,7 @@ private fun TripDetailContent(
                     stopSuggestions = d.stopMarkers(),
                 )
                 Box(Modifier.fillMaxSize().clickable(onClick = onOpenMap))
-                MapButton(AtlasIcons.Expand, stringResource(R.string.trip_open_map), onOpenMap, Modifier.align(Alignment.TopEnd).padding(12.dp))
+                MapButton(TopoIcons.Expand, stringResource(R.string.trip_open_map), onOpenMap, Modifier.align(Alignment.TopEnd).padding(12.dp))
             }
         }
         item { TripHeader(d) }
@@ -568,7 +565,7 @@ private fun StepRow(number: Int?, step: Step, isLast: Boolean, onClick: () -> Un
                         .background(MaterialTheme.colorScheme.surface, CircleShape)
                         .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape),
                     Alignment.Center,
-                ) { Icon(Icons.Outlined.EditNote, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary) }
+                ) { Icon(TopoIcons.Note, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary) }
             } else Box(
                 Modifier.padding(top = 10.dp).size(28.dp).background(MaterialTheme.colorScheme.primary, CircleShape),
                 Alignment.Center,

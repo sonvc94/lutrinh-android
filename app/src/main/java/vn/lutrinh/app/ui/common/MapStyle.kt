@@ -1,12 +1,9 @@
 package vn.lutrinh.app.ui.common
 
 import androidx.compose.foundation.layout.Column
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.SatelliteAlt
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -51,7 +48,7 @@ fun MapStyleButton(modifier: Modifier = Modifier) {
     val chosen by settings.chosen.collectAsStateWithLifecycle()
     var open by rememberSaveable { mutableStateOf(false) }
     val label = stringResource(R.string.map_style)
-    MapButton(AtlasIcons.Layers, label, onClick = { open = true }, modifier)
+    MapButton(TopoIcons.Layers, label, onClick = { open = true }, modifier)
     if (!open) return
     ModalBottomSheet(onDismissRequest = { open = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.navigationBarsPadding().padding(bottom = 12.dp)) {
@@ -64,7 +61,7 @@ fun MapStyleButton(modifier: Modifier = Modifier) {
                         Text(stringResource(if (provider.offlineAllowed) R.string.map_style_offline_ok else R.string.map_style_online_only))
                     },
                     leadingContent = {
-                        Icon(if (provider.style.imagery != null) Icons.Outlined.SatelliteAlt else Icons.Outlined.Map, contentDescription = null)
+                        Icon(if (provider.style.imagery != null) TopoIcons.Satellite else TopoIcons.Map, contentDescription = null)
                     },
                     trailingContent = { RadioButton(selected = selected, onClick = null) },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),

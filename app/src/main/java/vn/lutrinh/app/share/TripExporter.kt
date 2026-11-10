@@ -60,9 +60,9 @@ class TripExporter(
 
     private val fonts: SummaryImage.Fonts by lazy {
         SummaryImage.Fonts(
-            title = ResourcesCompat.getFont(this.context, R.font.be_vietnam_pro_semibold) ?: Typeface.DEFAULT_BOLD,
-            text = ResourcesCompat.getFont(this.context, R.font.be_vietnam_pro_regular) ?: Typeface.DEFAULT,
-            numerals = ResourcesCompat.getFont(this.context, R.font.barlow_condensed_semibold) ?: Typeface.DEFAULT_BOLD,
+            title = ResourcesCompat.getFont(this.context, R.font.noto_sans_bold) ?: Typeface.DEFAULT_BOLD,
+            text = ResourcesCompat.getFont(this.context, R.font.noto_sans_regular) ?: Typeface.DEFAULT,
+            numerals = ResourcesCompat.getFont(this.context, R.font.barlow_condensed_bold) ?: Typeface.DEFAULT_BOLD,
         )
     }
 

@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.steps
 
 import androidx.compose.foundation.clickable
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,16 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material.icons.outlined.Place
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -127,12 +122,12 @@ fun StepDetailScreen(
             TopAppBar(
                 title = { Text(d?.let { if (it.number != null) "${it.number}. ${it.step.title}" else it.step.title } ?: "", maxLines = 1) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
                 actions = {
                     if (d != null) {
-                        IconButton(onClick = onEdit) { Icon(AtlasIcons.Edit, stringResource(R.string.action_edit)) }
-                        IconButton(onClick = { confirmDelete = true }) { Icon(AtlasIcons.Delete, stringResource(R.string.action_delete)) }
+                        IconButton(onClick = onEdit) { Icon(TopoIcons.Edit, stringResource(R.string.action_edit)) }
+                        IconButton(onClick = { confirmDelete = true }) { Icon(TopoIcons.Delete, stringResource(R.string.action_delete)) }
                     }
                 },
             )
@@ -155,9 +150,9 @@ fun StepDetailScreen(
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(step.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
                         if (step.isDraft) DraftCard(onPublish = vm::publish)
-                        InfoRow(Icons.Outlined.Schedule, step.arrivedAt.displayDateTime())
+                        InfoRow(TopoIcons.Time, step.arrivedAt.displayDateTime())
                         val (place, coords) = placeLines(step.location, s.value.tripSteps, step.id, rememberGazetteer())
-                        InfoRow(Icons.Outlined.Place, place)
+                        InfoRow(TopoIcons.Place, place)
                         coords?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 26.dp))
                         }
@@ -220,14 +215,14 @@ private fun StepNeighbours(d: StepDetail, onOpenStep: (String) -> Unit) {
         Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f), Alignment.CenterStart) {
                 if (prev != null) TextButton(onClick = { onOpenStep(prev.id) }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null)
+                    Icon(TopoIcons.Previous, null)
                     Text(stringResource(R.string.step_detail_prev, prev.title), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             Box(Modifier.weight(1f), Alignment.CenterEnd) {
                 if (next != null) TextButton(onClick = { onOpenStep(next.id) }) {
                     Text(stringResource(R.string.step_detail_next, next.title), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
+                    Icon(TopoIcons.Next, null)
                 }
             }
         }

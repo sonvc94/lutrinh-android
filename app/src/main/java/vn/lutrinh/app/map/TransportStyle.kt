@@ -1,16 +1,9 @@
 package vn.lutrinh.app.map
 
+import vn.lutrinh.app.ui.theme.TopoIcons
 import android.graphics.Bitmap
 import android.graphics.Paint
 import androidx.annotation.StringRes
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.DirectionsBoat
-import androidx.compose.material.icons.filled.DirectionsBus
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.Train
-import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.geometry.Size
@@ -53,19 +46,19 @@ data class TransportStyle(
 
     companion object {
         fun of(mode: TransportMode): TransportStyle = when (mode) {
-            TransportMode.WALK -> TransportStyle(MODE_TINT, LegLine.WALK, Icons.AutoMirrored.Filled.DirectionsWalk, R.string.transport_walk)
-            TransportMode.MOTORBIKE -> TransportStyle(MODE_TINT, LegLine.GROUND, Icons.Filled.TwoWheeler, R.string.transport_motorbike)
-            TransportMode.CAR -> TransportStyle(MODE_TINT, LegLine.GROUND, Icons.Filled.DirectionsCar, R.string.transport_car)
-            TransportMode.BUS -> TransportStyle(MODE_TINT, LegLine.GROUND, Icons.Filled.DirectionsBus, R.string.transport_bus)
-            TransportMode.TRAIN -> TransportStyle(MODE_TINT, LegLine.GROUND, Icons.Filled.Train, R.string.transport_train)
-            TransportMode.PLANE -> TransportStyle(MODE_TINT, LegLine.FLIGHT, Icons.Filled.Flight, R.string.transport_plane)
-            TransportMode.BOAT -> TransportStyle(MODE_TINT, LegLine.BOAT, Icons.Filled.DirectionsBoat, R.string.transport_boat)
+            TransportMode.WALK -> TransportStyle(MODE_TINT, LegLine.WALK, TopoIcons.Walk, R.string.transport_walk)
+            TransportMode.MOTORBIKE -> TransportStyle(MODE_TINT, LegLine.GROUND, TopoIcons.Motorbike, R.string.transport_motorbike)
+            TransportMode.CAR -> TransportStyle(MODE_TINT, LegLine.GROUND, TopoIcons.Car, R.string.transport_car)
+            TransportMode.BUS -> TransportStyle(MODE_TINT, LegLine.GROUND, TopoIcons.Bus, R.string.transport_bus)
+            TransportMode.TRAIN -> TransportStyle(MODE_TINT, LegLine.GROUND, TopoIcons.Train, R.string.transport_train)
+            TransportMode.PLANE -> TransportStyle(MODE_TINT, LegLine.FLIGHT, TopoIcons.Plane, R.string.transport_plane)
+            TransportMode.BOAT -> TransportStyle(MODE_TINT, LegLine.BOAT, TopoIcons.Boat, R.string.transport_boat)
         }
     }
 }
 
-/** The one tint of every transport mode (docs/08). */
-private val MODE_TINT: Color = Palette.Cham
+/** The one tint of every transport mode (docs/08): the route's signal orange, as text-safe SignalDeep. */
+private val MODE_TINT: Color = Palette.SignalDeep
 
 /** "#RRGGBB" for MapLibre style expressions. */
 internal fun Color.hex(): String = rgbHex()

@@ -1,10 +1,9 @@
 package vn.lutrinh.app.ui.common
 
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.EditLocationAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,7 +27,7 @@ import vn.lutrinh.app.domain.usecase.PlaceLabel
 @Composable
 fun ChangeLocationButton(hasLocation: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     TextButton(onClick = onClick, enabled = enabled, modifier = modifier) {
-        Icon(Icons.Outlined.EditLocationAlt, null, Modifier.size(18.dp))
+        Icon(TopoIcons.Place, null, Modifier.size(18.dp))
         Spacer(Modifier.padding(3.dp))
         Text(stringResource(if (hasLocation) R.string.step_location_change else R.string.step_location_pick))
     }

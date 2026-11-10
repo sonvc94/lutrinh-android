@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.offline
 
 import androidx.compose.foundation.layout.Arrangement
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -120,7 +120,7 @@ fun OfflineMapsScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.offline_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },
@@ -264,7 +264,7 @@ private fun AreaCard(title: String, description: String, s: OfflineAreaState, ac
                 OfflinePhase.COMPLETE -> stringResource(R.string.offline_complete, formatBytes(s.completedBytes))
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (done) Icon(AtlasIcons.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                if (done) Icon(TopoIcons.Check, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                 Text(
                     status,
                     style = MaterialTheme.typography.bodyMedium,

@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.photos
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -99,7 +99,7 @@ fun PhotoViewerScreen(
             )
         }
         IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(4.dp)) {
-            Icon(AtlasIcons.Close, stringResource(R.string.action_close), tint = Color.White)
+            Icon(TopoIcons.Close, stringResource(R.string.action_close), tint = Color.White)
         }
     }
 }

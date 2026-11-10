@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.picker
 
 import vn.lutrinh.app.ui.common.BasemapFallbackNotice
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import vn.lutrinh.app.ui.common.MapStyleButton
 import android.os.CancellationSignal
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -171,7 +171,7 @@ fun LocationPickerScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.picker_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },
@@ -189,7 +189,7 @@ fun LocationPickerScreen(
             )
             // Fixed centre needle: its lower end marks the picked point.
             Icon(
-                AtlasIcons.Needle,
+                TopoIcons.Needle,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.align(Alignment.Center).size(48.dp).offset(y = (-22).dp),
@@ -229,7 +229,7 @@ fun LocationPickerScreen(
                     AssistChip(
                         onClick = onMyLocation,
                         enabled = !locating,
-                        leadingIcon = { Icon(AtlasIcons.MyLocation, null, Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(TopoIcons.MyLocation, null, Modifier.size(18.dp)) },
                         label = { Text(stringResource(if (locating) R.string.picker_locating else R.string.picker_my_location)) },
                         colors = chipColors,
                     )

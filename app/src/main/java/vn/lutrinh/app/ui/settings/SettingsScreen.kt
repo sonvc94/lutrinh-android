@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import vn.lutrinh.app.LuTrinhApp
 import vn.lutrinh.app.R
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 
 /**
  * "Cài đặt": the routing switch (R36). On (default) = routed legs follow the road and their stop
@@ -47,7 +47,7 @@ fun SettingsScreen(onBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) } },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) } },
             )
         },
     ) { padding ->

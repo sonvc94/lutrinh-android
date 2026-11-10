@@ -2,7 +2,7 @@ package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import vn.lutrinh.app.ui.common.FlatFab
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -129,34 +129,34 @@ fun TripListScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onOpenMyMap) { Icon(AtlasIcons.Atlas, stringResource(R.string.my_map_title)) }
+                    IconButton(onClick = onOpenMyMap) { Icon(TopoIcons.Atlas, stringResource(R.string.my_map_title)) }
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(AtlasIcons.More, stringResource(R.string.action_more))
+                        Icon(TopoIcons.More, stringResource(R.string.action_more))
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.offline_title)) },
-                            leadingIcon = { Icon(AtlasIcons.Download, null) },
+                            leadingIcon = { Icon(TopoIcons.Download, null) },
                             onClick = { menuOpen = false; onOpenOffline() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.gpx_import)) },
-                            leadingIcon = { Icon(AtlasIcons.FileOpen, null) },
+                            leadingIcon = { Icon(TopoIcons.FileOpen, null) },
                             onClick = { menuOpen = false; transfer.importGpx() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.backup_title)) },
-                            leadingIcon = { Icon(AtlasIcons.Upload, null) },
+                            leadingIcon = { Icon(TopoIcons.Upload, null) },
                             onClick = { menuOpen = false; transfer.backup() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.backup_restore)) },
-                            leadingIcon = { Icon(AtlasIcons.Restore, null) },
+                            leadingIcon = { Icon(TopoIcons.Restore, null) },
                             onClick = { menuOpen = false; transfer.restore() },
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.settings_title)) },
-                            leadingIcon = { Icon(AtlasIcons.Settings, null) },
+                            leadingIcon = { Icon(TopoIcons.Settings, null) },
                             onClick = { menuOpen = false; onOpenSettings() },
                         )
                         if (BuildConfig.DEBUG) {
@@ -172,7 +172,7 @@ fun TripListScreen(
         },
         floatingActionButton = {
             val fabLabel = stringResource(R.string.trips_new)
-            FlatFab(fabLabel, AtlasIcons.Add, onClick = onCreate)
+            FlatFab(fabLabel, TopoIcons.Add, onClick = onCreate)
         },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
@@ -258,27 +258,27 @@ private fun TripCard(summary: TripSummary, route: List<GeoPoint>, onOpen: () -> 
             }
             Box {
                 IconButton(onClick = { menu = true }) {
-                    Icon(AtlasIcons.More, stringResource(R.string.trip_options, summary.trip.title))
+                    Icon(TopoIcons.More, stringResource(R.string.trip_options, summary.trip.title))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.action_edit)) },
-                        leadingIcon = { Icon(AtlasIcons.Edit, null) },
+                        leadingIcon = { Icon(TopoIcons.Edit, null) },
                         onClick = { menu = false; onEdit() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.share_trip)) },
-                        leadingIcon = { Icon(AtlasIcons.Share, null) },
+                        leadingIcon = { Icon(TopoIcons.Share, null) },
                         onClick = { menu = false; onShare() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.gpx_export)) },
-                        leadingIcon = { Icon(AtlasIcons.Route, null) },
+                        leadingIcon = { Icon(TopoIcons.Route, null) },
                         onClick = { menu = false; onExportGpx() },
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.action_delete)) },
-                        leadingIcon = { Icon(AtlasIcons.Delete, null) },
+                        leadingIcon = { Icon(TopoIcons.Delete, null) },
                         onClick = { menu = false; onDelete() },
                     )
                 }

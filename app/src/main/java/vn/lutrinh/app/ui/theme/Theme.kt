@@ -7,69 +7,101 @@ import androidx.compose.material3.Shapes
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * "Sổ bản đồ" (field atlas) tokens, docs/08-design.md. Every colour of the app lives here (and the
- * basemap repaint in map/basemap); the oklch value each was set from and the photo it was sampled
- * from are in docs/08. One accent only: chàm (Hmong indigo). Everything else is neutral.
+ * "Topo outdoor" tokens (docs/08-design.md), taken from the huashu-design specimen
+ * `assets/style-specimens/app/06-topo-outdoor.html` (MIT, © alchaincyf). Every colour of the app
+ * lives here (and the basemap repaint in map/basemap); docs/08 §2 lists the specimen value each
+ * token was taken from and §8 the contrast of every text pair. Light only (docs/08 §10).
  */
 object Palette {
-    /** Limestone paper: karst mist over Tam Sơn (Quản Bạ), oklch(0.975 0.003 220). */
-    val Paper = Color(0xFFF5F7F8)
-    /** Raised paper (cards, sheets), oklch(0.993 0.002 220). */
-    val PaperRaised = Color(0xFFFBFDFE)
-    /** Limestone ramp for containers, oklch(0.960 → 0.880, C ≤ 0.008, H 230). */
-    val LimestoneLow = Color(0xFFEFF2F4)
-    val Limestone = Color(0xFFE9EEF0)
-    val LimestoneHigh = Color(0xFFE2E7EA)
-    val LimestoneHighest = Color(0xFFDBE1E4)
-    val LimestoneDim = Color(0xFFD2D9DC)
+    /** Topo paper: the map and every screen background (specimen `.ph`/map rect `#EFEBDA`). */
+    val Parchment = Color(0xFFEFEBDA)
+    /** Cards, panels, sheets, dialogs, chips on the map (specimen `.pan`/`.card`/`.chip` `#FBFAF2`). */
+    val Card = Color(0xFFFBFAF2)
+    /** A card a step down (filled fields, pressed rows); not in the specimen, between Card and Parchment. */
+    val CardDim = Color(0xFFF6F3E6)
+    /** Thumbnail wells, image placeholders, tracks of bars (specimen `.mini` `#E8E3CE`). Ink text only. */
+    val Sand = Color(0xFFE8E3CE)
+    /** Grid and divider lines (specimen profile grid `#E3DEC8`). Decorative. */
+    val Grid = Color(0xFFE3DEC8)
+    /** The 2 dp solid ledge under a card (specimen `.card` `box-shadow: 0 2px 0 #D9D4BE`). Decorative. */
+    val Ledge = Color(0xFFD9D4BE)
 
-    /** Ink: the darkest chàm of the indigo hemp cloth, oklch(0.230 0.014 240). Text and GPS tracks. */
-    val Ink = Color(0xFF171E23)
-    /** Secondary text, oklch(0.450 0.014 240). */
-    val InkMuted = Color(0xFF4F565C)
-    /** Field borders and icons that need 3:1, oklch(0.600 0.012 240). */
-    val Outline = Color(0xFF7A8187)
-    /** Hairline dividers and card edges (decorative, not for text), oklch(0.870 0.008 235). */
-    val Hairline = Color(0xFFCFD5D9)
+    /** Body text (specimen `body` `#2A2A22`). */
+    val Ink = Color(0xFF2A2A22)
+    /** Labels and secondary text (specimen `.lbl`/`.m` `#6B6A58`): on Parchment, CardDim and Card only. */
+    val InkMuted = Color(0xFF6B6A58)
+    /** Field borders and icons that must reach 3:1 (derived: InkMuted lightened; 3.24 on Parchment). */
+    val Outline = Color(0xFF86826B)
 
-    /** Chàm, the one accent: routes, primary actions, links, oklch(0.420 0.095 258). */
-    val Cham = Color(0xFF2A4D80)
-    /** Text on a chàm wash, oklch(0.300 0.080 258). */
-    val ChamDeep = Color(0xFF112D55)
-    /** A barely tinted paper for chosen/primary containers, oklch(0.930 0.018 258). */
-    val ChamWash = Color(0xFFE1E9F4)
-    /** Maps only (small areas): selected leg/pin ring, the my-location dot, oklch(0.520 0.160 262). */
-    val ChamBright = Color(0xFF3263C3)
+    /** Forest: the dark chip / callout of the specimen (`#1F2A24`). Filled buttons, FAB, selection, end pin. */
+    val Forest = Color(0xFF1F2A24)
+    /** Moss: the specimen's page ground (`#2F3B2C`). Pressed Forest and the launcher icon ground. */
+    val Moss = Color(0xFF2F3B2C)
 
-    /** Error, oklch(0.50 0.17 27) (the M3 error red; a system meaning, not decoration). */
+    /** Signal orange: the route and the elevation line (specimen `#E4572E`). Lines and fills only, never text. */
+    val Signal = Color(0xFFE4572E)
+    /** Signal as text (links, accent numbers): darkened to 4.8:1 on Parchment (derived). */
+    val SignalDeep = Color(0xFFB83A16)
+    /** Signal at the specimen's 22-25 % fill over Card, flattened: chosen chips, accent wells. */
+    val SignalWash = Color(0xFFFBE3D9)
+
+    /** Trail green: the start pin (specimen start circle `#2D7A46`). */
+    val Trail = Color(0xFF2D7A46)
+    /** Waypoint blue: step pins and the my-location dot (specimen waypoint circle `#2B6CB0`). */
+    val Waypoint = Color(0xFF2B6CB0)
+    /** Contour brown: contour motifs and province borders (specimen contours `#C09A68`). Decorative. */
+    val Contour = Color(0xFFC09A68)
+    /** Woods and parks on the map (specimen `#D8E4C4`). */
+    val Vegetation = Color(0xFFD8E4C4)
+    /** Water on the map (specimen `#BFDDE6`). */
+    val Water = Color(0xFFBFDDE6)
+
+    /** Badges (specimen `.dif`): easy / moderate / hard pairs, background + text. */
+    val EasyWash = Color(0xFFCFE8CF)
+    val EasyInk = Color(0xFF1F5A2A)
+    val ModerateWash = Color(0xFFFDE6B8)
+    val ModerateInk = Color(0xFF7A4A00)
+    val HardWash = Color(0xFFF6C9C0)
+    val HardInk = Color(0xFF8A2410)
+
+    /** Error (the M3 error red; a system meaning). Its container is the specimen's "hard" badge pair. */
     val Error = Color(0xFFB3261E)
 
     /**
-     * "Bản đồ của tôi" (R14) needs 8 trip colours. Data colours, only on that map, sampled from the
-     * same photos (docs/08): chàm, terraced rice (Du Già), ripe rice, Nho Quế jade, karst slate,
-     * light chàm, earth of Mã Pí Lèng, young rice. Each ≥ 3:1 on the map paper.
+     * "Bản đồ của tôi" (R14) needs 8 trip colours. Data colours, only on that map, from the
+     * specimen's own inks (signal, waypoint, trail, forest, the badge inks) plus a contour brown,
+     * a lake teal and a heather; each ≥ 3:1 on the map paper (docs/08 §8).
      */
     val TripColors = listOf(
-        Cham,
-        Color(0xFF405F39),
-        Color(0xFFA47726),
-        Color(0xFF307672),
-        Color(0xFF637883),
-        Color(0xFF5D7AB0),
-        Color(0xFF79543F),
-        Color(0xFF608A57),
+        Signal,
+        Waypoint,
+        Trail,
+        Forest,
+        ModerateInk,
+        Color(0xFF8C6A3C),
+        Color(0xFF2F7480),
+        Color(0xFF6E4E9A),
     )
 
-    /** Recorded GPS tracks (R16): ink, "where I really went", never a planned-route colour. */
-    val Track = Ink
+    /** Recorded GPS tracks (R16): forest, "where I really went", never the planned-route orange. */
+    val Track = Forest
 
-    /** Map background while tiles load and behind the vector basemap, oklch(0.955 0.005 220). */
-    val MapPaper = Color(0xFFEDF1F2)
+    /** Map background while tiles load and behind the vector basemap. */
+    val MapPaper = Parchment
+    /** Map labels (5.9:1 on the map paper) and their halo. */
+    val MapLabel = Color(0xFF5A5948)
+    val MapHalo = Card
     /** Map credit text (R34), on a translucent white label. */
     val MapCredit = InkMuted
 }
@@ -81,58 +113,75 @@ fun Color.rgbHex(): String {
 }
 
 private val Colors = lightColorScheme(
-    primary = Palette.Cham,
-    onPrimary = Palette.PaperRaised,
-    primaryContainer = Palette.ChamWash,
-    onPrimaryContainer = Palette.ChamDeep,
-    inversePrimary = Palette.ChamWash,
-    secondary = Palette.Ink,
-    onSecondary = Palette.PaperRaised,
-    secondaryContainer = Palette.LimestoneHigh,
-    onSecondaryContainer = Palette.Ink,
-    tertiary = Palette.Ink,
-    onTertiary = Palette.PaperRaised,
-    tertiaryContainer = Palette.LimestoneHigh,
-    onTertiaryContainer = Palette.Ink,
-    background = Palette.Paper,
+    primary = Palette.Forest,
+    onPrimary = Palette.Card,
+    primaryContainer = Palette.Sand,
+    onPrimaryContainer = Palette.Forest,
+    inversePrimary = Palette.Sand,
+    secondary = Palette.SignalDeep,
+    onSecondary = Palette.Card,
+    secondaryContainer = Palette.SignalWash,
+    onSecondaryContainer = Palette.HardInk,
+    tertiary = Palette.Trail,
+    onTertiary = Palette.Card,
+    tertiaryContainer = Palette.EasyWash,
+    onTertiaryContainer = Palette.EasyInk,
+    background = Palette.Parchment,
     onBackground = Palette.Ink,
-    surface = Palette.Paper,
+    surface = Palette.Parchment,
     onSurface = Palette.Ink,
-    surfaceVariant = Palette.LimestoneHigh,
+    surfaceVariant = Palette.Sand,
     onSurfaceVariant = Palette.InkMuted,
-    surfaceTint = Palette.Paper,
-    surfaceContainerLowest = Palette.PaperRaised,
-    surfaceContainerLow = Palette.LimestoneLow,
-    surfaceContainer = Palette.Limestone,
-    surfaceContainerHigh = Palette.LimestoneHigh,
-    surfaceContainerHighest = Palette.LimestoneHighest,
-    surfaceDim = Palette.LimestoneDim,
-    surfaceBright = Palette.PaperRaised,
-    inverseSurface = Palette.Ink,
-    inverseOnSurface = Palette.Paper,
+    surfaceTint = Palette.Parchment,
+    surfaceContainerLowest = Palette.Card,
+    surfaceContainerLow = Palette.Card,
+    surfaceContainer = Palette.Card,
+    surfaceContainerHigh = Palette.Card,
+    surfaceContainerHighest = Palette.CardDim,
+    surfaceDim = Palette.Sand,
+    surfaceBright = Palette.Card,
+    inverseSurface = Palette.Forest,
+    inverseOnSurface = Palette.Card,
     outline = Palette.Outline,
-    outlineVariant = Palette.Hairline,
+    outlineVariant = Palette.Grid,
     error = Palette.Error,
-    onError = Palette.PaperRaised,
+    onError = Palette.Card,
+    errorContainer = Palette.HardWash,
+    onErrorContainer = Palette.HardInk,
+    scrim = Palette.Forest,
 )
 
-/** Two radii only: 4 dp for small things (chips, thumbnails, badges), 12 dp for containers. */
+/**
+ * The specimen's four radii: 8 badges, 12 chips/thumbnails/buttons/fields, 18 cards, 22 panels
+ * (sheets, dialogs, floating map panels, callouts). Nothing is a full pill.
+ */
 object Radii {
-    val Small = 4.dp
-    val Large = 12.dp
+    val Badge = 8.dp
+    val Chip = 12.dp
+    val Card = 18.dp
+    val Panel = 22.dp
 }
 
 private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(Radii.Small),
-    small = RoundedCornerShape(Radii.Small),
-    medium = RoundedCornerShape(Radii.Large),
-    large = RoundedCornerShape(Radii.Large),
-    extraLarge = RoundedCornerShape(Radii.Large),
+    extraSmall = RoundedCornerShape(Radii.Chip),
+    small = RoundedCornerShape(Radii.Chip),
+    medium = RoundedCornerShape(Radii.Card),
+    large = RoundedCornerShape(Radii.Panel),
+    extraLarge = RoundedCornerShape(Radii.Panel),
 )
 
-/** Containers are separated by a hairline, not a shadow (docs/08). */
+/** A 1 dp grid line (dividers inside a card, map buttons on imagery). Not a card edge: cards have a [ledge]. */
 val hairline: BorderStroke
     @Composable @ReadOnlyComposable get() = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+
+/**
+ * The specimen's card edge (`box-shadow: 0 2px 0 #D9D4BE`): a solid 2 dp Ledge band under the
+ * card (corner [radius]), no blur. Put it before `clip`/`background` in the chain.
+ */
+fun Modifier.ledge(radius: Dp = Radii.Card, depth: Dp = 2.dp): Modifier = drawBehind {
+    val r = radius.toPx()
+    drawRoundRect(Palette.Ledge, topLeft = Offset(0f, depth.toPx()), size = Size(size.width, size.height), cornerRadius = CornerRadius(r, r))
+}
 
 @Composable
 fun LuTrinhTheme(content: @Composable () -> Unit) {

@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.share
 
 import android.annotation.SuppressLint
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import android.net.Uri
 import android.os.Build
 import android.webkit.WebView
@@ -107,7 +107,7 @@ fun ShareTripScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.share_trip)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(AtlasIcons.Back, stringResource(R.string.action_back)) }
+                    IconButton(onClick = onBack) { Icon(TopoIcons.Back, stringResource(R.string.action_back)) }
                 },
             )
         },
@@ -124,7 +124,7 @@ fun ShareTripScreen(
                         selected = kind == k,
                         onClick = { vm.kind.value = k },
                         shape = SegmentedButtonDefaults.itemShape(i, ShareKind.entries.size, MaterialTheme.shapes.small),
-                        icon = { SegmentedButtonDefaults.Icon(kind == k) { Icon(if (k == ShareKind.IMAGE) AtlasIcons.Photo else AtlasIcons.Page, null, Modifier.size(18.dp)) } },
+                        icon = { SegmentedButtonDefaults.Icon(kind == k) { Icon(if (k == ShareKind.IMAGE) TopoIcons.Photo else TopoIcons.Page, null, Modifier.size(18.dp)) } },
                     ) { Text(stringResource(if (k == ShareKind.IMAGE) R.string.share_kind_image else R.string.share_kind_page)) }
                 }
             }
@@ -196,7 +196,7 @@ fun ShareTripScreen(
                     enabled = ready != null,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Icon(AtlasIcons.Download, null, Modifier.size(18.dp))
+                    Icon(TopoIcons.Download, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.share_save))
                 }
@@ -205,7 +205,7 @@ fun ShareTripScreen(
                     enabled = ready != null,
                     modifier = Modifier.weight(1f).semantics { stateDescription = if (ready != null) "ready" else "busy" },
                 ) {
-                    Icon(AtlasIcons.Share, null, Modifier.size(18.dp))
+                    Icon(TopoIcons.Share, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.share_action))
                 }

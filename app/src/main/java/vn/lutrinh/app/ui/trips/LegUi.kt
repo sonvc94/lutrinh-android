@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.trips
 
 import androidx.compose.foundation.clickable
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -52,7 +52,7 @@ fun LegChip(leg: Leg, measure: LegMeasure, onClick: () -> Unit, modifier: Modifi
         label = { Text("$label · ${legDistanceText(measure)}", style = MaterialTheme.typography.labelMedium) },
         leadingIcon = {
             Icon(
-                style?.icon ?: AtlasIcons.Route,
+                style?.icon ?: TopoIcons.Route,
                 null,
                 Modifier.size(AssistChipDefaults.IconSize),
                 tint = style?.color ?: MaterialTheme.colorScheme.onSurfaceVariant,
@@ -90,9 +90,9 @@ fun LegModeSheet(leg: Leg, measure: LegMeasure, onPick: (TransportMode?) -> Unit
                 ListItem(
                     headlineContent = { Text(style?.let { stringResource(it.label) } ?: stringResource(R.string.transport_none)) },
                     leadingContent = {
-                        Icon(style?.icon ?: AtlasIcons.Route, null, tint = style?.color ?: MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(style?.icon ?: TopoIcons.Route, null, tint = style?.color ?: MaterialTheme.colorScheme.onSurfaceVariant)
                     },
-                    trailingContent = { if (mode == leg.mode) Icon(AtlasIcons.Check, null, tint = MaterialTheme.colorScheme.primary) },
+                    trailingContent = { if (mode == leg.mode) Icon(TopoIcons.Check, null, tint = MaterialTheme.colorScheme.primary) },
                     modifier = Modifier.clickable { onPick(mode) },
                 )
             }

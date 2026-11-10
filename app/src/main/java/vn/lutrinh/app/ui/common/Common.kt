@@ -1,12 +1,12 @@
 package vn.lutrinh.app.ui.common
 
+import vn.lutrinh.app.ui.theme.TopoIcons
 import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.LocaleList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -120,7 +118,7 @@ fun LocalPhoto(fileName: String, modifier: Modifier = Modifier, contentScale: Co
         modifier = modifier,
         error = {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant), Alignment.Center) {
-                Icon(Icons.Outlined.BrokenImage, stringResource(R.string.photo_missing))
+                Icon(TopoIcons.PhotoOff, stringResource(R.string.photo_missing))
             }
         },
     )
@@ -157,7 +155,7 @@ fun VideoBadge(durationMs: Long, modifier: Modifier = Modifier) {
             .semantics(mergeDescendants = true) { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.PlayArrow, null, tint = Color.White, modifier = Modifier.size(14.dp))
+        Icon(TopoIcons.Play, null, tint = Color.White, modifier = Modifier.size(14.dp))
         Text(DisplayFormat.clock(durationMs), color = Color.White, style = MaterialTheme.typography.labelSmall)
     }
 }

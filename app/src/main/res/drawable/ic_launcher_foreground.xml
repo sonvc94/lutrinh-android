@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Lữ Trình mark (docs/08 §5 "Brand mark"): the route glyph of AtlasIcons.ROUTE / ROUTE_DOT
-     (open start ring, a switchback, the end dot) in paper on the chàm field. Same path data as
-     ui/theme/AtlasIcons.kt; change both together. -->
+<!-- Lữ Trình mark (docs/08 §5 "Brand mark"): the route glyph of TopoIcons.ROUTE / ROUTE_DOT
+     (open start ring, a switchback, the end dot): the route in Signal orange with round ends, the
+     end dot in Card, on the Forest field. Same path data as ui/theme/TopoIcons.kt; change both together. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
     <group android:translateX="30" android:translateY="30" android:scaleX="2" android:scaleY="2">
         <path
-            android:strokeColor="#FBFDFE"
-            android:strokeWidth="1.8"
-            android:strokeLineCap="square"
-            android:strokeLineJoin="miter"
+            android:strokeColor="#E4572E"
+            android:strokeWidth="2"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
             android:pathData="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5M6 15.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5"/>
         <path
-            android:fillColor="#FBFDFE"
+            android:fillColor="#FBFAF2"
             android:pathData="M18 4a2 2 0 1 0 0 4a2 2 0 1 0 0-4z"/>
     </group>
 </vector>

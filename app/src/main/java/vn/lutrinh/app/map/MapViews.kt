@@ -89,7 +89,7 @@ fun rememberRoutingCredits(providerIds: Set<String>): List<RoutingCredit> {
 internal fun rememberMapIcons(): MapIcons {
     val context = LocalContext.current
     val scheme = MaterialTheme.colorScheme
-    val pinColors = PinColors(scheme.primary.toArgb(), Palette.Ink.toArgb(), Palette.ChamBright.toArgb(), Palette.Ink.toArgb())
+    val pinColors = PinColors(Palette.Waypoint.toArgb(), Palette.Trail.toArgb(), Palette.Forest.toArgb(), Palette.Signal.toArgb(), Palette.Forest.toArgb())
     val badges = rememberTransportBadges()
     return remember(pinColors, badges) {
         MapIcons(
@@ -182,7 +182,7 @@ fun TripMap(
     myLocationSignal: Int = 0,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val routeColors = RouteColors(scheme.primary.hex(), Palette.ChamBright.hex())
+    val routeColors = RouteColors(Palette.Signal.hex(), Palette.SignalDeep.hex())
     val icons = rememberMapIcons()
     val presenter = remember { TripMapPresenter(icons) }
     val markerClick = rememberUpdatedState(onMarkerClick)

@@ -47,7 +47,7 @@ internal class MapLibreController(
     private var style: Style? = null
     private var listener: MapListener? = null
 
-    private var routeColors = RouteColors(Palette.Cham.rgbHex(), Palette.ChamBright.rgbHex())
+    private var routeColors = RouteColors(Palette.Signal.rgbHex(), Palette.SignalDeep.rgbHex())
     private var pins = emptyList<MapPin>()
     private var legs = emptyList<MapLeg>()
     private var badges = emptyList<MapBadge>()

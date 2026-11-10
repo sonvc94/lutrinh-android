@@ -1,7 +1,7 @@
 package vn.lutrinh.app.ui.picker
 
 import androidx.compose.foundation.clickable
-import vn.lutrinh.app.ui.theme.AtlasIcons
+import vn.lutrinh.app.ui.theme.TopoIcons
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -39,10 +39,10 @@ fun PlaceSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifie
         value = query,
         onValueChange = { onQuery(it.take(80)) },
         placeholder = { Text(stringResource(R.string.picker_search_hint), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        leadingIcon = { Icon(AtlasIcons.Search, null) },
+        leadingIcon = { Icon(TopoIcons.Search, null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQuery("") }) { Icon(AtlasIcons.Close, stringResource(R.string.picker_search_clear)) }
+                IconButton(onClick = { onQuery("") }) { Icon(TopoIcons.Close, stringResource(R.string.picker_search_clear)) }
             }
         },
         singleLine = true,
