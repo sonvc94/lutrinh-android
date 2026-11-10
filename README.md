@@ -26,7 +26,7 @@ Requirements: JDK 17, Android SDK with platform 35 (build-tools are fetched by G
 export JAVA_HOME=/path/to/jdk-17            # e.g. /Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
 export ANDROID_HOME=/path/to/android-sdk    # or put sdk.dir=... in local.properties
 ./gradlew clean assembleDebug
-# → $BUILD/app/outputs/apk/debug/app-debug.apk, where $BUILD = `./gradlew -q printBuildDir` line for :app
+# → $BUILD/outputs/apk/debug/app-debug.apk, where $BUILD = the `:app` line of `./gradlew -q printBuildDir`
 #   (default /Volumes/wdblack/tmp/lutrinh-build/<checkout dir>/app; `build/` in the checkout if that disk is absent)
 ```
 
