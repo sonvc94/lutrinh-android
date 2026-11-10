@@ -1130,7 +1130,8 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
   not allowed on them), tried again with `auto` when it has no route (car fallback below). Fallback for **car only** when the primary is unavailable: OSRM
   (FOSSGIS `routed-car`). The server addresses live in one registry, never in screens.
 * **What is sent.** Per leg: the two stop positions and the profile, nothing else (no names,
-  notes, photos, dates, account). It is the only data that leaves the device in this phase.
+  notes, photos, dates, account). Besides it, only a route code (R40, typed by the user, to the
+  Lữ Trình route server) leaves the device.
 * **Switch and notice.** Routing is **on by default**. Before the first request the app shows a
   one-time notice ("Vẽ chặng theo đường đi?", what is sent, to FOSSGIS in Germany; "Đã hiểu" or
   "Tắt tính đường"); no request goes out before it was shown. "Cài đặt" (trip list menu) has the
@@ -1298,6 +1299,86 @@ highlights none), a day counter on the map.
 
 *Tests:* `DesignGuardTest` (`spacingOnTheSpaceScale`). Screenshots: `docs/img/std-scale/`.
 *Inspired by* the huashu-design review of the app (captain 2026-11-10, Q-1, Q-6, Q-7, Q-10, Q-12).
+
+## R40 — Ready-made routes by code ("Lộ trình theo mã")
+
+The admin publishes ready-made routes on the Lữ Trình route server (separate repo `lutrinh-server`);
+each has a code. A user types the code, sees a preview and downloads the route as a **new trip**.
+
+* **One interface.** Screens and use cases see only `RouteCatalog` (`domain/catalog/`, like maps
+  R35 and routing R36): `resolve(code)` → summary + download ticket, `fetchRoute`, `fetchMedia`
+  (resume from a byte), `checkUpdates` (≤ 50 links). Adapters: `catalog/server/LuTrinhServerCatalog`
+  (public API v1, docs/02 "Route server API") and `catalog/file/PackageFileCatalog` (a package
+  folder or zip on the device, no UI entry yet). The server address and User-Agent live only in
+  `catalog/Catalogs.kt` (`lutrinh.routeServerUrl` → `BuildConfig`, docs/05 "Route catalog").
+* **Entry.** Trip list top ⋮ "Nhập mã lộ trình", and "Có mã lộ trình?" on the empty list. Hidden
+  when the build has no server address (a release without an https URL).
+* **Code check on the device** (docs/02 "Route code"): upper-case, spaces/dashes dropped, drawn
+  `XXXX-XXXX`; a confusable or foreign character shows at once, a wrong check character at 8
+  ("Có thể gõ nhầm một ký tự. Hãy kiểm tra lại mã."); "Xem lộ trình" is enabled only for a valid
+  code, so a typo never reaches the server. Same vectors as the server (`spec/codes.json`).
+* **What is sent.** Only the code (lookup), the download ticket, and for the update check the code +
+  route id + version of each downloaded route; with each request the device's network address and
+  our User-Agent. Nothing about the user's trips, photos, edits or positions; no cookie, no device
+  id. The code screen says so ("Chỉ mã này và địa chỉ mạng của máy …").
+* **Lookup answers.** Not found / revoked / expired / no longer shared / too many tries (with the
+  minutes of `Retry-After`) show under the field; no network → "Cần có mạng để tải lộ trình";
+  no answer or maintenance → "Máy chủ đang bận, thử lại sau"; a newer `formatVersion` → "Hãy cập
+  nhật ứng dụng để tải lộ trình này" (R38 notices).
+* **Preview.** Code + version, title, description, the route line on paper, km / stops / days /
+  "ảnh · video"; **start date** picker (D-5, default the next Saturday, never today); "Tải luôn bản đồ
+  offline …" (the R15 ready-made region of the route, else its box + margin; shown only when not
+  stored and within R31's limit; ticked by default); the size line "Tải về: 4,3 MB · 14 tệp · cần
+  … trống" (media × 2 + 16 MB, + the map estimate).
+* **Before the download.** No network → the offline dialog; less free space than needed → "Không đủ
+  bộ nhớ trống"; on mobile data a route above 50 MB asks first ("Vẫn tải").
+* **Download in the background** (WorkManager, unique work per code, network required): the route
+  first (strict schema + integrity rules), then every media file into `files/route-staging/<code>/`,
+  resumed with `Range` from the staged bytes after a pause, a lost network or a restart; each file's
+  sha256 is checked, a mismatch is fetched again once, twice refuses the package; an expired ticket
+  is renewed once by looking the code up again. The screen shows percent and bytes, "Lộ trình, 9
+  điểm, 8 chặng", "Ảnh và video 9 / 14", "Tạm dừng"/"Tiếp tục", "Hủy tải" (deletes the staged files,
+  nothing is created) and, offline, "Mất mạng · … · sẽ tự tải tiếp khi có mạng". The user may leave
+  the screen; the ⋮ entry opens on the running download.
+* **Import = a new trip in one transaction** (docs/02 "Route package → trip"): steps, photos, files,
+  leg routes and the `route_links` row together, or nothing. Every leg keeps the server's geometry
+  and is drawn even with "Tính đường đi" off (D-13); R36 never asks a router for it. The trip opens
+  with "Đã thêm chuyến đi từ lộ trình" (+ "Tải bản đồ" → "Bản đồ offline" when the map was not
+  ticked); a ticked map starts downloading (R15) right after the import, from the worker.
+* **Badge and sheet.** The trip page shows "Lộ trình WFAZ-ME3M · v1" (Sand badge); a tap opens the
+  sheet with the version and the credits ("Nguồn ảnh và dữ liệu").
+* **Updates.** On opening a downloaded trip, online, at most once per 24 h per trip, the app asks the
+  update check. A newer version opens the sheet once ("Lộ trình đã được cập nhật": stops added /
+  removed / edited, + photos and bytes, the admin's note) with **"Tải thành chuyến đi mới"** (the code
+  screen, prefilled, looked up at once) and **"Thay bản trong máy"** only while the copy is unedited
+  (D-4; replaces it in place, same trip id, its start date kept), plus "Để sau" (not shown again for
+  that version; the badge says "· có bản mới"). Any change of the trip after the download marks the
+  copy edited.
+* **No longer shared.** When the check answers unpublished, revoked or expired, a closable banner
+  says "Lộ trình này đã ngừng chia sẻ — bản trong máy vẫn đầy đủ"; the trip itself never changes.
+* **Backup** carries `route_links` (R26); downloaded trips are ordinary trips for GPX export, share,
+  edit and delete.
+
+*Tests:* `RouteSpecVectorsTest` (alphabetAndLengthMatchTheSpec, sampleCodesAreValid,
+validInputsNormaliseToTheirCodeAndDisplay, invalidInputsGiveTheSpecErrorAndReason,
+everySingleCharacterTypoIsRejectedOnTheDevice, adjacentTranspositionsGiveTheSpecResult,
+packageVectorsGiveTheSpecProblems), `RoutePackageTest` (sampleReadsAsExpectedJsonSays,
+planMakesANewTripFromThePickedStartDate, nullTimesGetEightOClockPlusThePosition,
+notJsonOrAnotherFormatIsNotRead, trimmedTextFollowsTheSchemaWhitespace, appRegexesUseNoJvmOnlyFlags),
+`RouteDownloadImportTest` (downloadingTheSpecSampleMakesANewTripWith9Stops8Legs14MediaAndALink,
+aStoppedDownloadResumesWithRangeFromTheStagedBytes, anExpiredTokenIsRenewedOnceByLookingTheCodeUpAgain,
+aTokenThatExpiresTwiceStopsTheDownload, aCorruptedFileIsFetchedAgainOnce,
+aFileCorruptedTwiceRefusesThePackageAndImportsNothing, aPackageThatFailsTheSchemaIsRefusedBeforeAnyFile,
+theApiErrorTableMapsToCatalogErrors, aNewerFormatIsRefusedAsFormatUnsupported,
+theUpdateCheckSendsOnlyCodeRouteAndVersionAndReadsTheResults, editingTheDownloadedTripMarksTheLinkEdited,
+replacingAnUneditedCopyKeepsTheTripIdAndSwapsTheFiles), `RouteUpdatesTest`, `CatalogBoundaryTest`
+(serverAddressOnlyInCatalogs, publicApiOnlyInTheServerAdapter, packageFileReaderOnlyInItsAdapter,
+appUsesCatalogsOnlyThroughTheDomainInterface, httpClientOnlyInAdapters),
+`MigrationTest.version9UpgradesWithRouteLinksAndKeepsEverything`,
+`BackupManagerTest.routeLinksTravelWithTheBackup`. Checked by hand on an AVD against the real
+local server (`lutrinh seed-sample`, code WFAZ-ME3M): `docs/img/routes/`.
+*Inspired by* the captain's request (route server + codes) and the approved design (pages 02, 03,
+05, 07: D-4 A, D-5 A, D-13 A).
 
 ## Text rules
 

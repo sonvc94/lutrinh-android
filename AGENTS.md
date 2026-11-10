@@ -3,14 +3,17 @@
 Lữ Trình (`vn.lutrinh.app`) is a local-only travel journal for Vietnam: trips → steps (place on an
 OpenStreetMap map, date/time, note, photos) shown as a timeline and a route map. Native Android
 now (Kotlin, Compose M3, Room, MapLibre, Coil 3); an iOS/Swift port will follow, built from `docs/`.
-No server or login in this phase. One exception (R36): while "Tính đường đi" is on (default,
-one-time notice, switch in "Cài đặt") the two stop positions + travel mode of each road leg go to
-the OpenStreetMap routing server (FOSSGIS Valhalla, OSRM car fallback); nothing else leaves the device.
+No login. What leaves the device: (R36) while "Tính đường đi" is on (default, one-time notice,
+switch in "Cài đặt") the two stop positions + travel mode of each road leg go to the OpenStreetMap
+routing server (FOSSGIS Valhalla, OSRM car fallback); (R40) a route code the user types goes to
+the Lữ Trình route server (repo `lutrinh-server`), which returns the route to download, and the
+update check sends only code + route id + version of downloaded routes. Nothing about the user's
+own trips, photos or positions leaves the device.
 
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R39 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R40 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -43,6 +46,15 @@ app/src/main/java/vn/lutrinh/app/
   routing/  router adapters: Routers.kt (ONLY place for router URLs, User-Agent, registry),
             valhalla/ValhallaRouter (primary, `motor_scooter` for Xe máy), osrm/OsrmRouter (car only);
             RoutingBoundaryTest keeps router words/hosts inside; stored per leg in Room `leg_routes`
+  domain/catalog/  route codes (R40, pure): RouteCatalog (interface) + RouteCode (alphabet, Luhn
+            mod 30), RouteDownload (resume, sha256, refetch/renew once), RouteImport (package → NEW
+            trip, RouteLink, RouteUpdates ≤ 1/day), RoutePackage + PackageRules
+  catalog/  route sources: Catalogs.kt (ONLY place for the server URL = BuildConfig from
+            `lutrinh.routeServerUrl`, User-Agent), PackageJson (strict route.schema.json reader),
+            server/LuTrinhServerCatalog (public API v1), file/PackageFileCatalog; CatalogBoundaryTest;
+            data/RouteDownloads (WorkManager) + RouteStagingDir + RoomRouteRepository (Room `route_links`, v10);
+            ui/routes/ (code / preview / download screen, badge + sheet + banner); shared spec copy in
+            app/src/test/resources/spec/ (SOURCE.md = server commit)
   ui/settings/  "Cài đặt" (routing switch) + RoutingNoticeDialog (shown once from AppNavigation)
   map/basemap/   basemap providers (R32-R34): one adapter per provider (OpenFreeMap.kt = "Bản đồ"
             + Positron style ids/repaint/label ids, EsriWorldImagery.kt = "Vệ tinh"), registered in
@@ -268,4 +280,13 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   animator_duration_scale` when it was unset). Frames: `adb shell screenrecord` (works on the
   google_apis AVD) → `ffmpeg -vsync 0` frames → `tile` strips. A live MapView (GL surface) draws as
   a dark box inside a moving `sharedBounds`: screens hide it while `navTransitionRunning()`.
+* Route codes (R40) against a real server: run `lutrinh-server` per its AGENTS.md "Chạy thử trên máy
+  (localhost)" with your own `UV_PROJECT_ENVIRONMENT`/`LUTRINH_DATA_DIR` under `/Volumes/wdblack/tmp/<task>/`
+  (the server repo stays clean), `lutrinh seed-sample` prints the code, `lutrinh serve --host 127.0.0.1
+  --port 8000`; the emulator reaches it at `10.0.2.2:8000` (debug default URL). It limits lookups per IP
+  (30/h, lock after 10 failures). A local download is instant: for progress screenshots put a throttling
+  TCP proxy on 8000 in front of the server on another port (`adb emu network speed` does not slow
+  host loopback). `logcat -s RouteDownload` prints each import; rows: `select * from route_links`.
+  **Android's ICU regex refuses the JVM's `(?U)` flag** (JVM tests pass, the app crashes on first use):
+  `RoutePackageTest.appRegexesUseNoJvmOnlyFlags` guards it; run a new parser once on an AVD.
 * Trip-map standard (batch 1): `TripMapScreen` passes `fitExtraRightDp` = 72 − 48 dp so the button column never covers a leg; `MapAttribution` is one `AnnotatedString` (basemap line + `RoutingCredit.onMapText` + "Sửa bản đồ" link), so a new router credit must end in " · © OpenStreetMap (ODbL)" and start with "Đường đi: " for `onMapText` to strip them. The "dark flash" returning to the trip map did not reproduce on the google_apis swiftshader AVD (frames of map → step → back are clean before and after); a `Palette.MapPaper` Box sits under every live map as the guard. `screenrecord --size 540x1200` + `ffmpeg -vsync 0` + a PIL tile works for frame checks (PIL only in `/Volumes/wdblack/tmp/huashu-venv`).

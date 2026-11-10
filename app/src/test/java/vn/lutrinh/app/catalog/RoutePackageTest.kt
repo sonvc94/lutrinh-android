@@ -84,4 +84,19 @@ class RoutePackageTest {
         assertNull(PackageJson.parse("not json"))
         assertTrue(PackageJson.read("{\"format\":\"gpx\"}") is PackageRead.Invalid)
     }
+
+    /** The schema's trimmed pattern, by hand (Android's ICU regex refused the `(?U)` version: crash on the AVD). */
+    @Test fun trimmedTextFollowsTheSchemaWhitespace() {
+        listOf("", "a", "Hà Giang", "a b", "a\nb").forEach { assertTrue(it, PackageJson.isTrimmed(it)) }
+        listOf(" a", "a ", "\ta", "a\n", "\u00A0a", "a\u3000", "\uFEFFa", "a\u2028", " ").forEach {
+            assertTrue(it, !PackageJson.isTrimmed(it))
+        }
+    }
+
+    /** ICU (Android) refuses the JVM-only `(?U)` flag (it compiles in JVM tests): keep app regexes portable. */
+    @Test fun appRegexesUseNoJvmOnlyFlags() {
+        val src = java.io.File("src/main/java").walkTopDown().filter { it.extension == "kt" }
+        val bad = src.filter { f -> f.readText().contains("(?U)") || f.readText().contains("UNICODE_CHARACTER_CLASS") }.map { it.path }.toList()
+        assertEquals(emptyList<String>(), bad)
+    }
 }

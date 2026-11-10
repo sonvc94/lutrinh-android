@@ -164,6 +164,34 @@ Port `domain/routing/` 1:1 (pure) and write one adapter per router; screens neve
 | Share snapshot: same builder + `applySovereigntyFilter(snapshotter.getLayer(id))` once the style loads (`MapLibreEngine.snapshot`) | `MLNMapSnapshotterDelegate.mapSnapshotter(_:didFinishLoading style:)`: set the predicates and add the source/layer on `style` (iOS's snapshotter style is mutable) |
 | R31: refuse an area over 50 MB or 3 000 tiles (`OfflineConfig.withinLimit`), message `offline_trip_too_big` | Same check before `addPack`; `DisplayFormat.count` = grouped integer, `vi` locale ("3.000") |
 
+## Route codes (R40)
+
+Port `domain/catalog/` 1:1 (pure) and write one adapter per source; screens never see the server.
+
+```swift
+protocol RouteCatalog {
+    var id: String { get }                                        // "lutrinh-server", "file"
+    func resolve(_ code: RouteCode) async -> CatalogResult<RouteSummary>
+    func fetchRoute(_ ticket: DownloadTicket) async -> CatalogResult<FetchedRoute>
+    func fetchMedia(_ ticket: DownloadTicket, _ ref: MediaRef, into sink: ByteSink, from: Int64) async -> CatalogResult<Void>
+    func checkUpdates(_ links: [LinkRef]) async -> CatalogResult<[RouteStatus]>   // ≤ 50 links
+}
+enum CatalogResult<T> { case ok(T), refused(CatalogError, retryAfterS: Int?), unavailable(retryAfterS: Int?) }
+```
+
+| Android | iOS |
+| --- | --- |
+| `RouteCode` (alphabet, `normalise`, `parse` → `CodeCheck`, Luhn mod 30 `checkChar`) | `struct RouteCode` with the same functions; port `RouteSpecVectorsTest` against the same `spec/codes.json` (bundle it as a test resource) |
+| `RouteCatalog`, `CatalogResult`, `CatalogError` (API codes), `RouteSummary`, `DownloadTicket`, `MediaRef`, `LinkRef`, `RouteStatus`/`RouteChange`, `RemoteStatus` | the protocol above, `enum`s with the same raw values, `struct`s with the same field names |
+| `RouteDownload.run` (route first, media with resume, sha256 per file, refetch once, renew the ticket once) over `RouteStaging` | the same pure routine over a `protocol RouteStaging`; port `RouteDownloadImportTest` with a `URLProtocol` stub serving the spec sample (Android: MockWebServer, `catalog/ServedSample.kt`) |
+| `RouteImport.plan` (package → new trip, D-5 start date, 08:00 + position, legs with server geometry) + `RouteUpdates` (`due` ≤ 1/24 h online, `canReplace` unedited, `showSheet`, `apply`) | same pure functions; port `RoutePackageTest`, `RouteUpdatesTest` |
+| `catalog/PackageJson` (strict reader of `route.schema.json`) + `PackageRules` | `JSONSerialization` walk with the same checks (or a schema validator), `PackageRules.swift`; port `packageVectorsGiveTheSpecProblems`. Note: the schema's "trimmed" pattern uses ECMAScript `\s`; check the first/last character by hand as Android does (`PackageJson.isTrimmed`) |
+| `catalog/server/LuTrinhServerCatalog` (OkHttp, `org.json`, User-Agent `LuTrinh/<v> (Android)`, `Range` resume) | `URLSession` (`httpAdditionalHeaders`, User-Agent `LuTrinh/<v> (iOS)`, `Range` header, `URLSessionDownloadTask` resume data not needed: the staged size is the offset); `JSONDecoder` structs for the docs/02 API shapes |
+| `catalog/Catalogs.kt`: the ONLY place for the address (`BuildConfig.ROUTE_SERVER_URL` from `lutrinh.routeServerUrl`) | `Catalogs.swift` reading an `.xcconfig` key into Info.plist (`LUTRINH_ROUTE_SERVER_URL`); https only in Release, ATS exception for `localhost` only in Debug (the simulator reaches the Mac's localhost directly) |
+| WorkManager unique work per code (`data/RouteDownloads`, `RouteDownloadWorker`), network constraint, staging in `files/route-staging/<code>/` | a background `URLSession` configuration (or `BGProcessingTask`) per code; staging in Application Support, excluded from iCloud backup |
+| Room table `route_links` (v10), `RoomRouteRepository.import` (one transaction), `markEdited` on every trip/step change | SwiftData `@Model RouteLinkRecord` (same columns, cascade with its trip); same table name in a backup |
+| `ui/routes/RouteCodeScreen` (code / preview / download), `TripRouteUi` (badge, sheet, banner) | one `NavigationStack` destination with three states; `.sheet` for the route sheet; the same strings (`strings_routes.xml`) |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;
@@ -195,6 +223,11 @@ Port `domain/routing/` 1:1 (pure) and write one adapter per router; screens neve
 4h. Legs along the road (R36): `domain/routing` with `LegRoutesTest`, `RouteSyncTest`, the V7→V8
    and V8→V9 tables (`MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything`, `…version8UpgradesWithUsedProfileAndKeepsStoredRoutes`), the adapters with
    `RouterAdaptersTest`, then the notice, "Cài đặt" and the credit.
+4i. Route codes (R40): `domain/catalog` with `RouteSpecVectorsTest` (shared `codes.json`),
+   `RoutePackageTest`, `RouteUpdatesTest`, the V9→V10 table
+   (`MigrationTest.version9UpgradesWithRouteLinksAndKeepsEverything`), the server adapter with a
+   stub serving the spec sample (`RouteDownloadImportTest`), then the code / preview / download
+   screens, the badge, sheet and banner.
 5. Screens in the order of 03-screens.md; check each against its screenshot in `img/`.
 6. Strings: all user-visible text from `strings.xml`, Vietnamese.
 

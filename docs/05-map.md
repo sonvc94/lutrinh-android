@@ -619,6 +619,40 @@ Screen in 03-screens.md §11, rules in 04-business-rules.md R15, numbers in `map
   `settings get global airplane_mode_on` = 1), `am force-stop vn.lutrinh.app` + `am start`, then
   `… airplane-mode disable`. Store size: `adb shell run-as vn.lutrinh.app ls -l files/mbgl-offline.db`.
 
+## Route catalog (R40, `domain/catalog/`, `catalog/`)
+
+Not a map provider, but built the same way (R35/R36): the app reads ready-made routes only through
+`RouteCatalog` (`domain/catalog/RouteCatalog.kt`, pure); a source is an adapter.
+
+| Adapter | What it is |
+| --- | --- |
+| `catalog/server/LuTrinhServerCatalog` (`id` "lutrinh-server") | the Lữ Trình route server, public API v1 (docs/02 "Route server API"), OkHttp, JSON with `org.json`; maps the API error codes to `CatalogError` |
+| `catalog/file/PackageFileCatalog` (`id` "file") | a `lutrinh-route` package folder or zip on the device (`route.json` + `<sha256>` files); the same code check and reader; no screen uses it yet |
+| `catalog/PackageJson` | the shared strict `route.json` reader (schema `spec/route.schema.json`) |
+
+* **One place for the address.** `catalog/Catalogs.kt` holds `SERVER_URL` (= `BuildConfig.ROUTE_SERVER_URL`)
+  and the User-Agent `LuTrinh/<version> (Android)`. The URL comes from `lutrinh.routeServerUrl` in
+  `local.properties` (git-ignored) or `-Plutrinh.routeServerUrl=…`. Debug builds default to
+  `http://10.0.2.2:8000` (the Mac's localhost as the emulator sees it); release builds take only an
+  `https://` URL and are otherwise empty, which hides the "Nhập mã lộ trình" entry.
+* **Cleartext.** Release (`src/main/res/xml/network_security_config.xml`): https only for every
+  host. Debug (`src/debug/res/xml/`): additionally plain http to `10.0.2.2`, `localhost` and
+  `127.0.0.1` only, for a local route server.
+* **Boundary.** `CatalogBoundaryTest`: the server address/User-Agent only in `Catalogs.kt`, API
+  paths (`/api/v1`) only in the server adapter, the package-file reader only in its adapter; outside
+  `catalog/` only the wiring (`AppContainer`) imports it, everything else uses `RouteCatalog`;
+  `domain/catalog` has no HTTP, JSON or Android; OkHttp only in `routing/`, `map/maplibre` and
+  `catalog/server` (`RoutingBoundaryTest` allows `catalog/` for the words it shares with routing).
+* **Leg geometry.** A downloaded leg is stored in `leg_routes` like a router answer (provider =
+  the package's `source`, e.g. `valhalla`, `manual`), with the stops' own coordinates, so the layer
+  stack (below) draws it as a road leg and R36 never re-asks; D-13 draws it even with routing off.
+  A later move of a stop invalidates it as for any routed leg (input match, R36).
+* **Local run** (debug, emulator): start the server from the `lutrinh-server` repo (its AGENTS.md
+  "Chạy thử trên máy (localhost)": `lutrinh seed-sample` prints a code, `lutrinh serve --host
+  127.0.0.1 --port 8000`); the emulator reaches it at `10.0.2.2:8000`. A real device needs
+  `lutrinh.routeServerUrl=http://<Mac's LAN address>:8000` *and* that host added to the debug
+  network security config (not done: only the emulator case is set up).
+
 ## Not done (later)
 
 Drawing a custom offline box on the map, background download as a foreground service/WorkManager

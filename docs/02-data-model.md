@@ -155,7 +155,30 @@ straight and, while routing is on, pending.
 | fetchedAt | Instant (epoch ms) | no | |
 | usedProfile | RouteProfile | yes (v9) | the profile that answered: `car` on a `motorbike` row = the car fallback ("tuyến ô tô", R36); null = same as `profile` (rows of v8); `motorbike` + `no_route` + null/`motorbike` is asked once more with `car` |
 
-## Storage (Android: SQLite via Room, database `lutrinh.db`, version 9)
+## RouteLink (a trip downloaded from a route code, R40, stored v10)
+
+The link between a trip and the ready-made route it was downloaded from ("Lộ trình theo mã",
+R40). One per trip at most; a trip without a row is the user's own. Domain: `RouteLink`
+(`domain/catalog/RouteImport.kt`).
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| tripId | String | the trip made by the download (PK, cascade with the trip) |
+| routeId | String | the server's route id (`rt_…`) |
+| code | String | the code typed, normalised (`WFAZME3M`; shown `WFAZ-ME3M`) |
+| version | Int | the route version this copy is (badge "Lộ trình WFAZ-ME3M · v1") |
+| packageSha256 | String | sha256 of the downloaded `route.json` bytes |
+| downloadedAt / checkedAt | epoch ms | download time / last update check (null = never) |
+| remoteStatus | `active` \| `unpublished` \| `revoked` | the server's last answer (`expired` is stored as `revoked`: both mean "no longer shared") |
+| edited | Bool | set by the first change after the download (trip details, a step or its photos, a step deleted, a leg mode, draft, the cover): "Thay bản trong máy" is then no longer offered (D-4) |
+| credits | String | `route.credits` joined by new lines (badge sheet "Nguồn ảnh và dữ liệu") |
+| latestVersion / skippedVersion | Int? | newest version the check reported / the version answered "Để sau" |
+| noticeClosed | Bool | the unpublished/revoked banner was closed |
+
+Only `code`, `routeId` and `version` ever leave the device (the update check); nothing about the
+trip, its edits, photos or positions.
+
+## Storage (Android: SQLite via Room, database `lutrinh.db`, version 10)
 
 | Table | Columns | Keys / indexes |
 | --- | --- | --- |
@@ -165,11 +188,12 @@ straight and, while routing is on, pending.
 | `tracks` (v3) | id TEXT PK, trip_id TEXT, status TEXT, started_at INTEGER, ended_at INTEGER nullable, active_ms INTEGER, resumed_at INTEGER nullable, segment INTEGER, distance_m REAL, point_count INTEGER, interrupted INTEGER (0/1), created_at, updated_at | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id) |
 | `track_points` (v3) | id INTEGER PK AUTOINCREMENT, track_id TEXT, segment INTEGER, recorded_at INTEGER, latitude REAL, longitude REAL, accuracy_m REAL nullable, altitude_m REAL nullable, speed_mps REAL nullable | FK track_id → tracks.id ON DELETE CASCADE; index (track_id, segment, recorded_at) |
 | `leg_routes` (v8, v9) | to_step_id TEXT PK, from_lat REAL, from_lng REAL, to_lat REAL, to_lng REAL, profile TEXT, provider TEXT, status TEXT, distance_m REAL, duration_s REAL, geometry TEXT (polyline6), fetched_at INTEGER, used_profile TEXT nullable (v9) | FK to_step_id → steps.id ON DELETE CASCADE |
+| `route_links` (v10) | trip_id TEXT PK, route_id TEXT, code TEXT, version INTEGER, package_sha256 TEXT, downloaded_at INTEGER, checked_at INTEGER nullable, remote_status TEXT, edited INTEGER (0/1), credits TEXT, latest_version INTEGER nullable, skipped_version INTEGER nullable, notice_closed INTEGER (0/1) | FK trip_id → trips.id ON DELETE CASCADE |
 | `stop_decisions` (v4) | track_id TEXT, start_at INTEGER, end_at INTEGER, decision TEXT, step_id TEXT nullable, decided_at INTEGER | PK (track_id, start_at); FK track_id → tracks.id ON DELETE CASCADE; index (track_id) |
 
 Dates are stored as ISO-8601 text so that text order equals time order (used by `ORDER BY` and by
 the step date range query) and the values are readable in any SQLite browser. The exported schemas
-are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 9.json).
+are in `app/schemas/vn.lutrinh.app.data.local.AppDatabase/<version>.json` (1.json … 10.json).
 Track times are epoch-millisecond integers (instants, not local times): a recording can cross time
 zones, and only durations and order matter. Each stored point is written in one transaction with
 its track's `distance_m` / `point_count` / `updated_at`, so a process death never leaves them out
@@ -187,6 +211,7 @@ of step.
 | 6 → 7 | photo order (R27), videos (R29) | renumber `position` densely per step in the current display order (`position`, then `created_at`, then `id`) through a temp table — a correlated `UPDATE photos SET position = (SELECT COUNT(*) …)` would see rows it already changed —, then `ALTER TABLE photos ADD COLUMN media_type TEXT NOT NULL DEFAULT 'photo'`, `ALTER TABLE photos ADD COLUMN duration_ms INTEGER` (existing rows: photos). Exact SQL: `AppDatabase.MIGRATION_6_7` |
 | 7 → 8 | legs along the road (R36) | `CREATE TABLE leg_routes …` (exact SQL = `8.json`, no index: the key is the primary key); existing tables untouched, every leg starts without a route (straight until fetched). Test: `MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything` |
 | 8 → 9 | car-route fallback (R36) | `ALTER TABLE leg_routes ADD COLUMN used_profile TEXT` (existing rows: NULL = answered with their own profile; a stored motorbike `no_route` is then asked once with `car`). Test: `MigrationTest.version8UpgradesWithUsedProfileAndKeepsStoredRoutes` |
+| 9 → 10 | route codes (R40) | `CREATE TABLE route_links …` (exact SQL = `10.json` / `AppDatabase.MIGRATION_9_10`, no index: the key is the primary key); existing tables untouched, every existing trip is the user's own (no row). Test: `MigrationTest.version9UpgradesWithRouteLinksAndKeepsEverything` (a v9 file with a trip, step, photo, track, decision and leg route keeps every row, then a link is written and cascades with its trip) |
 
 * There is **no destructive fallback**: a missing migration crashes on open instead of wiping
   the user's trips. Each version bump adds `MIGRATION_x_y` to `AppDatabase.MIGRATIONS`, bumps
@@ -265,8 +290,8 @@ One zip (`application/zip`, default name `LuTrinh-saoluu-<yyyy-MM-dd>.zip`) with
 ```
 manifest.json            what is in the file (below)
 lutrinh.db               SQLite copy of the app database: Room schema `schemaVersion`, user tables
-                         trips, steps, photos, tracks, track_points, stop_decisions, leg_routes (v8, v9; journal mode
-                         TRUNCATE, no -wal/-shm files)
+                         trips, steps, photos, tracks, track_points, stop_decisions, leg_routes (v8, v9),
+                         route_links (v10) (journal mode TRUNCATE, no -wal/-shm files)
 photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (bytes as stored, no re-encode)
 ```
 
@@ -274,7 +299,7 @@ photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (by
 {
   "format": "lutrinh-backup", "formatVersion": 1,
   "appId": "vn.lutrinh.app", "appVersion": "0.1.0",
-  "schemaVersion": 9, "createdAt": "2026-11-09T10:58:31Z",
+  "schemaVersion": 10, "createdAt": "2026-11-09T10:58:31Z",
   "counts": { "trips": 2, "steps": 15, "photos": 19, "tracks": 1, "trackPoints": 359, "stopDecisions": 1, "videos": 2 },
   "photoFiles": 19, "missingPhotoFiles": 0
 }
@@ -295,6 +320,94 @@ photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (by
   "photos − videos ảnh · videos video".
   `leg_routes` rows (R36) travel with the backup but are not counted: they are a cache of the
   router's answers that the app can fetch again; a backup older than v8 restores without routes.
+  `route_links` rows (R40) travel too and are not counted: a restored trip from a route code keeps
+  its badge, version, edited flag and credits (`BackupManagerTest.routeLinksTravelWithTheBackup`);
+  a backup older than v10 restores with every trip as the user's own. The download staging folder
+  (`files/route-staging/`) is never in a backup.
+
+## Route code (R40)
+
+8 characters of the alphabet `23456789ABCDEFGHJKMNPQRSTVWXYZ` (30: no `0 1 O I L U`), shown
+`XXXX-XXXX`; the 8th character is the **Luhn mod 30** check character of the first 7 (code points =
+positions in the alphabet). The app checks a typed code on the device before anything is sent:
+input is upper-cased, spaces and dashes dropped; `O`/`0`, `I`/`L`/`1`, `U` give "confusable",
+another character "char", a length ≠ 8 "length", a wrong check character "check" ("Có thể gõ
+nhầm một ký tự"). Every single-character typo and every adjacent transposition that changes the
+code fails the check. Domain: `RouteCode` (`domain/catalog/RouteCode.kt`). The rules and vectors
+are shared with the server: `lutrinh-server/spec/README.md` "Codes" and `spec/codes.json` (copy in
+`app/src/test/resources/spec/`, source commit in its `SOURCE.md`; `RouteSpecVectorsTest`).
+
+## Route package (`lutrinh-route`, formatVersion 1, R40)
+
+What a download is: one `route.json` plus its media files, each named by its lower-case hex
+sha256. The document is defined by the shared JSON Schema `spec/route.schema.json` (server repo;
+copy in `app/src/test/resources/spec/`) and its integrity rules (`spec/README.md`
+"Integrity rules": duplicate ids, day after end, unknown/orphan media, cover not a photo, leg
+order, bad polyline6, size mismatch). Outline:
+
+```json
+{ "format": "lutrinh-route", "formatVersion": 1,
+  "route": { "id": "rt_…", "version": 1, "publishedAt": "2026-11-10T08:00:00Z", "title": "…",
+             "description": "…", "days": 4, "cover": "p01"|null,
+             "region": { "bounds": {"south","west","north","east"}, "readyMade": "ha-giang"|null },
+             "credits": ["Ảnh: …", "Đường đi: © OpenStreetMap (ODbL)"] },
+  "stops": [{ "id", "day", "time": "HH:mm"|null, "title", "note", "lat", "lng",
+              "arrival": "motorbike"|…|null, "media": ["p01", …] }],
+  "legs":  [{ "to", "profile", "usedProfile"|null, "source", "status": "ok"|"no_route"|"too_far",
+              "distanceM", "durationS", "path": "<polyline6>" }],
+  "media": [{ "id", "sha256", "type": "photo"|"video", "bytes", "w", "h", "durationMs"|null, "credit" }],
+  "size":  { "media": <bytes of all media>, "files": <number of media files> } }
+```
+
+* The app reads it strictly (`catalog/PackageJson.kt`: exact keys, types, enums, patterns,
+  lengths of the schema) and then checks the integrity rules (`PackageRules`); a newer
+  `formatVersion` is "format_unsupported" (ask to update the app) before the schema is applied.
+  `package-vectors.json` gives the expected problem for each broken sample (`RouteSpecVectorsTest`).
+* Every media file is checked against its sha256 after download; a mismatch is fetched again once,
+  a second mismatch refuses the whole package (nothing is imported). Videos have no poster in the
+  package: the app makes its own thumbnail as for its own videos (R29).
+
+### Route package → trip (one transaction, like GPX import R25)
+
+A download always makes a **new** trip (D-4: an editable copy, no link back to the server except
+`route_links`), in one Room transaction with its steps, photos, leg routes and the link; until then
+the files wait in `files/route-staging/<code>/<sha256>` (kept across restarts for resume). Mapping
+(`RouteImport.plan`, pure):
+
+| Package | Trip |
+| --- | --- |
+| `route.title` / `description` | trip title / description |
+| the start date the user picked (D-5, default next Saturday) | `startDate`; `endDate` = start + `days` − 1 |
+| `route.cover` | `coverPhotoId` = that photo's new id (else automatic) |
+| stop `day` + `time` | `arrivedAt` = start + (day − 1) at `time`; no time = 08:00 + the stop's position in minutes (keeps the order) |
+| stop `title`, `note`, `lat`/`lng`, `arrival` | step title, note, location, `transportMode` (`TransportMode` codes) |
+| stop `media` order | `photos.position` 0…n−1; files `<new id>.jpg` / `.mp4`, `media_type`, `duration_ms` |
+| each leg | a `leg_routes` row of its `to` step with the two stops' own coordinates, `profile`, `used_profile`, `provider` = `source`, `status`, distance, duration, geometry; R36 never asks a router again for it (input match), and D-13 draws it even with "Tính đường đi" off |
+| `route.id`, `version`, `credits`, the `route.json` sha256, the code | the `route_links` row |
+
+New ids for everything (a second download of the same code is a second trip). "Thay bản trong
+máy" (an unedited copy, newer version) runs the same plan with the old trip id: the old steps,
+photos, files and leg routes are replaced in the same transaction.
+
+## Route server API (`/api/v1`, R40)
+
+The app's only server. Contract: `lutrinh-server/spec/README.md` "Public API /api/v1" (main @df870f7);
+adapter `catalog/server/LuTrinhServerCatalog.kt`. Every request carries `User-Agent:
+LuTrinh/<version> (Android)` and `Accept`, no cookie, no device id.
+
+| Call | Answer the app uses |
+| --- | --- |
+| `GET /api/v1/codes/{code}` | the preview summary (`code`, `routeId`, `version`, `formatVersion`, `title`, `description`, `days`, `stops`, `distanceM`, `photos`, `videos`, `bytes`, `files`, `region` (`bounds`, `readyMade`), `overview` polyline6, `cover` preview URL) + `token` / `tokenExpiresAt` (≈ 2 h) |
+| `GET /api/v1/dl/{token}/route` | `route.json` of exactly that version (its sha256 is the package hash) |
+| `GET /api/v1/dl/{token}/media/{sha256}` | one file; `Range: bytes=<staged>-` → 206 (resume) |
+| `POST /api/v1/updates` | body `[{code, routeId, version}]` (≤ 50) → per link `status` (`current`/`active`, `unpublished`, `revoked`, `expired`) and, when newer, the version, date, stops added/removed, stops edited, media added, bytes and note |
+| `GET /api/v1/meta` | supported `formatVersions`, `maintenance`, `message` |
+
+Errors are `{"error": {"code", "message"}}`; the app maps the code, never shows the server's text:
+400 `bad_format`/`bad_check` (the device check should have caught it), 404 `code_not_found`,
+410 `code_revoked`/`code_expired`/`route_unpublished`, 401 `token_expired` (renewed once by looking
+the code up again), 406 `format_unsupported`, 429 `rate_limited` (+ `Retry-After`), 503 / no answer
+= "unavailable" (try later). A media file the version does not have (`not_found`) is a bad package.
 
 ## Validation errors (returned by the domain, shown by the UI)
 

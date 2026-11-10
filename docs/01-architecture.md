@@ -2,11 +2,13 @@
 
 ## Goals
 
-1. **Local first.** All data lives on the device. There is no account and no server of our own;
+1. **Local first.** All data lives on the device. There is no account; our own server (R40) only hands out ready-made routes;
    the network traffic is the map style and its tiles, fonts and icons (see 05-map.md) and, while
    "Tính đường đi" is on (R36, default, announced once, switch in "Cài đặt"), the two stop
    positions + travel mode of each road leg sent to the OpenStreetMap routing server (FOSSGIS,
-   Germany). Names, notes, photos and GPS tracks (R16) never leave the device.
+   Germany), and a route code the user types (R40) with its download from the Lữ Trình route
+   server (the update check sends only code, route id and version). Names, notes, photos, positions
+   and GPS tracks (R16) of the user's own trips never leave the device.
 2. **Portable domain.** Business rules live in a layer without platform types (no Android, no UI,
    no database), so the iOS app can port them line by line and run the same unit tests.
 3. **Server later without touching the UI.** Screens talk to use cases; use cases talk to

@@ -68,6 +68,9 @@ Trip list ──FAB "Chuyến đi mới"─────────────�
    ├─ ⋮ "Sao lưu dữ liệu" ─▶ save as ─▶ snackbar
    ├─ ⋮ "Khôi phục từ bản sao lưu" ─▶ file picker ─▶ confirm ─▶ list reloads
    ├─ ⋮ "Cài đặt" ─▶ Settings (§13)
+   ├─ ⋮ "Nhập mã lộ trình" / empty "Có mã lộ trình?" ─▶ Route code (§14) ─▶ Preview ─▶ Download
+   │       └─ done ─▶ new Trip detail (replaces the code screen; badge "Lộ trình … · vN")
+   │          badge ─▶ route sheet ─ "Tải thành chuyến đi mới" ─▶ Route code (prefilled) / "Thay bản trong máy"
    └─ (debug) ⋮ "Tạo dữ liệu mẫu"                │
                                                  │  tap step ─▶ Step detail
                                                  │  suggestion "Tạo điểm dừng ở đây" ─▶ Step form (prefilled)
@@ -101,9 +104,9 @@ The picker returns its result to the step form through the previous screen's sav
   when open-ended), "N điểm dừng · M ảnh" (published steps, R20) and "· K nháp" when the trip has drafts.
 * **Actions:** tap → Trip detail; the card ⋮ (label "Tùy chọn: <tên chuyến đi>") or long-press → Sửa / Chia sẻ chuyến đi (§3d) / Xuất GPX (§12) / Xóa; FAB "Chuyến đi mới"; globe icon
   in the top bar (label "Bản đồ của tôi") → My map; top ⋮ menu (label "Tùy chọn khác") →
-  "Bản đồ offline", "Nhập tệp GPX", "Sao lưu dữ liệu", "Khôi phục từ bản sao lưu" (§12), "Cài đặt" (§13, R36) (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
+  "Bản đồ offline", "Nhập tệp GPX", "Nhập mã lộ trình" (§14, R40; hidden when the build has no route server), "Sao lưu dữ liệu", "Khôi phục từ bản sao lưu" (§12), "Cài đặt" (§13, R36) (all builds). Delete asks "Xóa chuyến đi này?" with the counts of steps and photos that will be removed.
 * **Empty:** a contour mark (docs/08 "Empty states"), "Chưa có chuyến đi nào" +
-  invitation text, left-aligned; in debug builds a
+  invitation text, left-aligned; "Có mã lộ trình?" (§14, R40); in debug builds a
   "Tạo dữ liệu mẫu" button (also in the top ⋮ menu) seeds a Hà Giang loop and a Ninh Bình trip; the
   Hà Giang trip also gets an ended sample track on day 1 (08:10–15:50) with three stays — at Dốc
   Bắc Sum, at Cổng Trời (matches that step, so not suggested) and a paused stay at Tam Sơn — so
@@ -715,7 +718,61 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
   dismissing it) means it never shows again. Nothing is sent before it was shown.
 * **Screens:** `img/road-routing/01-notice.png`, `05-settings-on.png`, `06-settings-off.png`.
 
+## 14. Route code — "Nhập mã lộ trình", preview, download (R40)
+
+* **Opened from:** trip list top ⋮ → "Nhập mã lộ trình", the empty list's "Có mã lộ trình?", or
+  the route sheet's "Tải thành chuyến đi mới" (prefilled, looked up at once). While a download runs
+  the entry opens on its progress.
+* **Code** (top bar "Nhập mã lộ trình"): eyebrow "LỘ TRÌNH SOẠN SẴN", heading "Bạn có mã lộ
+  trình?", one line on what happens; a large monospace-like field "Mã lộ trình" that upper-cases,
+  drops spaces/dashes and draws `XXXX-XXXX`, hint "8 ký tự · không có chữ O, I, L, U và số 0, 1";
+  errors under the field in the error colour (typed problems on the device, then the server's
+  answers, R40); the Forest button "Xem lộ trình" (enabled only for a valid code; "Đang tìm lộ
+  trình…" while asking); the privacy line under a hairline.
+* **Preview** ("Xem trước"): the route line drawn on topo paper (no live map, no tiles), eyebrow
+  "MÃ WFAZ-ME3M · PHIÊN BẢN 1", title, description, the stats panel (km · điểm dừng · ngày · ảnh ·
+  video, Barlow numerals, scale bar), "Ngày bắt đầu" (date picker; default next Saturday),
+  the checkbox "Tải luôn bản đồ offline vùng Hà Giang (~29,6 MB)", the size line, the Forest
+  button "Tải về máy". Back returns to the code.
+* **Download** ("Đang tải lộ trình"): title, a Card with the status ("Đang tải 32 % · 1,4 MB /
+  4,3 MB", "Đã tạm dừng · 2,5 MB đã tải", "Đang chờ…", "Chưa tải được lộ trình" + the reason), a
+  progress bar, the lines "Lộ trình, 9 điểm, 8 chặng" / "Ảnh và video 9 / 14" / "Bản đồ offline … ·
+  sau khi tải xong", buttons "Tạm dừng"/"Tiếp tục" + "Hủy tải" (failed: "Thử lại", "Đóng" keeping the staged files, "Hủy tải"), the
+  note that it continues in the background; offline a Forest strip "Mất mạng · 9/14 tệp · sẽ tự tải
+  tiếp khi có mạng". When done the new trip opens with the snackbar "Đã thêm chuyến đi từ lộ trình".
+* **Dialogs** (R38 grammar): "Cần có mạng để tải lộ trình", "Máy chủ đang bận, thử lại sau", "Hãy
+  cập nhật ứng dụng để tải lộ trình này", "Không đủ bộ nhớ trống (cần …)", "Tải … bằng dữ liệu di
+  động?" ("Vẫn tải").
+* **On the trip page** (§3): under the title the Sand badge "Lộ trình WFAZ-ME3M · v1" ("· có bản
+  mới" while a newer version is known); tap → the route sheet (version, "Đây là bản mới nhất đã
+  biết.", "Nguồn ảnh và dữ liệu" credits) or, for a newer version, "CÓ BẢN MỚI · PHIÊN BẢN 2 · <date>",
+  "Lộ trình đã được cập nhật", the change lines and note, "Tải thành chuyến đi mới", "Thay bản trong
+  máy" (unedited only, else the line "Không thay được: bạn đã sửa chuyến đi này."), "Để sau". A
+  closable Card banner "Lộ trình này đã ngừng chia sẻ" when the server stopped sharing it.
+* **Screens:** `img/routes/01-trip-list-menu.png`, `02-code-empty.png`, `03-code-typo.png`
+  (WFAZ-ME3K refused on the device), `04-preview.png`, `05-download-progress.png`,
+  `06-download-paused.png`, `07-trip-from-route.png` (badge + snackbar), `08-badge-sheet.png`.
+* **Inspired by:** the approved design page 05 (9 topo mockups). **Changed:** the preview draws the
+  server's simplified `overview` line on paper instead of its `cover` photo (follow-up).
+
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
+
+### Route codes (`img/routes/`, R40)
+
+Own AVD (pixel_6, android-36, English system), debug build, the real local route server
+(`lutrinh-server` main @df870f7, `lutrinh seed-sample`, code WFAZ-ME3M) at `http://10.0.2.2:8000`;
+the download shots went through a ~200 KB/s local proxy so the progress stays on screen. 540 px wide.
+
+| File | Shows |
+| --- | --- |
+| 01-trip-list-menu.png | trip list top ⋮ with "Nhập mã lộ trình" |
+| 02-code-empty.png | the code screen, empty, with the privacy line |
+| 03-code-typo.png | WFAZ-ME3K: "Có thể gõ nhầm một ký tự…", "Xem lộ trình" disabled |
+| 04-preview.png | preview of "Vòng cung Hà Giang 4 ngày": 170 km · 9 · 4 · 14, start Sat 14/11, offline map ticked |
+| 05-download-progress.png | "Đang tải 26 %", route ready, media 9 / 14 |
+| 06-download-paused.png | paused at 3,7 MB, the lines keep the last progress |
+| 07-trip-from-route.png | the new trip: badge "Lộ trình WFAZ-ME3M · v1", road legs from the server, snackbar |
+| 08-badge-sheet.png | the badge sheet: version 1, latest known, credits |
 
 ### Trip-map motion (`img/trip-motion/`, R37)
 

@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -61,6 +62,7 @@ import vn.lutrinh.app.R
 import vn.lutrinh.app.data.RouteDownloadState
 import vn.lutrinh.app.domain.catalog.CatalogError
 import vn.lutrinh.app.domain.catalog.CodeProblem
+import vn.lutrinh.app.domain.catalog.DownloadProgress
 import vn.lutrinh.app.domain.catalog.RouteCode
 import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.ui.common.ConfirmDialog
@@ -286,7 +288,11 @@ private fun ColumnScope.Preview(p: RouteStage.Preview, vm: RouteCodeViewModel) {
 private fun DownloadProgressCard(v: DownloadView, vm: RouteCodeViewModel) {
     val r = v.request
     val state = v.state
-    val progress = (state as? RouteDownloadState.Running)?.progress
+    // While paused (or waiting again) the lines keep the last progress the work reported.
+    val live = (state as? RouteDownloadState.Running)?.progress
+    val last = remember(r.code) { arrayOfNulls<DownloadProgress>(1) }
+    if (live != null) last[0] = live
+    val progress = live ?: last[0]
     val failed = state as? RouteDownloadState.Failed
     Text(r.title, style = MaterialTheme.typography.titleLarge)
     TopoCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(Space.L)) {

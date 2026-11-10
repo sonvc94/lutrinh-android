@@ -59,7 +59,17 @@ object PackageJson {
     private val ID = Regex("[a-z][a-z0-9_]{0,39}")
     private val ROUTE_ID = Regex("rt_[a-z0-9]{8,32}")
     private val PUBLISHED = Regex("[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z")
-    private val TRIMMED = Regex("(?U)(?:|\\S(?:[\\s\\S]*\\S)?)")
+
+    /**
+     * The schema's "trimmed" pattern `^(?:$|\S(?:[\s\S]*\S)?)$` (ECMAScript `\s`: Unicode spaces,
+     * line ends and U+FEFF) checked by hand: Android's ICU regex refuses the JVM's Unicode-class inline flag, and a plain `\s`
+     * there and on the JVM would not match the same characters.
+     */
+    fun isTrimmed(s: String): Boolean =
+        s.isEmpty() || (!isEcmaSpace(s.codePointAt(0)) && !isEcmaSpace(s.codePointBefore(s.length)))
+
+    private fun isEcmaSpace(cp: Int): Boolean = cp in 0x09..0x0D || cp == 0xFEFF || Character.isSpaceChar(cp)
+
     private val TIME = Regex("([01][0-9]|2[0-3]):[0-5][0-9]")
     private val SHA256 = Regex("[0-9a-f]{64}")
     private val REGION_KEY = Regex("[a-z0-9]+(-[a-z0-9]+)*")
@@ -186,7 +196,7 @@ object PackageJson {
         /** A trimmed string of [min]..[max] characters (code points, as JSON Schema counts them). */
         fun trimmed(v: Any?, at: String, min: Int, max: Int): String {
             val s = v as? String ?: fail(at)
-            if (!TRIMMED.matches(s) || s.codePointCount(0, s.length) !in min..max) fail(at)
+            if (!isTrimmed(s) || s.codePointCount(0, s.length) !in min..max) fail(at)
             return s
         }
 
