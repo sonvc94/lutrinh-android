@@ -214,7 +214,7 @@ fun TripListScreen(
         ConfirmDeleteDialog(
             title = stringResource(R.string.trip_delete_confirm_title),
             // Drafts go too (R20): the card counts published steps only.
-            body = stringResource(R.string.trip_delete_confirm_body, t.trip.title, t.stepCount + t.draftCount, t.photoCount + t.draftPhotoCount),
+            body = stringResource(R.string.trip_delete_confirm_body, t.trip.title, t.stepCount + t.draftCount, DisplayFormat.tripMediaCount(t.photoCount + t.draftPhotoCount, t.videoCount + t.draftVideoCount)),
             onConfirm = { vm.delete(t.trip.id); toDelete = null },
             onDismiss = { toDelete = null },
         )

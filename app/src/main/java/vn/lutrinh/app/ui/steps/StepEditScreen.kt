@@ -706,7 +706,7 @@ fun StepEditScreen(
     if (confirmDelete) {
         ConfirmDeleteDialog(
             title = stringResource(R.string.step_delete_confirm_title),
-            body = stringResource(R.string.step_delete_confirm_body, f.title, f.photoCount),
+            body = stringResource(R.string.step_delete_confirm_body, f.title, DisplayFormat.tripMediaCount(f.photoCount, f.videoDurations.size)),
             onConfirm = { confirmDelete = false; vm.delete() },
             onDismiss = { confirmDelete = false },
         )

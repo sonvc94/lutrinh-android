@@ -21,7 +21,7 @@ fun TripEntity.toDomain() = Trip(id, title, description, startDate, endDate, cre
 
 fun Trip.toEntity() = TripEntity(id, title, description, startDate, endDate, createdAt, updatedAt, coverPhotoId)
 
-fun TripSummaryRow.toDomain() = TripSummary(trip.toDomain(), stepCount, photoCount, coverFile, draftCount, draftPhotoCount, videoCount)
+fun TripSummaryRow.toDomain() = TripSummary(trip.toDomain(), stepCount, photoCount, coverFile, draftCount, draftPhotoCount, videoCount, draftVideoCount)
 
 fun PhotoEntity.toDomain() =
     Photo(id, stepId, fileName, position, createdAt, takenAt, sourceId, sourceSize, MediaType.fromCode(mediaType), durationMs)

@@ -23,6 +23,7 @@ interface TripDao {
           (SELECT COUNT(*) FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND s.is_draft = 0 AND p.media_type = 'video') AS video_count,
           (SELECT COUNT(*) FROM steps s WHERE s.trip_id = t.id AND s.is_draft = 1) AS draft_count,
           (SELECT COUNT(*) FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND s.is_draft = 1) AS draft_photo_count,
+          (SELECT COUNT(*) FROM photos p JOIN steps s ON p.step_id = s.id WHERE s.trip_id = t.id AND s.is_draft = 1 AND p.media_type = 'video') AS draft_video_count,
           COALESCE(
             (SELECT p.file_name FROM photos p JOIN steps s ON p.step_id = s.id
                WHERE s.trip_id = t.id AND p.id = t.cover_photo_id AND p.media_type = 'photo'),

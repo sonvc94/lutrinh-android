@@ -48,6 +48,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
+import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.model.Step
 import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.domain.usecase.TripCover
@@ -92,6 +93,7 @@ data class TripForm(
     val stepDates: ClosedRange<LocalDate>? = null,
     val stepCount: Int = 0,
     val photoCount: Int = 0,
+    val videoCount: Int = 0,
     val dirty: Boolean = false,
     val savedId: String? = null,
     val deleted: Boolean = false,
@@ -124,6 +126,7 @@ class TripEditViewModel(private val c: AppContainer, handle: SavedStateHandle) :
                         stepDates = c.steps.stepDateRange(tripId),
                         stepCount = steps.size,
                         photoCount = steps.sumOf { s -> s.photos.size },
+                        videoCount = steps.sumOf { s -> s.photos.count { p -> p.isVideo } },
                         steps = steps,
                         // A stale choice (photo deleted) reads as automatic.
                         coverPhotoId = trip.coverPhotoId?.takeIf { id -> TripCover.isChosen(id, steps) },
@@ -282,7 +285,7 @@ fun TripEditScreen(
     if (confirmDelete) {
         ConfirmDeleteDialog(
             title = stringResource(R.string.trip_delete_confirm_title),
-            body = stringResource(R.string.trip_delete_confirm_body, f.title, f.stepCount, f.photoCount),
+            body = stringResource(R.string.trip_delete_confirm_body, f.title, f.stepCount, DisplayFormat.tripMediaCount(f.photoCount, f.videoCount)),
             onConfirm = { confirmDelete = false; vm.delete() },
             onDismiss = { confirmDelete = false },
         )

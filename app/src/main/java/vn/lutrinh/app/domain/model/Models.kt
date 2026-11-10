@@ -46,6 +46,8 @@ data class TripSummary(
     val draftPhotoCount: Int = 0,
     /** Videos among [photoCount] (R29 videos are `photos` rows): the screens say "n ảnh · m video". */
     val videoCount: Int = 0,
+    /** Videos among [draftPhotoCount]. */
+    val draftVideoCount: Int = 0,
 )
 
 data class Step(

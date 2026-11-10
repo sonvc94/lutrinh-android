@@ -84,7 +84,7 @@ trip is in progress.
 * Order: the database transaction runs first and returns the file names that were attached;
   the files are deleted afterwards. A crash between the two leaves orphan files (harmless, can be
   swept later) but never a row pointing to a missing file.
-* Both deletes need a confirm dialog that states what will be lost ("… cùng 2 điểm dừng và 3 ảnh
+* Both deletes need a confirm dialog that states what will be lost ("… cùng 2 điểm dừng và 3 ảnh · 1 video
   sẽ bị xóa khỏi máy. Không thể hoàn tác."). There is no undo and no trash in this phase.
 
 *Tests:* `UseCasesTest.deleteTripCascadesToStepsAndPhotoFiles`, `UseCasesTest.deleteStepRemovesItsPhotoFilesOnly`,

@@ -53,6 +53,8 @@ class DisplayFormatTest {
         assertEquals("13 ảnh", DisplayFormat.tripMediaCount(13, 0))
         assertEquals("13 ảnh · 2 video", DisplayFormat.tripMediaCount(15, 2))
         assertEquals("0 ảnh · 1 video", DisplayFormat.tripMediaCount(1, 1))
+        // Delete-confirm dialogs (trip, step) reuse it: "cùng 2 điểm dừng và 3 ảnh · 1 video".
+        assertEquals("3 ảnh · 1 video", DisplayFormat.tripMediaCount(4, 1))
     }
 
     @Test

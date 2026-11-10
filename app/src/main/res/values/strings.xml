@@ -47,7 +47,7 @@
     <string name="trip_create_button">Tạo chuyến đi</string>
     <string name="trip_delete_button">Xóa chuyến đi</string>
     <string name="trip_delete_confirm_title">Xóa chuyến đi này?</string>
-    <string name="trip_delete_confirm_body">\"%1$s\" cùng %2$d điểm dừng và %3$d ảnh sẽ bị xóa khỏi máy. Không thể hoàn tác.</string>
+    <string name="trip_delete_confirm_body">\"%1$s\" cùng %2$d điểm dừng và %3$s sẽ bị xóa khỏi máy. Không thể hoàn tác.</string>
     <string name="err_trip_title_blank">Hãy đặt tên cho chuyến đi</string>
     <string name="err_trip_title_long">Tên tối đa %1$d ký tự</string>
     <string name="err_trip_description_long">Mô tả tối đa %1$d ký tự</string>
@@ -144,7 +144,7 @@
     <string name="step_photos_import_failed">Không đọc được %1$d ảnh</string>
     <string name="step_delete_button">Xóa điểm dừng</string>
     <string name="step_delete_confirm_title">Xóa điểm dừng này?</string>
-    <string name="step_delete_confirm_body">\"%1$s\" và %2$d ảnh đính kèm sẽ bị xóa. Không thể hoàn tác.</string>
+    <string name="step_delete_confirm_body">\"%1$s\" và %2$s đính kèm sẽ bị xóa. Không thể hoàn tác.</string>
     <string name="err_step_title_blank">Hãy nhập tên địa điểm</string>
     <string name="err_step_title_long">Tên tối đa %1$d ký tự</string>
     <string name="err_step_note_long">Ghi chú tối đa %1$d ký tự</string>

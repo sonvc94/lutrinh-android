@@ -95,6 +95,7 @@ data class TripSummaryRow(
     @ColumnInfo(name = "cover_file") val coverFile: String?,
     @ColumnInfo(name = "draft_count") val draftCount: Int,
     @ColumnInfo(name = "draft_photo_count") val draftPhotoCount: Int,
+    @ColumnInfo(name = "draft_video_count") val draftVideoCount: Int = 0,
 )
 
 data class DateRangeRow(
