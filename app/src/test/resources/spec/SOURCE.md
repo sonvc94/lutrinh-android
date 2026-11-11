@@ -1,7 +1,7 @@
 # Shared route spec (copy)
 
 Copied unchanged from the Lữ Trình route server repo `lutrinh-server`, branch `main` at commit
-**d7d152c**, folder `spec/` (`git show d7d152c:spec/<file>`). The server repo owns these files;
+**3cfc5ff** ("Add stop arrivalNote", leg notes R41), folder `spec/` (`git show 3cfc5ff:spec/<file>`). The server repo owns these files;
 when it changes them, copy them again and name the new commit here.
 
 | file | used by |
@@ -17,11 +17,10 @@ file has them). Tests that download it generate bytes per file and rewrite the m
 (`ServedSample` in the tests). The server's own `lutrinh seed-sample` (lutrinh-server @df870f7)
 publishes the same text with ffmpeg placeholder media for a check against the real local server.
 
-**Ahead of the server (leg notes, R41, 2026-11-11):** `route.schema.json` has the optional stop
-key `arrivalNote` (trimmed, 1–1000 characters, absent = no note; formatVersion stays 1) and
-`package-vectors.json` has seven `arrival note …` cases, one with the integrity code
-`arrival_note_on_first_stop`. They follow the shared leg-note contract that `lutrinh-server` is
-implementing in parallel (crew `leg-note-server`) and are not yet in a server commit: when the
-server's change lands, copy its `spec/` again, name the commit above, and keep the app's problem
-code in step with the server's README. The sample `route.json`/`expected.json` are unchanged
-(tests add notes to the served copy, `ServedSample(arrivalNotes = …)`).
+**Leg notes (R41, lutrinh-server 3cfc5ff):** `route.schema.json` has the optional stop key
+`arrivalNote` (trimmed, 1–1000 code points, absent = no note; formatVersion stays 1), the sample
+carries one on stop `s5` "Cột cờ Lũng Cú" (`route.json` sha256 `a96783b0…12016f`, 6590 bytes) and
+`package-vectors.json` ends with seven `arrivalNote …` cases. The server treats a note on the
+first stop as a publish blocker (`arrival_note_first_stop`, spec/README), not a package rule, so
+no vector covers it; the app's `PackageRules.check` refuses such a package itself with the same
+code (`RoutePackageTest.arrivalNoteLimitsAndFirstStop`).

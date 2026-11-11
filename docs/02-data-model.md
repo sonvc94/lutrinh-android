@@ -388,7 +388,7 @@ the files wait in `files/route-staging/<code>/<sha256>` (kept across restarts fo
 | `route.cover` | `coverPhotoId` = that photo's new id (else automatic) |
 | stop `day` + `time` | `arrivedAt` = start + (day − 1) at `time`; no time = 08:00 + the stop's position in minutes (keeps the order) |
 | stop `title`, `note`, `lat`/`lng`, `arrival` | step title, note, location, `transportMode` (`TransportMode` codes) |
-| stop `arrivalNote` (optional, R41: trimmed, 1–1000, absent when none; on the first stop the package is refused, `arrival_note_on_first_stop`) | step `arrivalNote` (the first step never gets one) |
+| stop `arrivalNote` (optional, R41: trimmed, 1–1000, absent when none; on the first stop the package is refused, `arrival_note_first_stop`) | step `arrivalNote` (the first step never gets one) |
 | stop `media` order | `photos.position` 0…n−1; files `<new id>.jpg` / `.mp4`, `media_type`, `duration_ms` |
 | each leg | a `leg_routes` row of its `to` step with the two stops' own coordinates, `profile`, `used_profile`, `provider` = `source`, `status`, distance, duration, geometry; R36 never asks a router again for it (input match), and D-13 draws it even with "Tính đường đi" off |
 | `route.id`, `version`, `credits`, the `route.json` sha256, the code | the `route_links` row |

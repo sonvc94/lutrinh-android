@@ -200,7 +200,7 @@ enum CatalogResult<T> { case ok(T), refused(CatalogError, retryAfterS: Int?), un
 | `LegNotes.normalise/fits`, `Limits.LEG_NOTE_MAX = 1000`, `SetLegNote` (trim, empty clears, too long refused, marks a route copy edited) | same pure functions; port `LegsTest.setLegNoteTrimsClearsLimitsAndSaveStepKeepsIt`. Android counts code points; `String.count` (graphemes) gives the same for precomposed Vietnamese |
 | `Leg.note` = `to.arrivalNote` | same computed property |
 | `LegModeSheet` note row + `LegNoteEditor`, `LegNote` (2 lines + "Xem thêm"/"Thu gọn") under the leg chip in the timeline | the same `.sheet` with a note row that swaps to a `TextField(axis: .vertical)`; `Text(note).lineLimit(expanded ? nil : 2)` + a button; strings `leg_note_*` |
-| `PackageJson` optional key `arrivalNote` (trimmed, 1–1000) + `PackageRules` `arrival_note_on_first_stop`; `RouteImport.plan` drops it on stop 0 | same checks; port `RoutePackageTest.arrivalNote*`, the `arrivalNote` package vectors and `RouteDownloadImportTest.legNotesOfAServedPackageAreStoredOnTheirSteps` |
+| `PackageJson` optional key `arrivalNote` (trimmed, 1–1000) + `PackageRules` `arrival_note_first_stop`; `RouteImport.plan` drops it on stop 0 | same checks; port `RoutePackageTest.arrivalNote*`, the `arrivalNote` package vectors and `RouteDownloadImportTest.legNotesOfAServedPackageAreStoredOnTheirSteps` |
 
 ## Porting checklist
 

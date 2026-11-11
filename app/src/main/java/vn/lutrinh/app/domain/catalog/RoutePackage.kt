@@ -56,7 +56,7 @@ data class RouteStop(
     val media: List<String>,
     /**
      * R41: note about the travel from the previous stop to this one (trimmed, 1..1000 characters),
-     * or null when the key is absent. Never on the first stop (`arrival_note_on_first_stop`).
+     * or null when the key is absent. Never on the first stop (`arrival_note_first_stop`).
      */
     val arrivalNote: String? = null,
 )
@@ -111,7 +111,7 @@ object PackageRules {
         if (p.media.any { it.id !in used }) out += "orphan_media"
         val position = HashMap<String, Int>()
         p.stops.forEachIndexed { i, s -> position.putIfAbsent(s.id, i) }
-        if (p.stops.firstOrNull()?.arrivalNote != null) out += "arrival_note_on_first_stop"
+        if (p.stops.firstOrNull()?.arrivalNote != null) out += "arrival_note_first_stop"
         val legTargets = HashSet<String>()
         var last = -1
         for (leg in p.legs) {

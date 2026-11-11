@@ -1401,7 +1401,9 @@ A note about the travel between two stops ("đường dốc khó đi", "gửi xe
   "Xem thêm" / "Thu gọn". The map carousel does not show it.
 * **Routes by code (R40).** The package's `stops[].arrivalNote` (docs/02 "Route package") is read
   by the strict reader (string, trimmed, 1–1000) and stored on the step; a note on the first stop
-  refuses the package (`arrival_note_on_first_stop`). Packages without the field import as before.
+  refuses the package (`arrival_note_first_stop`: the app's own rule; the server blocks such a route
+  at publish with the same code, so it never serves one). Packages without the field import as before.
+  The shared sample (lutrinh-server 3cfc5ff) carries a note on stop s5 "Cột cờ Lũng Cú".
 * **Backup** carries it (R26, it is a column of `steps`); GPX export and the share page do not.
 
 *Tests:* `LegsTest.setLegNoteTrimsClearsLimitsAndSaveStepKeepsIt`,
