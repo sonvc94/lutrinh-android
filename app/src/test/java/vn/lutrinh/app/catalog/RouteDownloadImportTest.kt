@@ -142,6 +142,24 @@ class RouteDownloadImportTest {
         assertEquals(LuTrinhServerCatalog.ACCEPT, served.requests[1].getHeader("Accept"))
     }
 
+    /** R41: a served package with leg notes stores each note on its step, in the same transaction. */
+    @Test fun legNotesOfAServedPackageAreStoredOnTheirSteps() = runBlocking {
+        val noted = ServedSample(arrivalNotes = mapOf(1 to "Đường dốc khó đi", 4 to "Gửi xe phía đối diện 30k"))
+        val srv = MockWebServer().apply { dispatcher = noted; start() }
+        try {
+            val cat = LuTrinhServerCatalog(srv.url("/").toString(), "LuTrinh/test (Android)")
+            val d = (runBlocking { RouteDownload(cat, staging).run(code) } as CatalogResult.Ok).value
+            val tripId = import(d)
+            val steps = RoomStepRepository(db).getSteps(tripId)
+            assertEquals(
+                listOf(null, "Đường dốc khó đi", null, null, "Gửi xe phía đối diện 30k", null, null, null, null),
+                steps.map { it.arrivalNote },
+            )
+        } finally {
+            srv.shutdown()
+        }
+    }
+
     @Test fun aStoppedDownloadResumesWithRangeFromTheStagedBytes() {
         val (sha, body) = served.files.entries.first()
         runBlocking { staging.write(sha, append = false) { it.write(body, body.size / 2) } }

@@ -55,7 +55,7 @@ TopoIcons and the type weights) and adds before/after shots to `docs/img/topo/`.
 
 | # | Sheet | File | Status | Batch |
 | --- | --- | --- | --- | --- |
-| B1 | Leg mode "Bạn di chuyển bằng gì?" | `ui/trips/LegUi.kt` (`LegModeSheet`) | on spec | 1 |
+| B1 | Leg mode "Bạn di chuyển bằng gì?" + leg note editor (R41) | `ui/trips/LegUi.kt` (`LegModeSheet`, `LegNoteEditor`, `LegNote`) | on spec | 1 |
 | B2 | Map style "Kiểu bản đồ" | `ui/common/MapStyle.kt` (`MapStyleButton`) | on spec | 1 |
 | B3 | Cover picker | `ui/trips/CoverPicker.kt` (`CoverPickerSheet`) | on spec | 2 |
 | B4 | From-photos intro | `ui/steps/FromPhotosScreen.kt` (`FromPhotosIntro`) | on spec | 2 |

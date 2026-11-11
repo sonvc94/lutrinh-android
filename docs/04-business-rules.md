@@ -1380,6 +1380,39 @@ local server (`lutrinh seed-sample`, code WFAZ-ME3M): `docs/img/routes/`.
 *Inspired by* the captain's request (route server + codes) and the approved design (pages 02, 03,
 05, 07: D-4 A, D-5 A, D-13 A).
 
+## R41 — Leg note ("Ghi chú chặng")
+
+A note about the travel between two stops ("đường dốc khó đi", "gửi xe phía đối diện 30k").
+
+* **Where it lives.** On the **arrival** step, like the mode (R12): `arrivalNote` = the note about
+  travelling from the previous step to this one. It therefore moves with its step when the order
+  changes, survives leg recomputation (R36 legs are pruned and fetched again, the note is not on
+  them) and works for plane/boat/train legs that have no road route. The first step's value is
+  ignored (never shown, never written by import).
+* **Text.** Trimmed; 1–1000 characters (`Limits.LEG_NOTE_MAX`, code points); empty after trimming
+  = no note (null, never an empty string). Longer text is refused (the editor shows "Ghi chú chặng
+  tối đa 1000 ký tự" and keeps "Lưu" disabled).
+* **Edit.** Tap the leg row in the timeline (or the leg chip on the trip map): the leg sheet shows
+  "Thêm ghi chú chặng" (or "Ghi chú chặng" + the note) above the modes; a tap opens the editor
+  (field with the hint "Ví dụ: đường dốc khó đi, gửi xe phía đối diện 30k", count n/1000, "Xóa ghi
+  chú" when a note exists, "Hủy", "Lưu"). Saving updates the step's `updatedAt` and, on a trip
+  downloaded by code, marks the copy edited (R40). Saving a step from the step form keeps its note.
+* **Show.** The leg row in the timeline shows the note under the leg chip, clamped to 2 lines with
+  "Xem thêm" / "Thu gọn". The map carousel does not show it.
+* **Routes by code (R40).** The package's `stops[].arrivalNote` (docs/02 "Route package") is read
+  by the strict reader (string, trimmed, 1–1000) and stored on the step; a note on the first stop
+  refuses the package (`arrival_note_on_first_stop`). Packages without the field import as before.
+* **Backup** carries it (R26, it is a column of `steps`); GPX export and the share page do not.
+
+*Tests:* `LegsTest.setLegNoteTrimsClearsLimitsAndSaveStepKeepsIt`,
+`MigrationTest.version10UpgradesWithLegNotesAndKeepsEverything`,
+`BackupManagerTest.legNotesTravelWithTheBackup`, `BackupManagerTest.version10BackupRestoresWithoutLegNotes`,
+`RoutePackageTest.arrivalNoteOnALaterStopIsReadAndPlanned`, `RoutePackageTest.arrivalNoteLimitsAndFirstStop`,
+`RouteSpecVectorsTest.packageVectorsGiveTheSpecProblems` (arrivalNote vectors),
+`RouteDownloadImportTest.legNotesOfAServedPackageAreStoredOnTheirSteps`. Checked by hand on an AVD:
+`docs/img/leg-note/`.
+*Inspired by* the captain's request (notes on travel, e.g. a steep road or parking across the road).
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

@@ -110,6 +110,7 @@ class SaveStep(
             photos = photos,
             // Not part of the step form: the leg transport is set from the timeline/map (R12).
             arrivalTransport = existing?.arrivalTransport,
+            arrivalNote = existing?.arrivalNote,
             // R20: "Lưu nháp" stores a draft, "Lưu" a published step (a draft is published by it).
             isDraft = input.draft,
         )
@@ -130,6 +131,19 @@ class DeleteStep(private val steps: StepRepository, private val files: PhotoFile
 class SetLegTransport(private val steps: StepRepository, private val clock: Clock) {
     suspend operator fun invoke(toStepId: String, mode: TransportMode?): Boolean =
         steps.setArrivalTransport(toStepId, mode, clock.nowMillis())
+}
+
+/**
+ * R41: sets the note of the leg that ends at [toStepId]; the text is trimmed and an empty one
+ * clears the note. False when the step does not exist or the note is longer than
+ * [Limits.LEG_NOTE_MAX] characters (nothing is stored then).
+ */
+class SetLegNote(private val steps: StepRepository, private val clock: Clock) {
+    suspend operator fun invoke(toStepId: String, note: String): Boolean {
+        val text = LegNotes.normalise(note)
+        if (text != null && !LegNotes.fits(text)) return false
+        return steps.setArrivalNote(toStepId, text, clock.nowMillis())
+    }
 }
 
 /** R20 "Đăng": publishes a draft step. False when the step does not exist. */

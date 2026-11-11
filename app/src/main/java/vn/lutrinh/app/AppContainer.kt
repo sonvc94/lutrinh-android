@@ -33,6 +33,7 @@ import vn.lutrinh.app.domain.usecase.ImportGpx
 import vn.lutrinh.app.domain.usecase.SaveStep
 import vn.lutrinh.app.domain.usecase.SaveTrip
 import vn.lutrinh.app.domain.usecase.PublishStep
+import vn.lutrinh.app.domain.usecase.SetLegNote
 import vn.lutrinh.app.domain.usecase.SetLegTransport
 import vn.lutrinh.app.domain.usecase.SetTripCover
 import vn.lutrinh.app.domain.usecase.TrackRecorder
@@ -82,6 +83,7 @@ class AppContainer(context: Context) {
     val saveStep = SaveStep(trips, steps, photos, clock, ids)
     val deleteStep = DeleteStep(steps, photos)
     val setLegTransport = SetLegTransport(steps, clock)
+    val setLegNote = SetLegNote(steps, clock)
     val publishStep = PublishStep(steps, clock)
     val setTripCover = SetTripCover(trips, clock)
     val deleteTrack = DeleteTrack(tracks, recorder)

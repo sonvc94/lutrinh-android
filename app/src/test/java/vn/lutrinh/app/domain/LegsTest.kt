@@ -15,6 +15,7 @@ import vn.lutrinh.app.domain.usecase.LegGeometry
 import vn.lutrinh.app.domain.usecase.SaveResult
 import vn.lutrinh.app.domain.usecase.SaveStep
 import vn.lutrinh.app.domain.usecase.SaveTrip
+import vn.lutrinh.app.domain.usecase.SetLegNote
 import vn.lutrinh.app.domain.usecase.SetLegTransport
 import vn.lutrinh.app.domain.usecase.StepInput
 import vn.lutrinh.app.domain.usecase.TripInput
@@ -93,6 +94,38 @@ class LegsTest {
         assertTrue(set(id, null))
         assertNull(store.getStep(id)!!.arrivalTransport)
         assertFalse(set("missing", TransportMode.CAR))
+    }
+
+    /** R41: a leg note is trimmed, cleared by an empty text, refused over 1000 characters, kept by the step form. */
+    @Test fun setLegNoteTrimsClearsLimitsAndSaveStepKeepsIt() = runTest {
+        val store = FakeStore()
+        val clock = FixedClock()
+        val ids = SeqIds()
+        val start = LocalDate.of(2026, 10, 20)
+        val tripId = (SaveTrip(store, store, clock, ids)(null, TripInput("HG", "", start, null)) as SaveResult.Saved).id
+        val saveStep = SaveStep(store, store, RecordingFiles(), clock, ids)
+        val input = StepInput("Đồng Văn", "Ghi chú điểm", dv, LocalDateTime.of(start, java.time.LocalTime.NOON), emptyList())
+        val id = (saveStep(tripId, null, input) as SaveResult.Saved).id
+        val set = SetLegNote(store, clock)
+
+        clock.millis = 3_000
+        assertTrue(set(id, "  Đường dốc khó đi, gửi xe phía đối diện 30k \n"))
+        assertEquals("Đường dốc khó đi, gửi xe phía đối diện 30k", store.getStep(id)!!.arrivalNote)
+        assertEquals(3_000, store.getStep(id)!!.updatedAt)
+
+        // Editing the step in the form keeps the leg note and the stop note apart.
+        saveStep(tripId, id, input.copy(title = "Phố cổ Đồng Văn"))
+        assertEquals("Đường dốc khó đi, gửi xe phía đối diện 30k", store.getStep(id)!!.arrivalNote)
+        assertEquals("Ghi chú điểm", store.getStep(id)!!.note)
+
+        // 1000 characters (code points, here 2-char emoji) fit; 1001 are refused and change nothing.
+        assertTrue(set(id, "🛵".repeat(1000)))
+        assertFalse(set(id, "Đ".repeat(1001)))
+        assertEquals("🛵".repeat(1000), store.getStep(id)!!.arrivalNote)
+
+        assertTrue(set(id, "   "))
+        assertNull(store.getStep(id)!!.arrivalNote)
+        assertFalse(set("missing", "x"))
     }
 
     @Test fun overallStatsSumEachTripSeparately() {

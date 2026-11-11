@@ -122,7 +122,7 @@ object PackageJson {
         }
 
         fun stop(s: JSONObject, at: String): RouteStop {
-            keys(s, at, "id", "day", "time", "title", "note", "lat", "lng", "arrival", "media")
+            keys(s, at, "id", "day", "time", "title", "note", "lat", "lng", "arrival", "media", optional = setOf("arrivalNote"))
             val media = array(s, "media", at, 0, 30).mapIndexed { i, v -> (v as? String)?.takeIf(ID::matches) ?: fail("$at/media/$i") }
             if (media.toSet().size != media.size) fail("$at/media")
             return RouteStop(
@@ -135,6 +135,8 @@ object PackageJson {
                 lng = number(s, "lng", at, -180.0, 180.0),
                 arrival = nullable(s, "arrival") { oneOf(s, "arrival", at, ARRIVALS) },
                 media = media,
+                // R41: optional; when present a trimmed string of 1..1000 characters (never null or "").
+                arrivalNote = if (s.has("arrivalNote")) text(s, "arrivalNote", at, 1, 1000) else null,
             )
         }
 
@@ -167,10 +169,10 @@ object PackageJson {
             )
         }
 
-        /** Exactly these keys (all required, `additionalProperties: false`). */
-        fun keys(o: JSONObject, at: String, vararg names: String) {
+        /** Exactly these keys (all [names] required, [optional] may be absent; `additionalProperties: false`). */
+        fun keys(o: JSONObject, at: String, vararg names: String, optional: Set<String> = emptySet()) {
             names.forEach { if (!o.has(it)) fail("$at/$it") }
-            o.keys().forEach { if (it !in names) fail("$at/$it") }
+            o.keys().forEach { if (it !in names && it !in optional) fail("$at/$it") }
         }
 
         fun fail(at: String): Nothing = throw SchemaError(at)

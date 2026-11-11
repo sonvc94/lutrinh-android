@@ -68,6 +68,12 @@ data class Step(
      */
     val arrivalTransport: TransportMode? = null,
     /**
+     * R41 (DB version 11): the traveller's note about the leg that ENDS at this step ("đường dốc
+     * khó đi", "gửi xe phía đối diện 30k"), trimmed, 1..[vn.lutrinh.app.domain.usecase.Limits.LEG_NOTE_MAX]
+     * characters, or null = none. Like [arrivalTransport] it is ignored on the first step of a trip.
+     */
+    val arrivalNote: String? = null,
+    /**
      * R20 (DB version 6): a draft ("Nháp") is kept in the trip's timeline but is not part of the
      * trip yet: no number, no legs, not in stats, share or "Bản đồ của tôi". False = published.
      */

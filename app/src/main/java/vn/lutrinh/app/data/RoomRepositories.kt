@@ -93,6 +93,10 @@ class RoomStepRepository(private val db: AppDatabase) : StepRepository {
         (dao.setTransportMode(stepId, mode?.code, now) > 0).also { if (it) db.routeLinkDao().markEditedByStep(stepId) }
     }
 
+    override suspend fun setArrivalNote(stepId: String, note: String?, now: Long): Boolean = db.withTransaction {
+        (dao.setArrivalNote(stepId, note, now) > 0).also { if (it) db.routeLinkDao().markEditedByStep(stepId) }
+    }
+
     override suspend fun setDraft(stepId: String, draft: Boolean, now: Long): Boolean = db.withTransaction {
         (dao.setDraft(stepId, draft, now) > 0).also { if (it) db.routeLinkDao().markEditedByStep(stepId) }
     }

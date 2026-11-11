@@ -110,6 +110,14 @@
     <string name="routing_fix_map">Sửa bản đồ</string>
     <string name="leg_car_route">tuyến ô tô</string>
     <string name="leg_km_straight">%1$s km chim bay</string>
+    <string name="leg_note_label">Ghi chú chặng</string>
+    <string name="leg_note_add">Thêm ghi chú chặng</string>
+    <string name="leg_note_hint">Ví dụ: đường dốc khó đi, gửi xe phía đối diện 30k</string>
+    <string name="leg_note_count">%1$d/%2$d</string>
+    <string name="leg_note_too_long">Ghi chú chặng tối đa %1$d ký tự</string>
+    <string name="leg_note_clear">Xóa ghi chú</string>
+    <string name="leg_note_more">Xem thêm</string>
+    <string name="leg_note_less">Thu gọn</string>
 
     <!-- Step edit -->
     <string name="step_detail_bar">Điểm dừng</string>

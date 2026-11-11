@@ -31,6 +31,8 @@ import vn.lutrinh.app.ui.common.DraftBadge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -245,6 +247,7 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
     val route = TripRouteLink(c, tripId, viewModelScope)
 
     fun setLegMode(toStepId: String, mode: TransportMode?) = viewModelScope.launch { c.setLegTransport(toStepId, mode) }
+    fun setLegNote(toStepId: String, note: String) = viewModelScope.launch { c.setLegNote(toStepId, note) }
 
     // Recording commands run in the app scope: leaving the screen must not cancel a stop.
     fun pauseRecording() = c.appScope.launch { c.recorder.pause() }
@@ -450,7 +453,12 @@ fun TripDetailScreen(
     }
 
     detail?.legs?.firstOrNull { it.to.id == editLegTo }?.let { leg ->
-        LegModeSheet(leg, detail.measure(leg), onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
+        LegModeSheet(
+            leg, detail.measure(leg),
+            onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null },
+            onSaveNote = { vm.setLegNote(leg.to.id, it); editLegTo = null },
+            onDismiss = { editLegTo = null },
+        )
     }
 
     if (pickCover && detail != null) {
@@ -596,14 +604,20 @@ private fun TripHeader(d: TripDetail, routeLink: RouteLink?, onRouteBadge: () ->
     }
 }
 
-/** Between two timeline rows: the rail continues, with the leg's mode chip beside it. */
+/**
+ * Between two timeline rows: the rail continues, with the leg's mode chip beside it and, under
+ * the chip, the leg's note (R41: two lines, "Xem thêm" opens the rest).
+ */
 @Composable
 private fun LegRow(leg: Leg, measure: LegMeasure, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(32.dp).height(48.dp), Alignment.Center) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(32.dp).fillMaxHeight().heightIn(min = 48.dp), Alignment.Center) {
             Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
         }
-        LegChip(leg, measure, onClick, Modifier.padding(start = 8.dp))
+        Column(Modifier.padding(start = 8.dp).weight(1f)) {
+            LegChip(leg, measure, onClick)
+            leg.note?.let { LegNote(it, Modifier.padding(bottom = 8.dp)) }
+        }
     }
 }
 

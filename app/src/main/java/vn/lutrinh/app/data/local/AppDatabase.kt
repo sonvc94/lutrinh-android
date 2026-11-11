@@ -21,6 +21,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *  8 - leg_routes: stored road route per leg, keyed by the arrival step (R36)
  *  9 - leg_routes.used_profile (nullable TEXT): the profile that answered; `car` on a Xe máy leg = car-route fallback (R36)
  * 10 - route_links: the route (code + version) a downloaded trip came from (R40)
+ * 11 - steps.arrival_note (nullable TEXT): the note about the leg ending at the step (R41)
  */
 @Database(
     entities = [
@@ -41,7 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "lutrinh.db"
-        const val VERSION = 10
+        const val VERSION = 11
 
         /** Adds the nullable leg transport column; existing rows read as "not set". */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -176,8 +177,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds the nullable leg note (R41); every existing step reads as "no note", nothing is rewritten. */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE steps ADD COLUMN arrival_note TEXT")
+            }
+        }
+
         /** Every migration, oldest first. Never use destructive fallback: user data is local only. */
-        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
 
         fun build(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)

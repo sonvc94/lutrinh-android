@@ -92,6 +92,12 @@ class FakeStore : TripRepository, StepRepository {
         return true
     }
 
+    override suspend fun setArrivalNote(stepId: String, note: String?, now: Long): Boolean {
+        val s = steps.value[stepId] ?: return false
+        steps.value = steps.value + (stepId to s.copy(arrivalNote = note, updatedAt = now))
+        return true
+    }
+
     override suspend fun setDraft(stepId: String, draft: Boolean, now: Long): Boolean {
         val s = steps.value[stepId] ?: return false
         steps.value = steps.value + (stepId to s.copy(isDraft = draft, updatedAt = now))

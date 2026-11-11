@@ -23,6 +23,8 @@ import kotlin.math.tan
  */
 data class Leg(val from: Step, val to: Step) {
     val mode: TransportMode? get() = to.arrivalTransport
+    /** R41: the traveller's note about this leg (stored on [to]), or null. */
+    val note: String? get() = to.arrivalNote
     val distanceKm: Double get() = Geo.distanceKm(from.location, to.location)
 }
 

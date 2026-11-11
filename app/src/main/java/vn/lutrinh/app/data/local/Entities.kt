@@ -47,6 +47,8 @@ data class StepEntity(
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     /** TransportMode.code of the leg ending here, or null (added in DB version 2). */
     @ColumnInfo(name = "transport_mode") val transportMode: String? = null,
+    /** Note about the leg ending here, or null (added in DB version 11, R41). */
+    @ColumnInfo(name = "arrival_note") val arrivalNote: String? = null,
     /** 1 = draft, 0 = published (added in DB version 6, R20; existing steps are published). */
     @ColumnInfo(name = "is_draft", defaultValue = "0") val isDraft: Boolean = false,
 )

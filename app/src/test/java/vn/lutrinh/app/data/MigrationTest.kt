@@ -365,6 +365,35 @@ class MigrationTest {
         assertNull(routes.link("t1"))
     }
 
+    @Test fun version10UpgradesWithLegNotesAndKeepsEverything() = runTest {
+        createVersion(10)
+        SQLiteDatabase.openDatabase(ctx.getDatabasePath(name).path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("UPDATE steps SET transport_mode = 'motorbike', note = 'Ghi chú điểm' WHERE id = 's2'")
+            db.execSQL(
+                "INSERT INTO route_links (trip_id, route_id, code, version, package_sha256, downloaded_at, checked_at, remote_status, edited, credits, latest_version, skipped_version, notice_closed) " +
+                    "VALUES ('t1', 'rt_5f3c9a1e', 'HG4N7KQE', 3, '${"ab".repeat(32)}', 7, NULL, 'active', 0, '', NULL, NULL, 0)",
+            )
+        }
+        val db = open()
+        val steps = RoomStepRepository(db)
+        // Every existing step reads as "no leg note"; the rest is kept.
+        val before = steps.getSteps("t1")
+        assertEquals(listOf("s1", "s2"), before.map { it.id })
+        assertEquals(listOf(null, null), before.map { it.arrivalNote })
+        assertEquals("Ghi chú điểm", before[1].note)
+        assertEquals(TransportMode.MOTORBIKE, before[1].arrivalTransport)
+        assertEquals(listOf("a.jpg"), before.flatMap { it.photos }.map { it.fileName })
+        assertEquals("rt_5f3c9a1e", RoomRouteRepository(db, ctx.filesDir) { }.link("t1")!!.routeId)
+
+        // The new column is written and cleared; setting it marks a downloaded trip edited (R40).
+        assertTrue(steps.setArrivalNote("s2", "Gửi xe phía đối diện 30k", 9L))
+        assertEquals("Gửi xe phía đối diện 30k", steps.getStep("s2")!!.arrivalNote)
+        assertTrue(RoomRouteRepository(db, ctx.filesDir) { }.link("t1")!!.edited)
+        assertTrue(steps.setArrivalNote("s2", null, 10L))
+        assertNull(steps.getStep("s2")!!.arrivalNote)
+        assertFalse(steps.setArrivalNote("missing", "x", 11L))
+    }
+
     private fun open(): AppDatabase = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
         .addMigrations(*AppDatabase.MIGRATIONS)
         .allowMainThreadQueries()

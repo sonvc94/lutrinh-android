@@ -161,7 +161,8 @@ The picker returns its result to the step form through the previous screen's sav
   Timeline grouped by day ("Ngày 2 · Thứ Bảy, 07/11"), each step with its number, time, note
   preview and up to a row of photo thumbnails. Between two steps a **leg chip** (mode icon + name
   in the mode colour, or "Chọn cách di chuyển" when not set, then "· 48 km · ~1 giờ 33 phút" along
-  the road or "· 4,1 km chim bay", R12/R36) sits on the timeline connector; the header map draws
+  the road or "· 4,1 km chim bay", R12/R36) sits on the timeline connector; under it the **leg
+  note** (R41, note icon + text, 2 lines, then "Xem thêm" / "Thu gọn"); the header map draws
   the legs per mode, routed legs along the road (05-map.md), and the recorded tracks
   (ink, 05-map.md "Recorded tracks").
 * **Top bar:** back, share icon ("Chia sẻ chuyến đi") and ⋮. The trip title appears in the bar only
@@ -414,7 +415,12 @@ The picker returns its result to the step form through the previous screen's sav
   row per mode (icon in its colour + name: Đi bộ, Xe máy, Ô tô, Xe buýt/xe khách, Tàu hỏa, Máy
   bay, Thuyền) and "Chưa chọn"; the current choice is marked. Tap → saved at once (R12), sheet
   closes; swipe down/outside → no change.
-* **Screen:** `img/25-leg-mode-sheet.png`.
+* **Leg note (R41):** above the modes (hairline between) a row "Thêm ghi chú chặng" (or "Ghi chú
+  chặng" + the note, 2 lines) with a pencil; a tap turns the sheet into the editor: a field (hint
+  "Ví dụ: đường dốc khó đi, gửi xe phía đối diện 30k", count "n/1000" or the error "Ghi chú chặng
+  tối đa 1000 ký tự"), then "Xóa ghi chú" (only when a note exists), "Hủy" (back to the modes) and
+  the Forest "Lưu" (saves, closes). An empty field saved = the note is removed.
+* **Screen:** `img/25-leg-mode-sheet.png` (before R41); with the note: `img/leg-note/`.
 * **Inspired by:** docs/22 (transport mode per leg). **Changed:** own list for Vietnam (xe máy,
   xe buýt/xe khách), a single bottom sheet instead of a separate screen, no automatic guess.
 
@@ -756,6 +762,19 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
   server's simplified `overview` line on paper instead of its `cover` photo (follow-up).
 
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
+
+### Leg note (`img/leg-note/`, R41)
+
+Own AVD (pixel_6, android-36, English system), debug build; sample data, and a route downloaded by
+code from a local stub server serving the spec sample with `arrivalNote` on two stops. 540 px wide.
+
+| File | Shows |
+| --- | --- |
+| 01-leg-sheet.png | the leg sheet of Ninh Bình's Tràng An leg: "Thêm ghi chú chặng" above the modes |
+| 02-leg-note-editor.png | the editor: field with a typed note, count, "Hủy" / "Lưu" |
+| 03-reopened-leg-note-on-timeline.png | after a force-stop and reopening the trip: the note under the leg chip |
+| 05-imported-leg-note-clamped.png | a trip downloaded by code: the long leg note clamped to 2 lines + "Xem thêm" |
+| 06-imported-leg-note-expanded.png | the same note expanded, "Thu gọn" |
 
 ### Route codes (`img/routes/`, R40)
 

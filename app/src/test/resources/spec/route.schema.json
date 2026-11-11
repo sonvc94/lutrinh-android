@@ -117,6 +117,10 @@
             { "type": "null" }
           ]
         },
+        "arrivalNote": {
+          "description": "Optional note about travelling from the previous stop to this one (e.g. a steep road, where to park). Absent = no note (never null or empty). Not allowed on the first stop (integrity rule arrival_note_on_first_stop).",
+          "allOf": [{ "$ref": "#/$defs/trimmed" }, { "minLength": 1, "maxLength": 1000 }]
+        },
         "media": {
           "description": "Ordered ids of media[] items (photo position = index).",
           "type": "array",

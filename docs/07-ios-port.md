@@ -192,6 +192,16 @@ enum CatalogResult<T> { case ok(T), refused(CatalogError, retryAfterS: Int?), un
 | Room table `route_links` (v10), `RoomRouteRepository.import` (one transaction), `markEdited` on every trip/step change | SwiftData `@Model RouteLinkRecord` (same columns, cascade with its trip); same table name in a backup |
 | `ui/routes/RouteCodeScreen` (code / preview / download), `TripRouteUi` (badge, sheet, banner) | one `NavigationStack` destination with three states; `.sheet` for the route sheet; the same strings (`strings_routes.xml`) |
 
+## Leg note (R41)
+
+| Android | iOS |
+| --- | --- |
+| `Step.arrivalNote: String?` (Room `steps.arrival_note`, v11, `MIGRATION_10_11`) | `var arrivalNote: String?` on the SwiftData `Step` in a new `VersionedSchema` with a `.lightweight` stage (or GRDB `alter(table: "steps") { $0.add(column: "arrival_note", .text) }`); same column name in a backup |
+| `LegNotes.normalise/fits`, `Limits.LEG_NOTE_MAX = 1000`, `SetLegNote` (trim, empty clears, too long refused, marks a route copy edited) | same pure functions; port `LegsTest.setLegNoteTrimsClearsLimitsAndSaveStepKeepsIt`. Android counts code points; `String.count` (graphemes) gives the same for precomposed Vietnamese |
+| `Leg.note` = `to.arrivalNote` | same computed property |
+| `LegModeSheet` note row + `LegNoteEditor`, `LegNote` (2 lines + "Xem thêm"/"Thu gọn") under the leg chip in the timeline | the same `.sheet` with a note row that swaps to a `TextField(axis: .vertical)`; `Text(note).lineLimit(expanded ? nil : 2)` + a button; strings `leg_note_*` |
+| `PackageJson` optional key `arrivalNote` (trimmed, 1–1000) + `PackageRules` `arrival_note_on_first_stop`; `RouteImport.plan` drops it on stop 0 | same checks; port `RoutePackageTest.arrivalNote*`, the `arrivalNote` package vectors and `RouteDownloadImportTest.legNotesOfAServedPackageAreStoredOnTheirSteps` |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;
@@ -228,6 +238,8 @@ enum CatalogResult<T> { case ok(T), refused(CatalogError, retryAfterS: Int?), un
    (`MigrationTest.version9UpgradesWithRouteLinksAndKeepsEverything`), the server adapter with a
    stub serving the spec sample (`RouteDownloadImportTest`), then the code / preview / download
    screens, the badge, sheet and banner.
+4j. Leg notes (R41): the V10→V11 column (`MigrationTest.version10UpgradesWithLegNotesAndKeepsEverything`),
+   `SetLegNote`, the reader/import vectors, then the sheet editor and the timeline note.
 5. Screens in the order of 03-screens.md; check each against its screenshot in `img/`.
 6. Strings: all user-visible text from `strings.xml`, Vietnamese.
 

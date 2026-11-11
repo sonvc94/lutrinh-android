@@ -80,6 +80,38 @@ class RoutePackageTest {
         assertEquals("08:03", plan.steps[3].arrivedAt.toLocalTime().toString())
     }
 
+    /** R41: an optional leg note on a later stop is read and lands on that step; none elsewhere. */
+    @Test fun arrivalNoteOnALaterStopIsReadAndPlanned() {
+        val doc = Spec.json(Spec.SAMPLE)
+        doc.getJSONArray("stops").getJSONObject(2).put("arrivalNote", "Đường dốc khó đi, gửi xe phía đối diện 30k")
+        val p = PackageJson.parse(doc.toString())!!
+        assertEquals(emptyList<String>(), PackageRules.check(p))
+        assertEquals(emptyList<String>(), PackageRules.appLimits(p))
+        assertEquals(listOf(null, null, "Đường dốc khó đi, gửi xe phía đối diện 30k"), p.stops.take(3).map { it.arrivalNote })
+        val plan = RouteImport.plan(p, RouteCode.of("HG4N7KQE")!!, "abc", LocalDate.of(2026, 12, 5), 0L, { java.util.UUID.randomUUID().toString() })
+        assertEquals("Đường dốc khó đi, gửi xe phía đối diện 30k", plan.steps[2].arrivalNote)
+        assertEquals(8, plan.steps.count { it.arrivalNote == null })
+        // Without the key (the sample as served today) nothing changes.
+        assertTrue(pkg.stops.all { it.arrivalNote == null })
+    }
+
+    /** R41: 1000 characters fit, 1001, empty, null or untrimmed are not the schema; the first stop is a rule. */
+    @Test fun arrivalNoteLimitsAndFirstStop() {
+        fun withNote(stop: Int, note: Any?): PackageRead {
+            val doc = Spec.json(Spec.SAMPLE)
+            doc.getJSONArray("stops").getJSONObject(stop).put("arrivalNote", note ?: org.json.JSONObject.NULL)
+            return PackageJson.read(doc.toString())
+        }
+        assertTrue(withNote(1, "Đ".repeat(1000)) is PackageRead.Ok)
+        assertEquals(PackageRead.Invalid("/stops/1/arrivalNote"), withNote(1, "Đ".repeat(1001)))
+        assertEquals(PackageRead.Invalid("/stops/1/arrivalNote"), withNote(1, ""))
+        assertEquals(PackageRead.Invalid("/stops/1/arrivalNote"), withNote(1, null))
+        assertEquals(PackageRead.Invalid("/stops/1/arrivalNote"), withNote(1, " dốc"))
+        assertEquals(PackageRead.Invalid("/stops/1/arrivalNote"), withNote(1, 30))
+        val first = withNote(0, "Xuất phát") as PackageRead.Ok
+        assertEquals(listOf("arrival_note_on_first_stop"), PackageRules.check(first.pkg))
+    }
+
     @Test fun notJsonOrAnotherFormatIsNotRead() {
         assertNull(PackageJson.parse("not json"))
         assertTrue(PackageJson.read("{\"format\":\"gpx\"}") is PackageRead.Invalid)

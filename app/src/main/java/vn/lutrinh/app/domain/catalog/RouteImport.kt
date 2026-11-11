@@ -121,6 +121,8 @@ object RouteImport {
                 updatedAt = now + i,
                 photos = photos,
                 arrivalTransport = TransportMode.fromCode(s.arrival),
+                // R41: the first stop has no incoming leg (PackageRules refuses a note there).
+                arrivalNote = if (i == 0) null else s.arrivalNote,
             )
         }
         val stepById = pkg.stops.mapIndexed { i, s -> s.id to i }.toMap()

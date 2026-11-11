@@ -54,6 +54,11 @@ data class RouteStop(
     /** TransportMode code of the leg ending here, or null (unknown codes read as null, R12). */
     val arrival: String?,
     val media: List<String>,
+    /**
+     * R41: note about the travel from the previous stop to this one (trimmed, 1..1000 characters),
+     * or null when the key is absent. Never on the first stop (`arrival_note_on_first_stop`).
+     */
+    val arrivalNote: String? = null,
 )
 
 data class RouteLeg(
@@ -106,6 +111,7 @@ object PackageRules {
         if (p.media.any { it.id !in used }) out += "orphan_media"
         val position = HashMap<String, Int>()
         p.stops.forEachIndexed { i, s -> position.putIfAbsent(s.id, i) }
+        if (p.stops.firstOrNull()?.arrivalNote != null) out += "arrival_note_on_first_stop"
         val legTargets = HashSet<String>()
         var last = -1
         for (leg in p.legs) {
@@ -139,6 +145,7 @@ object PackageRules {
         p.stops.forEach { s ->
             if (s.title.codePointCount(0, s.title.length) !in 1..80) out += "stop_title"
             if (s.note.codePointCount(0, s.note.length) > 2000) out += "stop_note"
+            if (s.arrivalNote != null && s.arrivalNote.codePointCount(0, s.arrivalNote.length) !in 1..1000) out += "arrival_note"
             if (s.lat.isNaN() || s.lat !in -90.0..90.0 || s.lng.isNaN() || s.lng !in -180.0..180.0) out += "position"
             if (s.day < 1) out += "day"
             if (s.time != null && !TIME.matches(s.time)) out += "time"

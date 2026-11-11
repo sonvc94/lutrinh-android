@@ -11,7 +11,20 @@ object Limits {
     const val TRIP_DESCRIPTION_MAX = 1000
     const val STEP_TITLE_MAX = 80
     const val STEP_NOTE_MAX = 2000
+    /** R41: a leg note, in characters (Unicode code points, as the route package counts them). */
+    const val LEG_NOTE_MAX = 1000
     const val PHOTOS_PER_STEP_MAX = 30
+}
+
+/** R41: the leg note's text rules, shared by the leg sheet and the route import. */
+object LegNotes {
+    /** Trimmed text, or null when nothing is left (= no note). */
+    fun normalise(text: String): String? = text.trim().ifEmpty { null }
+
+    /** Length in characters as the limit counts them (code points). */
+    fun length(text: String): Int = text.codePointCount(0, text.length)
+
+    fun fits(text: String): Boolean = length(text) <= Limits.LEG_NOTE_MAX
 }
 
 data class TripInput(

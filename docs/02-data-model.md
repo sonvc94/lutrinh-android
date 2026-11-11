@@ -39,6 +39,7 @@ of the first step in timeline order (R2), drafts included, or none.
 | updatedAt | Instant | no | |
 | photos | list of Photo | — | 0..30, ordered by `position` |
 | arrivalTransport | TransportMode | yes | how the traveller reached this step from the previous one (R12); null = not set; ignored on the first step |
+| arrivalNote | String | yes | R41 (v11): note about travelling from the previous step to this one ("đường dốc khó đi", "gửi xe phía đối diện 30k"); trimmed, 1–1000 characters, null = none (never empty); ignored on the first step |
 | isDraft | Boolean | no | R20 (v6): true = saved with "Lưu nháp": shown in the trip (timeline, map) but left out of legs, stats, share and "Bản đồ của tôi"; false = published (default; every step before v6) |
 
 ### TransportMode
@@ -53,7 +54,7 @@ Stored as a short code; unknown codes (e.g. written by a newer app version) read
 | `bus` | Xe buýt/xe khách | (null) | Chưa chọn |
 
 A **leg** is not stored: it is the pair (step *i*, step *i+1*) of a trip in R2 order, and its mode
-is `arrivalTransport` of step *i+1* (R12).
+is `arrivalTransport` of step *i+1* (R12); its note is `arrivalNote` of step *i+1* (R41).
 
 ## Photo
 
@@ -178,12 +179,12 @@ R40). One per trip at most; a trip without a row is the user's own. Domain: `Rou
 Only `code`, `routeId` and `version` ever leave the device (the update check); nothing about the
 trip, its edits, photos or positions.
 
-## Storage (Android: SQLite via Room, database `lutrinh.db`, version 10)
+## Storage (Android: SQLite via Room, database `lutrinh.db`, version 11)
 
 | Table | Columns | Keys / indexes |
 | --- | --- | --- |
 | `trips` | id TEXT PK, title, description, start_date TEXT `yyyy-MM-dd`, end_date TEXT nullable, created_at INTEGER, updated_at INTEGER, cover_photo_id TEXT nullable (v6) | — |
-| `steps` | id TEXT PK, trip_id TEXT, title, note, latitude REAL, longitude REAL, arrived_at TEXT `yyyy-MM-dd'T'HH:mm`, created_at, updated_at, transport_mode TEXT nullable (v2), is_draft INTEGER NOT NULL DEFAULT 0 (v6) | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id), (trip_id, arrived_at) |
+| `steps` | id TEXT PK, trip_id TEXT, title, note, latitude REAL, longitude REAL, arrived_at TEXT `yyyy-MM-dd'T'HH:mm`, created_at, updated_at, transport_mode TEXT nullable (v2), is_draft INTEGER NOT NULL DEFAULT 0 (v6), arrival_note TEXT nullable (v11) | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id), (trip_id, arrived_at) |
 | `photos` | id TEXT PK, step_id TEXT, file_name TEXT, position INTEGER, created_at INTEGER, taken_at TEXT `yyyy-MM-dd'T'HH:mm` nullable (v4), source_id TEXT nullable (v5), source_size INTEGER nullable (v5), media_type TEXT NOT NULL DEFAULT 'photo' (v7), duration_ms INTEGER nullable (v7) | FK step_id → steps.id ON DELETE CASCADE; index (step_id); UNIQUE (file_name) |
 | `tracks` (v3) | id TEXT PK, trip_id TEXT, status TEXT, started_at INTEGER, ended_at INTEGER nullable, active_ms INTEGER, resumed_at INTEGER nullable, segment INTEGER, distance_m REAL, point_count INTEGER, interrupted INTEGER (0/1), created_at, updated_at | FK trip_id → trips.id ON DELETE CASCADE; index (trip_id) |
 | `track_points` (v3) | id INTEGER PK AUTOINCREMENT, track_id TEXT, segment INTEGER, recorded_at INTEGER, latitude REAL, longitude REAL, accuracy_m REAL nullable, altitude_m REAL nullable, speed_mps REAL nullable | FK track_id → tracks.id ON DELETE CASCADE; index (track_id, segment, recorded_at) |
@@ -212,6 +213,7 @@ of step.
 | 7 → 8 | legs along the road (R36) | `CREATE TABLE leg_routes …` (exact SQL = `8.json`, no index: the key is the primary key); existing tables untouched, every leg starts without a route (straight until fetched). Test: `MigrationTest.version7UpgradesWithLegRoutesAndKeepsEverything` |
 | 8 → 9 | car-route fallback (R36) | `ALTER TABLE leg_routes ADD COLUMN used_profile TEXT` (existing rows: NULL = answered with their own profile; a stored motorbike `no_route` is then asked once with `car`). Test: `MigrationTest.version8UpgradesWithUsedProfileAndKeepsStoredRoutes` |
 | 9 → 10 | route codes (R40) | `CREATE TABLE route_links …` (exact SQL = `10.json` / `AppDatabase.MIGRATION_9_10`, no index: the key is the primary key); existing tables untouched, every existing trip is the user's own (no row). Test: `MigrationTest.version9UpgradesWithRouteLinksAndKeepsEverything` (a v9 file with a trip, step, photo, track, decision and leg route keeps every row, then a link is written and cascades with its trip) |
+| 10 → 11 | leg notes (R41) | `ALTER TABLE steps ADD COLUMN arrival_note TEXT` (existing steps: no note; `AppDatabase.MIGRATION_10_11`). Test: `MigrationTest.version10UpgradesWithLegNotesAndKeepsEverything` (a v10 file with a trip, step, photo, track, decision, leg route and route link keeps every row, then a note is written and read back) |
 
 * There is **no destructive fallback**: a missing migration crashes on open instead of wiping
   the user's trips. Each version bump adds `MIGRATION_x_y` to `AppDatabase.MIGRATIONS`, bumps
@@ -322,7 +324,9 @@ photos/<uuid>.<ext>      every photo and video file a `photos` row refers to (by
   router's answers that the app can fetch again; a backup older than v8 restores without routes.
   `route_links` rows (R40) travel too and are not counted: a restored trip from a route code keeps
   its badge, version, edited flag and credits (`BackupManagerTest.routeLinksTravelWithTheBackup`);
-  a backup older than v10 restores with every trip as the user's own. The download staging folder
+  a backup older than v10 restores with every trip as the user's own. Leg notes (R41) are a column
+  of `steps`, so they travel with no format change (`BackupManagerTest.legNotesTravelWithTheBackup`);
+  a v10 backup restores with no notes (`BackupManagerTest.version10BackupRestoresWithoutLegNotes`). The download staging folder
   (`files/route-staging/`) is never in a backup.
 
 ## Route code (R40)
@@ -352,7 +356,7 @@ order, bad polyline6, size mismatch). Outline:
              "region": { "bounds": {"south","west","north","east"}, "readyMade": "ha-giang"|null },
              "credits": ["Ảnh: …", "Đường đi: © OpenStreetMap (ODbL)"] },
   "stops": [{ "id", "day", "time": "HH:mm"|null, "title", "note", "lat", "lng",
-              "arrival": "motorbike"|…|null, "media": ["p01", …] }],
+              "arrival": "motorbike"|…|null, "arrivalNote"?: "…", "media": ["p01", …] }],
   "legs":  [{ "to", "profile", "usedProfile"|null, "source", "status": "ok"|"no_route"|"too_far",
               "distanceM", "durationS", "path": "<polyline6>" }],
   "media": [{ "id", "sha256", "type": "photo"|"video", "bytes", "w", "h", "durationMs"|null, "credit" }],
@@ -363,6 +367,9 @@ order, bad polyline6, size mismatch). Outline:
   lengths of the schema) and then checks the integrity rules (`PackageRules`); a newer
   `formatVersion` is "format_unsupported" (ask to update the app) before the schema is applied.
   `package-vectors.json` gives the expected problem for each broken sample (`RouteSpecVectorsTest`).
+* `stops[].arrivalNote` (R41) was added to formatVersion 1 as an optional field. Because the reader
+  is strict, an app built before R41 refuses a package that carries it ("schema" problem): the
+  server should only send it once apps that read it are out.
 * Every media file is checked against its sha256 after download; a mismatch is fetched again once,
   a second mismatch refuses the whole package (nothing is imported). Videos have no poster in the
   package: the app makes its own thumbnail as for its own videos (R29).
@@ -381,6 +388,7 @@ the files wait in `files/route-staging/<code>/<sha256>` (kept across restarts fo
 | `route.cover` | `coverPhotoId` = that photo's new id (else automatic) |
 | stop `day` + `time` | `arrivedAt` = start + (day − 1) at `time`; no time = 08:00 + the stop's position in minutes (keeps the order) |
 | stop `title`, `note`, `lat`/`lng`, `arrival` | step title, note, location, `transportMode` (`TransportMode` codes) |
+| stop `arrivalNote` (optional, R41: trimmed, 1–1000, absent when none; on the first stop the package is refused, `arrival_note_on_first_stop`) | step `arrivalNote` (the first step never gets one) |
 | stop `media` order | `photos.position` 0…n−1; files `<new id>.jpg` / `.mp4`, `media_type`, `duration_ms` |
 | each leg | a `leg_routes` row of its `to` step with the two stops' own coordinates, `profile`, `used_profile`, `provider` = `source`, `status`, distance, duration, geometry; R36 never asks a router again for it (input match), and D-13 draws it even with "Tính đường đi" off |
 | `route.id`, `version`, `credits`, the `route.json` sha256, the code | the `route_links` row |

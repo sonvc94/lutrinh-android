@@ -304,7 +304,12 @@ fun TripMapScreen(
     }
 
     detail?.legs?.firstOrNull { it.to.id == editLegTo }?.let { leg ->
-        LegModeSheet(leg, detail.measure(leg), onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null }, onDismiss = { editLegTo = null })
+        LegModeSheet(
+            leg, detail.measure(leg),
+            onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null },
+            onSaveNote = { vm.setLegNote(leg.to.id, it); editLegTo = null },
+            onDismiss = { editLegTo = null },
+        )
     }
 }
 

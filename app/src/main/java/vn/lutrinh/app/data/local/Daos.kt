@@ -92,6 +92,9 @@ interface StepDao {
     @Query("UPDATE steps SET transport_mode = :mode, updated_at = :now WHERE id = :id")
     suspend fun setTransportMode(id: String, mode: String?, now: Long): Int
 
+    @Query("UPDATE steps SET arrival_note = :note, updated_at = :now WHERE id = :id")
+    suspend fun setArrivalNote(id: String, note: String?, now: Long): Int
+
     @Query("UPDATE steps SET is_draft = :draft, updated_at = :now WHERE id = :id")
     suspend fun setDraft(id: String, draft: Boolean, now: Long): Int
 

@@ -43,6 +43,7 @@ fun StepWithPhotos.toDomain() = Step(
     // R27: the stored order (dense 0..n-1 since DB v7); created time and id only break ties of older data.
     photos = photos.sortedWith(compareBy<PhotoEntity> { it.position }.thenBy { it.createdAt }.thenBy { it.id }).map { it.toDomain() },
     arrivalTransport = TransportMode.fromCode(step.transportMode),
+    arrivalNote = step.arrivalNote,
     isDraft = step.isDraft,
 )
 
@@ -57,6 +58,7 @@ fun Step.toEntity() = StepEntity(
     createdAt = createdAt,
     updatedAt = updatedAt,
     transportMode = arrivalTransport?.code,
+    arrivalNote = arrivalNote,
     isDraft = isDraft,
 )
 

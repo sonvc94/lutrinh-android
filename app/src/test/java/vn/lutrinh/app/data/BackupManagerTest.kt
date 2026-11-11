@@ -312,6 +312,41 @@ class BackupManagerTest {
         assertEquals(listOf("x.jpg", "y.jpg"), files())
     }
 
+    /** R41 + R26: a leg note goes into the backup and comes back with its step. */
+    @Test fun legNotesTravelWithTheBackup() = runTest {
+        seedA()
+        assertTrue(RoomStepRepository(db).setArrivalNote("s2", "Đường dốc khó đi, gửi xe phía đối diện 30k", 5L))
+        val (_, zip) = backupBytes()
+        replaceWithB()
+        backup.restore(backup.prepare(ByteArrayInputStream(zip)))
+        assertEquals("Đường dốc khó đi, gửi xe phía đối diện 30k", RoomStepRepository(db).getStep("s2")!!.arrivalNote)
+        assertNull(RoomStepRepository(db).getStep("s1")!!.arrivalNote)
+    }
+
+    /** A backup written at schema 10 (before leg notes) restores with every step "no leg note". */
+    @Test fun version10BackupRestoresWithoutLegNotes() = runTest {
+        val old = oldDatabase(10) { d ->
+            d.insert("trips", null, ContentValues().apply {
+                put("id", "t10"); put("title", "Mười"); put("description", ""); put("start_date", "2026-01-01"); put("created_at", 1L); put("updated_at", 1L)
+            })
+            listOf("s10a" to "2026-01-01T08:00", "s10b" to "2026-01-01T12:00").forEach { (id, at) ->
+                d.insert("steps", null, ContentValues().apply {
+                    put("id", id); put("trip_id", "t10"); put("title", "Bước $id"); put("note", "điểm"); put("latitude", 21.0); put("longitude", 105.8)
+                    put("arrived_at", at); put("created_at", 1L); put("updated_at", 1L); put("is_draft", 0); put("transport_mode", "bus")
+                })
+            }
+        }
+        val m = BackupManifest(appId = "vn.lutrinh.app", appVersion = "0.0.10", schemaVersion = 10, createdAt = "2026-11-10T00:00:00Z",
+            counts = BackupCounts(trips = 1, steps = 2), photoFiles = 0)
+        seedA()
+        val prepared = backup.prepare(ByteArrayInputStream(zipOf(m, old, emptyMap())))
+        assertEquals(BackupCounts(trips = 1, steps = 2), backup.restore(prepared))
+        val steps = RoomStepRepository(db).getSteps("t10")
+        assertEquals(listOf(null, null), steps.map { it.arrivalNote })
+        assertEquals(listOf("điểm", "điểm"), steps.map { it.note })
+        assertEquals(vn.lutrinh.app.domain.model.TransportMode.BUS, steps[1].arrivalTransport)
+    }
+
     @Test fun olderSchemaBackupIsMigrated() = runTest {
         // A version-5 database (before drafts and covers), as the v5 app wrote it.
         val old = oldDatabase(5) { d ->
