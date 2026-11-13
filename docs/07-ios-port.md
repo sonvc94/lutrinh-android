@@ -202,6 +202,15 @@ enum CatalogResult<T> { case ok(T), refused(CatalogError, retryAfterS: Int?), un
 | `LegModeSheet` note row + `LegNoteEditor`, `LegNote` (2 lines + "Xem thêm"/"Thu gọn") under the leg chip in the timeline | the same `.sheet` with a note row that swaps to a `TextField(axis: .vertical)`; `Text(note).lineLimit(expanded ? nil : 2)` + a button; strings `leg_note_*` |
 | `PackageJson` optional key `arrivalNote` (trimmed, 1–1000) + `PackageRules` `arrival_note_first_stop`; `RouteImport.plan` drops it on stop 0 | same checks; port `RoutePackageTest.arrivalNote*`, the `arrivalNote` package vectors and `RouteDownloadImportTest.legNotesOfAServedPackageAreStoredOnTheirSteps` |
 
+## Navigate to a stop (R42)
+
+| Android | iOS |
+| --- | --- |
+| `StopNavigation.geoUri/mapsUrl/coords/encode` (pure) | same functions (`String(format:)` with `Locale(identifier: "en_US_POSIX")`); port `StopNavigationTest`. The `geo:` URI has no iOS meaning: open `MKMapItem(placemark:).openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: …])` (Apple Maps; offer Google Maps with `comgooglemaps://?daddr=lat,lng` when `canOpenURL` allows it, add `comgooglemaps` to `LSApplicationQueriesSchemes`), else open `mapsUrl` |
+| `Context.navigateToStop` (`ACTION_VIEW`, browser fallback) | `UIApplication.shared.open` |
+| Step detail button, trip-map card Navigate square | same placement, SF-free `TopoIcons.Navigate` path from docs/08 |
+| `TripPage` per-step `<a>` (CSP unchanged) | same HTML; port `TripShareTest.pageHasOneDirectionsLinkPerStopAndKeepsTheCsp` |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;

@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.platform.LocalContext
+import vn.lutrinh.app.ui.common.navigateToStop
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -122,6 +125,7 @@ fun StepDetailScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val deleted by vm.deleted.collectAsStateWithLifecycle()
     var confirmDelete by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     LaunchedEffect(deleted) { if (deleted) onBack() }
     val d = (state as? Loadable.Ready)?.value
 
@@ -170,6 +174,13 @@ fun StepDetailScreen(
                             InfoRow(TopoIcons.Place, place)
                             coords?.let {
                                 Text(it, style = MaterialTheme.typography.bodySmall.numerals(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = IconSize.S + Space.S))
+                            }
+                            // R42: hand the stop to a maps app on the phone.
+                            Spacer(Modifier.height(12.dp))
+                            Button(shape = MaterialTheme.shapes.small, onClick = { context.navigateToStop(step) }) {
+                                Icon(TopoIcons.Navigate, null, Modifier.size(IconSize.S))
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(R.string.action_navigate))
                             }
                         }
                         Spacer(Modifier.height(4.dp))

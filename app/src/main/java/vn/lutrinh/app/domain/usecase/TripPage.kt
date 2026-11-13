@@ -114,6 +114,9 @@ object TripPage {
             sb.append("<h3>").append(esc(step.title)).append("</h3>\n")
             sb.append("<p class=\"time\">").append(step.arrivedAt.format(TIME)).append("</p>\n")
             if (!content.hideNotes && step.note.isNotBlank()) sb.append("<p class=\"note\">").append(text(step.note)).append("</p>\n")
+            // R42: a plain link the reader taps (not a request the page makes: the CSP stays).
+            sb.append("<p class=\"go\"><a href=\"").append(esc(StopNavigation.mapsUrl(step.location)))
+                .append("\" target=\"_blank\" rel=\"noopener noreferrer\">Dẫn đường</a></p>\n")
             val photos = step.photos.sortedBy { it.position }
             val allowed = photos.take(level.maxPhotosPerStep)
             omitted += photos.size - allowed.size
@@ -182,7 +185,7 @@ object TripPage {
      * Barlow Condensed for numbers. Noto Sans is by name only (a phone or computer without it
      * falls back to its sans); the digits are embedded as a subset in [FONT_FACE] (a `data:` font,
      * the page may load nothing else, CSP `font-src data:`), so numbers look the same everywhere.
-     * No gradients, no links.
+     * No gradients; the only links are the per-step "Dẫn đường" (R42).
      */
     private const val FONT_FACE =
         "@font-face{font-family:\"Barlow Condensed\";font-weight:700;font-style:normal;" +
@@ -215,6 +218,8 @@ h3{margin:2px 0 0;font-size:17px;line-height:24px;font-weight:700}
 .note{margin:6px 0 0;white-space:normal;overflow-wrap:anywhere}
 .photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:10px}
 .photos img{width:100%;height:auto;border-radius:12px;display:block;background:#E8E3CE}
+.go{margin:8px 0 0}
+.go a{display:inline-block;padding:6px 16px;border-radius:12px;background:#1F2A24;color:#FBFAF2;font-size:14px;line-height:21px;font-weight:700;text-decoration:none}
 footer{padding:20px 22px 40px;color:#6B6A58;font-size:14px}
 footer p{margin:4px 0}
 """

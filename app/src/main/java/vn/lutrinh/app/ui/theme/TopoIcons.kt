@@ -76,6 +76,8 @@ object TopoIcons {
 
     // Row icons (were stock Material icons inside rows and forms).
     const val TIME = "M12 3.5a8.5 8.5 0 1 0 0 17a8.5 8.5 0 1 0 0-17M12 7.5V12l3 2"
+    /** "Dẫn đường" (R42): a navigation arrow pointing up-right. */
+    const val NAVIGATE = "M20 4L4 10.5l6.5 2.5L13 19.5z"
     const val PLACE = "M12 21s-6.5-5.5-6.5-11a6.5 6.5 0 0 1 13 0c0 5.5-6.5 11-6.5 11z"
     val PLACE_DOT = dot(12f, 10f, 2f)
     const val PREVIOUS = "M14.5 6L8.5 12l6 6"
@@ -141,6 +143,7 @@ object TopoIcons {
     val Check = icon("Check", CHECK)
     val Time = icon("Time", TIME)
     val Place = icon("Place", PLACE, PLACE_DOT)
+    val Navigate = icon("Navigate", NAVIGATE)
     val Previous = icon("Previous", PREVIOUS, mirror = true)
     val Next = icon("Next", NEXT, mirror = true)
     val Note = icon("Note", NOTE)

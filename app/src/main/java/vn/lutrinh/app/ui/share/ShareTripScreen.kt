@@ -4,7 +4,9 @@ import android.annotation.SuppressLint
 import vn.lutrinh.app.ui.theme.TopoIcons
 import android.net.Uri
 import android.os.Build
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -235,6 +237,11 @@ private fun PagePreview(s: ExportState.Ready) {
                 // Only to read our own file in cacheDir/share; no content access.
                 settings.allowFileAccess = true
                 settings.allowContentAccess = false
+                // R42: the page's "Dẫn đường" links are for the file opened in a browser; the
+                // preview stays on the file (a tap does nothing, no network load is tried).
+                webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = request.url.scheme != "file"
+                }
             }
         },
         update = { web ->

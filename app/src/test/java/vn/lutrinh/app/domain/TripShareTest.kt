@@ -92,7 +92,9 @@ class TripShareTest {
 
     @Test fun pageLoadsNothingFromTheNetwork() {
         val html = TripPage.build(content(listOf(step(1, photos = 2, note = "xem https://example.com"), step(2, day = 1)))) { byteArrayOf(1, 2) }.html
-        assertEquals(0, Regex("(src|href)=\"https?://").findAll(html).count())
+        assertEquals(0, Regex("src=\"https?://").findAll(html).count())
+        // the only links are the per-step "Dẫn đường" ones (R42), to Google Maps directions
+        assertEquals(0, Regex("href=\"(?!https://www\\.google\\.com/maps/dir/\\?api=1&amp;destination=)").findAll(html).count())
         // the only url( is the embedded Barlow digits subset: a data: font, never a request
         assertEquals(0, Regex("url\\((?!data:font/woff2;base64,)").findAll(html).count())
         assertEquals(1, Regex("url\\(data:font/woff2;base64,").findAll(html).count())
@@ -102,6 +104,23 @@ class TripShareTest {
         // Images are data URIs only; the attribution is plain text.
         assertEquals(3, Regex("src=\"data:image/jpeg;base64,").findAll(html).count())
         assertTrue(html.contains("Bản đồ: OpenFreeMap © OpenMapTiles © OpenStreetMap contributors"))
+    }
+
+    @Test fun pageHasOneDirectionsLinkPerStopAndKeepsTheCsp() {
+        val steps = listOf(step(1), step(2, day = 1, p = GeoPoint(-8.5, 105.123456789)), step(3, day = 1, title = "A & B <i>"))
+        val html = TripPage.build(content(steps)) { null }.html
+        val links = Regex("<a href=\"([^\"]*)\" target=\"_blank\" rel=\"noopener noreferrer\">Dẫn đường</a>").findAll(html).map { it.groupValues[1] }.toList()
+        assertEquals(
+            listOf(
+                "https://www.google.com/maps/dir/?api=1&amp;destination=22.900000,105.000000",
+                "https://www.google.com/maps/dir/?api=1&amp;destination=-8.500000,105.123457",
+                "https://www.google.com/maps/dir/?api=1&amp;destination=23.100000,105.000000",
+            ),
+            links,
+        )
+        // the CSP meta is exactly the one of R18: a link the reader taps is not a request of the page
+        assertTrue(html.contains("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'\">"))
+        assertFalse(html.contains("<script"))
     }
 
     @Test fun pageHasTimelineByDayAndHidesNotesOnRequest() {

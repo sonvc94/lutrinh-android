@@ -29,6 +29,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.platform.LocalContext
+import vn.lutrinh.app.ui.common.navigateToStop
+import vn.lutrinh.app.ui.theme.IconSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -103,6 +106,7 @@ fun TripMapScreen(
     onOpenBatteryGuide: () -> Unit = {},
     vm: TripDetailViewModel = viewModel(factory = factory { c, h -> TripDetailViewModel(c, h) }),
 ) {
+    val context = LocalContext.current
     val state by vm.state.collectAsStateWithLifecycle()
     val recording by vm.recording.collectAsStateWithLifecycle()
     // R37: the card/pin selected at once, and the step the camera moves to once the cards stop.
@@ -291,10 +295,22 @@ fun TripMapScreen(
                             // Same row height on every card (F23): the leg that ends here (R12), or "Điểm xuất phát" on the first.
                             // Its own line: a long chip ends in "…" instead of pushing the arrow out.
                             Row(Modifier.fillMaxWidth().height(32.dp).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                                val leg = detail.legInto(step.id)
-                                if (leg != null) LegChip(leg, detail.measure(leg), onClick = { editLegTo = step.id }, Modifier.height(32.dp))
-                                else if (step.isDraft) DraftBadge()
-                                else Text(stringResource(R.string.trip_map_start), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                                    val leg = detail.legInto(step.id)
+                                    if (leg != null) LegChip(leg, detail.measure(leg), onClick = { editLegTo = step.id }, Modifier.height(32.dp))
+                                    else if (step.isDraft) DraftBadge()
+                                    else Text(stringResource(R.string.trip_map_start), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                // R42: "Dẫn đường" hands this stop to a maps app on the phone.
+                                Surface(
+                                    onClick = { context.navigateToStop(step) },
+                                    shape = MaterialTheme.shapes.small,
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    contentColor = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(start = 8.dp).size(32.dp),
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) { Icon(TopoIcons.Navigate, stringResource(R.string.action_navigate), Modifier.size(IconSize.S)) }
+                                }
                             }
                         }
                     }

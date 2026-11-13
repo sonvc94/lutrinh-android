@@ -298,16 +298,16 @@ The picker returns its result to the step form through the previous screen's sav
   trang không quá 15 MB" when the cap removed photos, and "Không tải được nền bản đồ …" when the map
   had no basemap); for the page only, the row **"Ẩn ghi chú"** with a switch (off by default; the
   whole row toggles it) and "Không đưa ghi chú của các điểm dừng vào trang."; the privacy note
-  (plain small text) "Tệp chia sẻ có bản đồ, tên và thời gian các điểm dừng của bạn. Chỉ gửi cho người
+  (plain small text) "Tệp chia sẻ có bản đồ, tên, thời gian và vị trí các điểm dừng của bạn. Chỉ gửi cho người
   bạn tin."; buttons **"Lưu vào máy"** (outlined, download icon) and **"Chia sẻ"** (filled,
   share icon), both disabled until the file is ready.
 * **Ảnh dọc** — preview of the 1080 × 1920 PNG itself (R18): topo paper background; title (Noto Sans
   Bold, ink, max 2 lines), dates; the map (960 × 820 px, 22 dp-equivalent corners on a 2 dp ledge) with the route, recorded tracks,
   numbered pins and the attribution; the km readout panel (Card with a ledge; the specimen's stats row: km, điểm dừng, ảnh, ngày as Barlow Condensed numbers over
   bold muted labels, then a signal-orange scale bar); one row of up to four square photos (they shrink to the room above the mark, left out below 110 px); the app's route mark (docs/08 §5) + "Lữ Trình" at the bottom.
-* **Trang xem offline** — the generated HTML in a WebView (JavaScript and network off): title, dates,
+* **Trang xem offline** — the generated HTML in a WebView (JavaScript and network off; a tap on a link does nothing in the preview): title, dates,
   description, the map, the stats, then the timeline "Ngày N · <weekday>, dd/MM/yyyy" with each
-  step's number, name, time, note (unless hidden) and photos; footer "Tạo bằng Lữ Trình, nhật ký du lịch trên điện thoại." Topo outdoor like the app (docs/08 §8): Parchment page, the dates as an eyebrow over a 28 px title, the map and the stats in Card panels with a 2 px ledge, one Card per step with a Trail / Waypoint / Forest number disc, Noto Sans and Barlow Condensed by name (nothing is loaded; the CSP stays).
+  step's number, name, time, note (unless hidden), a Forest chip link **"Dẫn đường"** (R42: Google Maps directions to the stop, opens in the reader's browser/Maps app) and photos; footer "Tạo bằng Lữ Trình, nhật ký du lịch trên điện thoại." Topo outdoor like the app (docs/08 §8): Parchment page, the dates as an eyebrow over a 28 px title, the map and the stats in Card panels with a 2 px ledge, one Card per step with a Trail / Waypoint / Forest number disc, Noto Sans and Barlow Condensed by name (nothing is loaded; the CSP stays).
 * **Chia sẻ:** the system share sheet ("Sharing 1 file" + the file name) with the file as a
   `content://` URI (read permission granted to the receiving app).
 * **Lưu vào máy:** Android 10+ saves a copy to `Pictures/LuTrinh` (image) or `Download/LuTrinh`
@@ -373,7 +373,7 @@ The picker returns its result to the step form through the previous screen's sav
 * **Behaviour:** tapping a pin selects it (larger, signal-orange ring + halo) and scrolls the carousel to
   its card; the carousel **snaps** so one card is centred (the first and last can reach the centre), and
   when a swipe settles the centred card's step becomes the selected one (pin highlighted, camera flies to it);
-  tapping a card selects its step; every card has an arrow ›  (`TopoIcons.Next`, 22 dp, content description "Xem chi tiết") at the end of its title row, and tapping the selected card opens Step detail. The leg chip has its own line under the title row and ends in "…" when "Xe máy · 77 km · ~4 giờ 06 phút" is wider than the card (260 dp);
+  tapping a card selects its step; every card has an arrow ›  (`TopoIcons.Next`, 22 dp, content description "Xem chi tiết") at the end of its title row and a 32 dp Sand square button with `TopoIcons.Navigate` ("Dẫn đường", R42) at the end of the leg row, and tapping the selected card opens Step detail. The leg chip has its own line under the title row and ends in "…" when "Xe máy · 77 km · ~4 giờ 06 phút" is wider than the card (260 dp);
   "Xem toàn bộ hành trình" clears the selection and refits the whole route above the cards; each
   selection moves the camera to that step (R37); tapping a badge, a leg line or a
   card's leg chip opens the Leg mode sheet, and the leg turns SignalDeep and is framed above the sheet. Empty
@@ -576,7 +576,7 @@ Vietnamese ones remain (R30, docs/05; `img/sovereignty/`).
 
 * **Content:** cover photo (only when the step has photos), title, date · time, place line
   "gần <điểm dừng khác>, N km" with the coordinates as a smaller line (Display conventions; no other step within
-  5 km: the gazetteer place, R24 "Tên, Tỉnh" / "gần Tên (Tỉnh), N km"; neither: the coordinates alone), note ("Chưa có ghi chú." when empty), mini map of the trip with this step highlighted, photo
+  5 km: the gazetteer place, R24 "Tên, Tỉnh" / "gần Tên (Tỉnh), N km"; neither: the coordinates alone), **a Forest button "Dẫn đường" (`TopoIcons.Navigate`, R42) at the end of the place card**, note ("Chưa có ghi chú." when empty), mini map of the trip with this step highlighted, photo
   grid "Ảnh & video (n)" in the stored order (R27; a video cell = still + play badge + length, R29;
   the cover header is the first item's still when it is a video). **Draft (R20):** the title has no number and a card under it shows "Nháp", "Bản nháp chưa có
   trên lộ trình, thống kê, bản đồ của tôi và tệp chia sẻ. Bấm “Đăng” khi đã xong." and the button
@@ -775,6 +775,14 @@ code from a local stub server serving the spec sample with `arrivalNote` on two 
 | 03-reopened-leg-note-on-timeline.png | after a force-stop and reopening the trip: the note under the leg chip |
 | 05-imported-leg-note-clamped.png | a trip downloaded by code: the long leg note clamped to 2 lines + "Xem thêm" |
 | 06-imported-leg-note-expanded.png | the same note expanded, "Thu gọn" |
+
+### Dẫn đường (`img/navigate-stop/`, R42)
+
+| File | Shows |
+| --- | --- |
+| navigate-stop/01-step-detail.png | step detail: Forest "Dẫn đường" button under the place and coordinates |
+| navigate-stop/02-trip-map-card.png | trip map: the Navigate square at the end of the leg row |
+| navigate-stop/03-share-page.png | share page preview: a Forest "Dẫn đường" chip on every step (taps do nothing in the preview) |
 
 ### Route codes (`img/routes/`, R40)
 

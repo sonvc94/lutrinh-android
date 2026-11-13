@@ -120,6 +120,7 @@
     <string name="leg_note_less">Thu gọn</string>
 
     <!-- Step edit -->
+    <string name="action_navigate">Dẫn đường</string>
     <string name="step_detail_bar">Điểm dừng</string>
     <string name="step_detail_bar_numbered">Điểm dừng %1$d</string>
     <string name="step_create_title">Điểm dừng mới</string>
@@ -354,7 +355,7 @@
     <string name="share_save_failed">Không lưu được: %1$s</string>
     <string name="share_preparing">Đang tạo…</string>
     <string name="share_failed">Không tạo được tệp: %1$s</string>
-    <string name="share_privacy">Tệp chia sẻ có bản đồ, tên và thời gian các điểm dừng của bạn. Chỉ gửi cho người bạn tin.</string>
+    <string name="share_privacy">Tệp chia sẻ có bản đồ, tên, thời gian và vị trí các điểm dừng của bạn. Chỉ gửi cho người bạn tin.</string>
     <string name="share_no_basemap">Không tải được nền bản đồ (không có mạng và chưa tải vùng offline): tuyến đường được vẽ trên nền trơn.</string>
     <string name="share_page_info">%1$s · %2$d ảnh</string>
     <string name="share_page_omitted">Đã lược bớt %1$d ảnh để trang không quá 15 MB.</string>

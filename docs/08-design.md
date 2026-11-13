@@ -160,6 +160,7 @@ docs/09 (guard: `topoIconsAndTypeWeights`). Path data (SVG, 24 × 24):
 | Back (mirrors in RTL) | `M19 12H6M11 6.5L5.5 12 11 17.5` |  |
 | More |  | `M12 3.4a1.6 1.6 0 1 0 0 3.2a1.6 1.6 0 1 0 0 -3.2zM12 10.4a1.6 1.6 0 1 0 0 3.2a1.6 1.6 0 1 0 0 -3.2zM12 17.4a1.6 1.6 0 1 0 0 3.2a1.6 1.6 0 1 0 0 -3.2z` |
 | Share | `M12 14.5V4M8 7.5l4-4 4 4M8.5 10H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5` |  |
+| Navigate (R42) | `M20 4L4 10.5l6.5 2.5L13 19.5z` |  |
 | Edit | `M4.5 19.5h4l10-10-4-4-10 10zM12.5 7.5l4 4` |  |
 | Delete | `M4.5 6.5h15M9.5 6.5V4h5v2.5M6.5 6.5l1 13h9l1-13M10.5 10.5v5.5M13.5 10.5v5.5` |  |
 | Route | `M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5M6 15.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 1 0 0-5` | `M18 4a2 2 0 1 0 0 4a2 2 0 1 0 0-4z` |
@@ -235,7 +236,7 @@ docs/09 (guard: `topoIconsAndTypeWeights`). Path data (SVG, 24 × 24):
 | Buttons on a photo | 8 dp rounded squares (× remove, cover check, stop-photo tick), Forest 85 % + Card icon; media add row = three equal buttons on one row (icon over label) | `StepEditScreen`, `CoverPicker`, `StopPhotosUi` |
 | Timeline (trip detail) | numbered discs (Trail start, Waypoint stops, Forest end, white ring, Barlow number; draft hollow Outline) on a Grid rail; each step a `TopoCard`; day labels as eyebrows; leg chips between | `StepRow`, `LegRow` |
 | Trip cover | the cover photo; without one, `RouteCover`: Sand ground, three Contour ovals, the route in Signal on a Card casing, Trail/Waypoint/Forest pins | `RouteCover` |
-| Map carousel card | Card, 18 dp, `Lift.Chip`, selected = 2 dp Forest edge; title row = 56 dp photo, date + title, then a `TopoIcons.Next` arrow (22 dp, Ink) on every card; the leg chip sits on its own line below and ellipsizes (card 260 dp); on "Bản đồ của tôi" the trip colour is a 16 × 4 dp line key by the title, the stats line in `numerals()` | `TripMapScreen`, `MyMapScreen` |
+| Map carousel card | Card, 18 dp, `Lift.Chip`, selected = 2 dp Forest edge; title row = 56 dp photo, date + title, then a `TopoIcons.Next` arrow (22 dp, Ink) on every card; the leg chip sits on its own line below and ellipsizes (card 260 dp), followed by a 32 dp Sand square with `TopoIcons.Navigate` (18 dp, Ink, R42); on "Bản đồ của tôi" the trip colour is a 16 × 4 dp line key by the title, the stats line in `numerals()` | `TripMapScreen`, `MyMapScreen` |
 | Area card (offline maps) | `TopoCard`; titleMedium name, bodySmall description, status line (a done area = Easy `TopoBadge` + Trail check), 6 dp round Forest progress bar, Forest filled main button, outlined / text secondary; groups under an eyebrow | `OfflineMapsScreen` |
 | Guide section (battery guide) | `TopoCard`, titleMedium, numbered steps on 26 dp discs: Forest for the device's own section, Sand for the general one (Barlow number) | `BatteryGuideScreen` |
 | Photo / video viewer | the one dark screen: black stage (a photo is judged on a neutral ground), light status-bar icons; counter = `MapChip` (no shadow), close = `MapButton`; no other colour | `PhotoViewerScreen` |
@@ -280,7 +281,7 @@ tokens.
   file is pure Kotlin, so no `Palette`): Parchment page; dates as an eyebrow (13 px bold, +0.06 em)
   over a 28 px title; map, stats and each step as Card blocks with a 2 px Ledge shadow (22 / 18 px
   corners); stats and step numbers in Barlow Condensed; step discs Trail (first) / Waypoint /
-  Forest (last) with a white ring; no Signal text, no gradients, no links. Text in `"Noto Sans"` then system sans (name only); numbers in `"Barlow Condensed"` 700,
+  Forest (last) with a white ring; no Signal text, no gradients; the only links are the per-step "Dẫn đường" chips (R42: Forest chip, 12 px corners, Card text 14 px bold, pair Card / Forest of §11, no underline). Text in `"Noto Sans"` then system sans (name only); numbers in `"Barlow Condensed"` 700,
   embedded as a ~2 kB WOFF2 subset of the digits and `.,:-–/+%` (`BarlowDigits.kt`, OFL, licence in
   `assets/licenses`) in a `data:` `@font-face`; the CSP allows `font-src data:` only (no network).
 * App icon: the Route mark in Card on a Forest square (`ic_launcher_background`); window background Parchment.

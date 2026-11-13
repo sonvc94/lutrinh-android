@@ -1415,6 +1415,35 @@ A note about the travel between two stops ("đường dốc khó đi", "gửi xe
 `docs/img/leg-note/`.
 *Inspired by* the captain's request (notes on travel, e.g. a steep road or parking across the road).
 
+## R42 — Navigate to a stop ("Dẫn đường")
+
+Rules live in `domain/usecase/StopNavigation.kt` (pure; the iOS port copies it); the intent is
+`ui/common/NavigateToStop.kt`.
+
+* **App.** "Dẫn đường" on a stop = Step detail (button in the place card) and the trip-map card
+  (Navigate square at the end of the leg row). It works for the user's own trips and for routes
+  downloaded by code (same `Step`), drafts included. It fires an `ACTION_VIEW` of
+  `geo:<lat>,<lng>?q=<lat>,<lng>(<name>)`: the system opens the maps app, or lets the user choose when
+  several are installed. Coordinates have 6 decimals and a dot whatever the locale; the name is
+  percent-encoded UTF-8 (space `%20`), parentheses in it become spaces, a blank name leaves no label.
+* **No maps app.** When nothing handles `geo:` the app opens Google Maps directions in the browser:
+  `https://www.google.com/maps/dir/?api=1&destination=<lat>,<lng>`. With no browser either nothing
+  happens (no crash). The button needs no network of the app (it only hands over); offline, the
+  maps app answers for itself. In-app turn-by-turn navigation does not exist.
+* **Share page (R18).** Every step of "Trang xem offline" has a **"Dẫn đường"** link (`<a href>` to the
+  same Google Maps URL, `&` written `&amp;`, `target="_blank" rel="noopener noreferrer"`). It is a link
+  the reader taps, not a request of the page: the CSP is unchanged and still forbids any request.
+  The share image has no link. The page now carries each stop's exact position (it already showed
+  the pins on the map), so the share screen's note says "… tên, thời gian và vị trí các điểm dừng …".
+  The preview WebView ignores link taps.
+* **What leaves the device.** Only when the user taps "Dẫn đường": the stop's position (and name, for
+  the `geo:` pin) goes to the maps app / Google Maps the user chose. Nothing is sent by the app itself.
+
+*Tests:* `StopNavigationTest` (geo URI, name encoding, 6 decimals, locale, URL),
+`TripShareTest.pageHasOneDirectionsLinkPerStopAndKeepsTheCsp`, `TripShareTest.pageLoadsNothingFromTheNetwork`.
+Checked by hand on an AVD: `docs/img/navigate-stop/`.
+*Inspired by* the captain's request (guide to the stops with the phone's maps, Google Maps on the web).
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count
