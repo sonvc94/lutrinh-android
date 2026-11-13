@@ -211,6 +211,16 @@ enum CatalogResult<T> { case ok(T), refused(CatalogError, retryAfterS: Int?), un
 | Step detail button, trip-map card Navigate square | same placement, SF-free `TopoIcons.Navigate` path from docs/08 |
 | `TripPage` per-step `<a>` (CSP unchanged) | same HTML; port `TripShareTest.pageHasOneDirectionsLinkPerStopAndKeepsTheCsp` |
 
+## Share a place from Google Maps (R43)
+
+| Android | iOS |
+| --- | --- |
+| `<intent-filter>` `ACTION_SEND` + `text/plain` on `MainActivity` (`singleTask`, `onNewIntent`) | a **Share Extension** target (`NSExtensionActivationRule`: `NSExtensionActivationSupportsText` and `…SupportsWebURLWithMaxCount = 1`, so Google Maps' iOS share sheet lists it); the extension reads the `NSItemProvider` (`UTType.url` / `.plainText`), keeps the text in the shared App Group container (or opens the app with a `lutrinh://share?text=` URL) and the app shows the screen. Google Maps on iOS shares a `https://maps.app.goo.gl/…` URL plus a title: confirm the exact items on a device |
+| `SharedPlaces.parse/combine/coordinatesIn/nameIn/resolve` (pure), `LinkFollower` | same functions with the Kotlin tests as vectors (port `SharedPlacesTest`, `SharedPrefillTest`); `LinkFollower` = `URLSession` with a delegate that handles each redirect by hand (`willPerformHTTPRedirection`: allow-list `google.com`, `goo.gl`, `maps.app.goo.gl`, https only, ≤ 6 hops, 6 s / 12 s timeouts, no body read) |
+| `GoogleMapsLinks` (OkHttp, User-Agent) | same class over `URLSession`; no ATS exception is needed (https) |
+| `SharePlaceScreen` (trip list + "Chuyến đi mới" → stop form prefilled) | a `NavigationStack` route fed by the extension/URL; the stop form takes a `SharedPrefill` (title, optional location, optional gap reason) and opens the location picker once when there is no location |
+| non-Maps text: toast + `finish()` | an alert/label in the extension, then `completeRequest` (`NSExtensionContext`) |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;

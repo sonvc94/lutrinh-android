@@ -6,8 +6,9 @@
    the network traffic is the map style and its tiles, fonts and icons (see 05-map.md) and, while
    "Tính đường đi" is on (R36, default, announced once, switch in "Cài đặt"), the two stop
    positions + travel mode of each road leg sent to the OpenStreetMap routing server (FOSSGIS,
-   Germany), and a route code the user types (R40) with its download from the Lữ Trình route
-   server (the update check sends only code, route id and version). Names, notes, photos, positions
+   Germany), a route code the user types (R40) with its download from the Lữ Trình route
+   server (the update check sends only code, route id and version), and the Google Maps link
+   the user shares into the app (R43, only its URL, to Google's own hosts, to follow the redirect). Names, notes, photos, positions
    and GPS tracks (R16) of the user's own trips never leave the device.
 2. **Portable domain.** Business rules live in a layer without platform types (no Android, no UI,
    no database), so the iOS app can port them line by line and run the same unit tests.
@@ -63,6 +64,7 @@ concrete classes by hand (no DI framework), so the iOS app can use a plain `stru
 | `tracking` | `TrackRecordingService` (foreground service type location: platform GPS → `TrackRecorder.onFix`, GPS on/off with the state) and `TrackNotifications` (channel + notification) |
 | `map` | Map interface (R35, docs/05): `MapController` + models, `MapEngine` (`MapEngines.active`, `OfflineMapStore`), `MapPresenters` (engine-neutral map behaviour), `MapViews` (the map composables), `MapConfig` (User-Agent, zooms, background), `SovereigntyLabels` (pure, R30), `Pins`, `CameraMath`; offline areas: `OfflineConfig` (pure: areas, zooms, size estimate, limits), `OfflineState`, `NetworkMonitor`, `OfflineIndicator`; share map (R18): `MapFit` (pure fit + Web Mercator projection), `StaticTripMap` (engine snapshot + drawn overlay) |
 | `domain/routing` | Routing interface (R36, pure): `Routing.kt` (`RouteProfile` incl. "Chưa chọn" → motorbike, `RouteResult`, `RoutingProvider`, `RoutingProviders`, `RoutingCredit`), `LegRoutes.kt` (`LegRoute` stored answer, input match, off-road guard, connectors, measure), `RouteSync.kt` (`LegRouteRepository`, `RoutingSettings` switch + notice flag, `RouteSync` fetch queue: notice/online/1 req/s/retry/fallback) |
+| `sharein` | Share a place from Google Maps (R43): `GoogleMapsLinks` (the only network call of the feature: follows the shared link's redirects, Google host allow-list); the rules are pure in `domain/usecase/SharedPlace.kt` (`SharedPlaces`, `LinkFollower`), the screen is `ui/share/SharePlaceScreen.kt` |
 | `routing` | Router adapters (R36): `Routers.kt` (the only place for router URLs, User-Agent, the registry; `RouterHttp` on OkHttp), `routing/valhalla/ValhallaRouter` (primary), `routing/osrm/OsrmRouter` (car fallback) |
 | `map/basemap` | Basemap providers (R32–R34): `BasemapProvider`, `BasemapRegistry`/`Basemaps.registry`, `BasemapSettings` (persisted `map_style`), `BasemapPlanner` (pure); adapters `OpenFreeMap` (+ `Positron` style ids) and `EsriWorldImagery` |
 | `map/maplibre` | The MapLibre engine adapter, the only package importing `org.maplibre` (R35): `MapLibreEngine`, `MapLibreController`, `MapLibreOfflineStore`, `BasemapLayers`, `OverlayLayers`, `SovereigntyLayers`, `MyLocationLayers` |

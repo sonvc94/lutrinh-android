@@ -1131,7 +1131,8 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
   (FOSSGIS `routed-car`). The server addresses live in one registry, never in screens.
 * **What is sent.** Per leg: the two stop positions and the profile, nothing else (no names,
   notes, photos, dates, account). Besides it, only a route code (R40, typed by the user, to the
-  Lữ Trình route server) leaves the device.
+  Lữ Trình route server) and the Google Maps link the user shares into the app (R43, to Google's
+  own hosts, to follow its redirect) leave the device.
 * **Switch and notice.** Routing is **on by default**. Before the first request the app shows a
   one-time notice ("Vẽ chặng theo đường đi?", what is sent, to FOSSGIS in Germany; "Đã hiểu" or
   "Tắt tính đường"); no request goes out before it was shown. "Cài đặt" (trip list menu) has the
@@ -1443,6 +1444,95 @@ Rules live in `domain/usecase/StopNavigation.kt` (pure; the iOS port copies it);
 `TripShareTest.pageHasOneDirectionsLinkPerStopAndKeepsTheCsp`, `TripShareTest.pageLoadsNothingFromTheNetwork`.
 Checked by hand on an AVD: `docs/img/navigate-stop/`.
 *Inspired by* the captain's request (guide to the stops with the phone's maps, Google Maps on the web).
+
+## R43 — Share a place from Google Maps ("Thêm vào chuyến đi")
+
+Rules live in `domain/usecase/SharedPlace.kt` (`SharedPlaces`, pure; the iOS port copies it); the
+only network step is `sharein/GoogleMapsLinks.kt`; the screen is `ui/share/SharePlaceScreen.kt`;
+the incoming intent is handled in `MainActivity`; the prefill is `SharedPrefill` in
+`ui/steps/StepEditScreen.kt` (screen 15 in docs/03).
+
+* **Share sheet.** `MainActivity` has a second intent filter, `ACTION_SEND` + `text/plain` +
+  `DEFAULT`, so Lữ Trình is listed when the user taps "Share" on a place in Google Maps. The activity
+  is `singleTask`: a share that arrives while the app runs goes to the same activity
+  (`onNewIntent`); a second share replaces the first one's screen. A recreated activity (rotation,
+  process death) does not take the same share again. Texts over 2 000 characters are cut.
+* **Observed share texts** (Google Maps on the Android 16 google_apis AVD, "Share" → the system
+  sheet, 2026-11-13):
+  * a **place found by name** (a business, a landmark): `EXTRA_TEXT` = the bare short link
+    `https://maps.app.goo.gl/<id>`, `EXTRA_SUBJECT` = the place name. No address in the text.
+  * the short link answers with redirects to `https://www.google.com/maps/place/<Name>/data=!4m2!3m1!1s0x<hex>:0x<hex>…`
+    (a consent page `consent.google.com/…?continue=<that URL>` is also unwrapped, from Google's documented behaviour, not seen on the AVD): **no coordinates anywhere in
+    the URL** (the page behind it is not read).
+  * a **dropped pin** (long press on the map): the same short link, which redirects to a URL
+    ending `…!8m2!3d<lat>!4d<lng>`: the only shape seen with coordinates. (The exact `EXTRA_SUBJECT` of a pin was
+    not recorded; a blank one leaves the stop untitled and the gazetteer's name fills it, R24.)
+  * Other apps' formats the parser also accepts, from Google's documented URLs: `…/maps/place/…/@lat,lng,17z`,
+    `…/maps?q=lat,lng`, `ll=`, `query=`, `destination=`, `center=`, a `/place/<lat>,<lng>` path, and the
+    older text form "name ⏎ address ⏎ link" (first non-link line = name, the next lines = address).
+* **Parse (`SharedPlaces.parse`).** The text must hold a Google Maps link: host on the allow-list
+  (`google.com` and its subdomains, `goo.gl`, `maps.app.goo.gl`, https or http in the text) and a
+  maps path (`/maps…`, `maps.app.goo.gl/<id>`, `goo.gl/maps…`, `maps.google.com`). Without one the text is
+  `NotGoogleMaps`. Name = `EXTRA_SUBJECT` when the text has no line besides links
+  (`SharedPlaces.combine`), else the first non-link line (≤ 120 characters); address = the other
+  non-link lines (≤ 300). A link that already holds coordinates needs no network.
+* **Coordinates (`coordinatesIn`), best first:** `!3d<lat>!4d<lng>` (the pin itself), `@lat,lng`
+  (map centre), then `q`, `query`, `ll`, `destination`, `center`, `daddr` as `lat,lng`, then a
+  `/place/<lat>,<lng>` path. A value out of range, or `0,0`, is no position. A `consent.google.com`
+  URL is read through its `continue` parameter.
+* **Following the short link (`GoogleMapsLinks`).** One `GET` per hop, redirects followed by hand: at most
+  6 hops, https only, every hop's host on the allow-list (a redirect elsewhere = no coordinates),
+  connect/read timeout 6 s, whole call 12 s, User-Agent `LuTrinh/<version> (Android; vn.lutrinh.app)`;
+  it stops as soon as a hop's URL holds coordinates. The page body is never read. The result is
+  `Found(name, address, point)`, `NoCoordinates` (a place by name only, an unknown format, a
+  redirect off Google) or `Unreachable` (offline, timeout, server error); `resolve` never throws.
+  A bare link takes its name from the final `/place/<name>/` path.
+* **Flow.** share → "Thêm vào chuyến đi" (the place card: eyebrow "ĐỊA ĐIỂM TỪ GOOGLE MAPS", the name,
+  "Đang lấy vị trí…" while the link is followed, then the position or why it has none; below,
+  "CHỌN CHUYẾN ĐI": the user's trips, newest first, and "Chuyến đi mới") → a trip: its page opens, then the
+  **existing stop form** (R5, R6, R8) on top of it, prefilled; "Chuyến đi mới": the new-trip form (R4),
+  and once it is saved the stop form follows for the new trip. The user saves as usual; every rule of
+  the stop form applies (a stop outside the trip's dates asks "Kéo dài chuyến đi?" as in R17, the
+  default date/time of a new stop, R6). Back from the form lands on the trip. **Nothing is
+  ever saved before the user taps "Lưu"**, the trips are not tappable until the link has been followed
+  (≤ 12 s) and "Chuyến đi mới" also waits for the trip list.
+* **Prefill.** Position known: the stop's title = the shared name (cut to 80 characters, `Limits.STEP_TITLE_MAX`;
+  blank → the offline gazetteer's name for the position, R24) and the location = the shared position,
+  as if chosen in the picker. The address is not stored. Position missing (`NoCoordinates` or
+  `Unreachable`): the title = the shared name, no location, a Card "CHƯA CÓ VỊ TRÍ" under the title with the
+  reason ("Liên kết không có tọa độ. Hãy chọn vị trí trên bản đồ." or "Không có mạng để đọc liên kết. Hãy chọn vị trí trên bản đồ."),
+  and the location picker (docs/03 §6) opens once over the form, so the user places the stop; closing
+  it leaves the form with the note and no location (a stop cannot be saved without a location).
+* **Not Google Maps.** Any other `text/plain` share (no allow-listed Google Maps link in it): the
+  toast "Lữ Trình chỉ nhận địa điểm chia sẻ từ Google Maps.", then the app closes (it was started for
+  this share) or goes back to the previous app (it was already running). Nothing is parsed further,
+  nothing is sent.
+* **Named places have no coordinates.** Because a named place's link carries no position
+  (observed above), the usual share of a business or landmark lands in the *position missing* case:
+  the user places it on the picker (search by name works offline, R23). Only dropped pins and links that
+  carry `@` / `!3d!4d` / `q=` arrive with a position. Guessing a position by name (the gazetteer, or a
+  geocoding service) was not done: the first is imprecise, the second would send the place name
+  to a third party. Open product question for the captain.
+* **What leaves the device.** Only the shared short link's URL, to `maps.app.goo.gl` /
+  `google.com` (the redirect chain, nothing else in the request but the User-Agent), and only when
+  the user picked Lữ Trình in the share sheet. Nothing about the user's trips, photos or position is
+  sent; the response body is not read. It does not depend on "Tính đường đi" (R36), which is about the
+  road legs. The `INTERNET` permission was already there. `sharein` is the only package besides
+  `routing`/`catalog` allowed to open a connection (`RoutingBoundaryTest`, `CatalogBoundaryTest`).
+* **Log.** `logcat -s ShareIn` prints the kind of share (`Google Maps place` / `not Google Maps (refused)`)
+  and the result of the link (`resolved: Found (from the short link)` / `NoCoordinates` / `Unreachable`); no
+  names, no coordinates.
+
+*Tests:* `SharedPlacesTest` (17: real share = subject + short link; short link of a named place → no
+coordinates; of a dropped pin → coordinates; bare link takes the name from the URL; offline = `Unreachable`
+keeps the name; a redirect off Google; full URL needs no network; `@lat,lng` / `!3d!4d` / `q=` / `ll=`
+formats, the pin beats the map centre, consent `continue`, URLs without usable coordinates, non-Maps text,
+other Maps link shapes, multi-line name + address, subject only when the text has no name, the follower
+never leaves the allow-list), `SharedPrefillTest` (6: position known fills name and location, no position
+keeps the name and says why, invalid position, not from a share, long name fits the title limit, routes
+carry the shared place), `RoutingBoundaryTest` and `CatalogBoundaryTest` (allow-list includes `sharein`).
+Checked by hand on an AVD with the real Google Maps app: `docs/img/share-in/`.
+*Inspired by* the captain's request (Google Maps' "Share a place" lists Lữ Trình).
 
 ## Text rules
 

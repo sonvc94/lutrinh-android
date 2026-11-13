@@ -68,6 +68,7 @@ Trip list ──FAB "Chuyến đi mới"─────────────�
    ├─ ⋮ "Sao lưu dữ liệu" ─▶ save as ─▶ snackbar
    ├─ ⋮ "Khôi phục từ bản sao lưu" ─▶ file picker ─▶ confirm ─▶ list reloads
    ├─ ⋮ "Cài đặt" ─▶ Settings (§13)
+   ├─ (from Google Maps: Share ─▶ Lữ Trình) ─▶ Add to trip (§15) ─▶ Trip detail + Step form (prefilled)
    ├─ ⋮ "Nhập mã lộ trình" / empty "Có mã lộ trình?" ─▶ Route code (§14) ─▶ Preview ─▶ Download
    │       └─ done ─▶ new Trip detail (replaces the code screen; badge "Lộ trình … · vN")
    │          badge ─▶ route sheet ─ "Tải thành chuyến đi mới" ─▶ Route code (prefilled) / "Thay bản trong máy"
@@ -761,7 +762,46 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 * **Inspired by:** the approved design page 05 (9 topo mockups). **Changed:** the preview draws the
   server's simplified `overview` line on paper instead of its `cover` photo (follow-up).
 
+## 15. Add a place shared from Google Maps — "Thêm vào chuyến đi" (R43)
+
+* **Opened from:** outside the app. In Google Maps, a place → "Share" → the system sheet lists
+  **Lữ Trình** (`img/share-in/01-maps-share-sheet.png`). Any other text shared to Lữ Trình shows a
+  toast "Lữ Trình chỉ nhận địa điểm chia sẻ từ Google Maps." and the app closes / goes back.
+* **Content** (top bar "Thêm vào chuyến đi" + back): a Card with the eyebrow "ĐỊA ĐIỂM TỪ GOOGLE MAPS", the
+  shared name (title; "Địa điểm chưa có tên" when none), the address when the text had one, and one
+  status line: "Đang lấy vị trí…" with a small spinner while the short link is followed (≤ 12 s), then the
+  coordinates, or "Liên kết không có tọa độ. Hãy chọn vị trí trên bản đồ." / "Không có mạng để đọc liên
+  kết. Hãy chọn vị trí trên bản đồ.". Under it the eyebrow "CHỌN CHUYẾN ĐI" and one Card per trip (title,
+  dates, counts, like the trip list) plus a Card "Chuyến đi mới". Cards are not tappable until the link has
+  been followed. Nothing is saved on this screen (`img/share-in/02-pick-trip.png`).
+* **A trip** → its detail opens, then the stop form "Điểm dừng mới" on top, prefilled with the place's
+  name and location (`img/share-in/03-prefilled-form.png`); "Lưu" saves as ever (extend-dates question,
+  R17, included) and back from the form lands on the trip (`img/share-in/04-stop-in-trip.png`).
+  **"Chuyến đi mới"** → the new-trip form; once saved, the stop form follows for that trip.
+* **No position** (offline, or a named place whose link has no coordinates — the usual case, R43): the
+  form has the name, a Card "CHƯA CÓ VỊ TRÍ" with the reason, and the location picker (§6) opens once on
+  top so the user places the stop (`img/share-in/05-offline-pick-trip.png`, `06-offline-picker.png`,
+  `07-offline-form-note.png`). Closing the picker leaves the form without a location; "Lưu" needs one.
+* **Design:** Parchment, TopoCard + Eyebrow, no new tokens (docs/08).
+* **Inspired by:** the captain's request (Google Maps' "Share" lists Lữ Trình). Polarsteps has no such entry.
+
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
+
+### Share from Google Maps (`img/share-in/`, R43, §15)
+
+Own AVD (pixel_6, android-36, English system), debug build, the real Google Maps app for the share sheet; offline
+shots with airplane mode on. 540 px wide.
+
+| File | Shows |
+| --- | --- |
+| 01-maps-share-sheet.png | Google Maps' system share sheet listing Lữ Trình |
+| 02-pick-trip.png | "Thêm vào chuyến đi": the place card and the trips to choose from |
+| 03-prefilled-form.png | the stop form with the shared name and location |
+| 04-stop-in-trip.png | the trip with the new stop at the shared place |
+| 05-offline-pick-trip.png | the same screen offline: "Không có mạng để đọc liên kết…" |
+| 06-offline-picker.png | offline: the location picker opened over the form |
+| 07-offline-form-note.png | offline: the form with the name and the "CHƯA CÓ VỊ TRÍ" note |
+| 08-not-maps-message.png | a text that is not a Google Maps place: the toast |
 
 ### Leg note (`img/leg-note/`, R41)
 
