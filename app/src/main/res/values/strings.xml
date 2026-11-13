@@ -442,4 +442,27 @@
     <string name="share_in_guess_card">Vị trí đoán theo tên — kéo ghim cho đúng</string>
     <string name="share_in_gap_none">Liên kết không có tọa độ. Hãy chọn vị trí trên bản đồ.</string>
     <string name="share_in_gap_offline">Không có mạng để đọc liên kết. Hãy chọn vị trí trên bản đồ.</string>
+
+    <!-- "Gần tôi" (R45) -->
+    <string name="near_view_order">Theo thứ tự</string>
+    <string name="near_view_near">Gần tôi</string>
+    <string name="near_caption">Xếp theo quãng đường đi thực tế (xe máy) từ vị trí hiện tại của bạn, gần nhất trước.</string>
+    <string name="near_refresh">Làm mới</string>
+    <string name="near_consent_title">Gửi vị trí để tính đường?</string>
+    <string name="near_consent_body">Để tính quãng đường đi, vị trí hiện tại của bạn và vị trí các điểm dừng được gửi tới máy chủ đường đi của OpenStreetMap (FOSSGIS). Không gửi gì khác và không lưu lại. Có thể tắt trong Cài đặt → Tính đường đi.</string>
+    <string name="near_consent_action">Đồng ý và tính đường</string>
+    <string name="near_locating">Đang lấy vị trí của bạn…</string>
+    <string name="near_retry">Thử lại</string>
+    <string name="near_no_permission_title">Chưa có quyền dùng vị trí</string>
+    <string name="near_no_permission_body">Cho phép Lữ Trình biết vị trí của bạn để xếp các điểm dừng theo quãng đường.</string>
+    <string name="near_location_off_title">Vị trí đang tắt</string>
+    <string name="near_location_off_body">Bật vị trí (GPS) trong cài đặt của điện thoại rồi thử lại.</string>
+    <string name="near_no_fix_title">Chưa lấy được vị trí</string>
+    <string name="near_no_fix_body">Ra chỗ thoáng hơn rồi thử lại.</string>
+    <string name="near_offline_title">Chưa tính được đường</string>
+    <string name="near_offline_body">Cần có mạng và máy chủ đường đi trả lời. Kết nối rồi thử lại.</string>
+    <string name="near_pending">Đang tính đường…</string>
+    <string name="near_computing">Đang tính đường: còn %d điểm</string>
+    <string name="near_unroutable_none">Chưa tính được đường · không có đường tới đây</string>
+    <string name="near_unroutable_failed">Chưa tính được đường · thử làm mới</string>
 </resources>

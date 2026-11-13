@@ -48,6 +48,21 @@ sealed interface RouteResult {
     data class Unavailable(val reason: String, val rateLimited: Boolean = false) : RouteResult
 }
 
+/** Road length and the router's time estimate of one trip (no line): what "Gần tôi" (R45) needs. */
+data class RoadDistance(val distanceM: Double, val durationS: Double)
+
+/** What a router answered for one origin and several destinations at once (R45). */
+sealed interface MatrixResult {
+    /** One entry per destination, in order; null = no road distance for that one (ask it alone). */
+    data class Rows(val distances: List<RoadDistance?>) : MatrixResult
+
+    /** This router cannot answer this request as a batch (no such call, too far, too many): ask each alone. */
+    data object NotSupported : MatrixResult
+
+    /** No answer this time (offline, server error, rate limit). */
+    data class Unavailable(val reason: String, val rateLimited: Boolean = false) : MatrixResult
+}
+
 /** The credit a router's data needs wherever its lines are shown (OSM data is ODbL). */
 data class RoutingCredit(
     /** Short text drawn next to the map credit, e.g. "Đường đi: <router> · <host> · © OpenStreetMap (ODbL)". */
@@ -77,6 +92,13 @@ interface RoutingProvider {
 
     /** One request for the leg [from] → [to]. Never throws: network trouble is [RouteResult.Unavailable]. */
     suspend fun route(from: GeoPoint, to: GeoPoint, profile: RouteProfile): RouteResult
+
+    /**
+     * R45: road distances from [from] to each of [targets] in ONE request, when the router has such a
+     * call (Valhalla `sources_to_targets`). The default has none: [MatrixResult.NotSupported]. Never throws.
+     */
+    suspend fun distancesFrom(from: GeoPoint, targets: List<GeoPoint>, profile: RouteProfile): MatrixResult =
+        MatrixResult.NotSupported
 }
 
 /**

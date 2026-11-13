@@ -289,6 +289,7 @@ in `domain/routing/Routing.kt`:
 | --- | --- |
 | `RouteProfile` | `motorbike`, `car`, `bus`, `walk`; `RouteProfile.of(mode)` (null mode → motorbike; train/plane/boat → none) |
 | `RoutingProvider` | `id`, `credit` (`RoutingCredit` text + fix-the-map URL), `supports(profile)`, `suspend route(from, to, profile): RouteResult` |
+| `distancesFrom(from, targets, profile)` | R45: road length + time from one position to many in ONE request (default `MatrixResult.NotSupported`: ask each alone); `MatrixResult` = `Rows(RoadDistance?…)` / `NotSupported` / `Unavailable` |
 | `RouteResult` | `Found(distanceM, durationS, path)`, `NoRoute`, `Unavailable(reason, rateLimited)` |
 | `RoutingProviders` | the registry: `primary` + `fallbacks` (asked only when the primary is unavailable) |
 
@@ -297,7 +298,7 @@ Adapters (Android, `routing/`): `valhalla/ValhallaRouter` — `POST {base}/route
 costing motorbike `motor_scooter` (the only Valhalla profile that avoids expressways such as
 CT.01, where motorbikes are banned), car `auto`, bus `bus`, walk `pedestrian`; answer
 `trip.summary.length` (km) / `.time` (s) and `trip.legs[*].shape` (polyline6); HTTP 400 → no route,
-429 → rate limited. `osrm/OsrmRouter` — car only, `GET {base}/route/v1/driving/lng,lat;lng,lat?overview=full&geometries=polyline6`;
+429 → rate limited; `distancesFrom` = `POST {base}/sources_to_targets` with one source, ≤ 50 targets and the costing, answer `sources_to_targets[0][i].distance` (km) / `.time` (s), null = no distance (past the ~100 km matrix limit), HTTP 400 (error 154, one far target spoils the call) → not supported as a batch. `osrm/OsrmRouter` — car only, `GET {base}/route/v1/driving/lng,lat;lng,lat?overview=full&geometries=polyline6`;
 `routes[0].distance/duration/geometry`, code `NoRoute`/`NoSegment` → no route. `Routers.kt` is the
 only place with the server addresses (`https://valhalla1.openstreetmap.de`,
 `https://routing.openstreetmap.de/routed-car`), the User-Agent and the registry (Valhalla primary,

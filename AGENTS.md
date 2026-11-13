@@ -9,12 +9,13 @@ routing server (FOSSGIS Valhalla, OSRM car fallback); (R40) a route code the use
 the Lữ Trình route server (repo `lutrinh-server`), which returns the route to download, and the
 update check sends only code + route id + version of downloaded routes; (R43) a Google Maps link the
 user shares into the app has its redirects followed (only that URL, to Google's own hosts).
-Nothing about the user's own trips, photos or positions leaves the device.
+(R45) "Gần tôi" sends the user's current position + the stops' positions to the same routing server, only after its own consent line
+(routing on + notice accepted). Nothing else about the user's own trips, photos or positions leaves the device.
 
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R44 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R45 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -56,6 +57,7 @@ app/src/main/java/vn/lutrinh/app/
             data/RouteDownloads (WorkManager) + RouteStagingDir + RoomRouteRepository (Room `route_links`, v10);
             leg notes (R41): `steps.arrival_note` (v11) on the arrival step, `SetLegNote`, editor in ui/trips/LegUi.kt;
             drag a stop (R44): domain/usecase/StopMove.kt (new arrival between neighbours + `LegReattach`: broken-leg note/mode asks the user, nothing moves silently), drag `StopDrag` in ui/trips/TripDetailScreen.kt, sheet `LegChoiceSheet` in LegUi.kt;
+            "Gần tôi" (R45): domain/routing/NearMe.kt (pure: `NearMeFinder` batch then per stop, `NearMeSession` states, `NearMe.sort`) + `RoutingProvider.distancesFrom` (Valhalla `sources_to_targets`) + ui/trips/NearMeUi.kt (switch + list) with the view model in TripDetailScreen.kt;
             ui/routes/ (code / preview / download screen, badge + sheet + banner); shared spec copy in
             app/src/test/resources/spec/ (SOURCE.md = server commit)
   ui/settings/  "Cài đặt" (routing switch) + RoutingNoticeDialog (shown once from AppNavigation)
@@ -279,6 +281,7 @@ Never use, restart or kill emulator-5554, 5556 or 5570 (other projects).
   and the park's centre (20.2546, 105.8954) snaps 713 m off-road (500 m guard, `LegRoutesTest`): the sample's Tràng An stop therefore sits on the wharf road (20.2560, 105.9150, legs 4.4 / 4.7 km, all three Ninh Bình legs `ok`); a user stop placed in the karst stays straight, data not a bug.
   `NetworkMonitor.onLost` sets offline directly (asking `activeNetwork` there still returned the
   lost network, so the queue tried to fetch in airplane mode).
+* "Gần tôi" (R45) on an AVD: `adb emu geo fix <lon> <lat>`, open a trip, tap "Gần tôi" (first time the permission dialog; "Don't allow" = the permission message, "Thử lại" asks again); `logcat -s NearMe` prints the batch + each per-stop request (1/s). Valhalla's matrix answers null past ~100 km and one far target (error 154) fails the whole call: the finder then asks stops alone, so a trip with far stops takes ~1 s per such stop. `TripDetailContent` now has a view-switch item, so `FIRST_STEP_ITEM` is 4 (R44's drag slot maths). Airplane mode → "Chưa tính được đường" state.
 * Offline limit (R31): OpenFreeMap allows ≤ 3 000 tiles / 50 MB per offline download;
   `OfflineConfig.estimateTiles` (vector z0–14 + relief raster z0–6) matched the store (Hà Giang
   1 764 estimated vs 1 763 in `mbgl-offline.db` `region_tiles`). Never raise the caps without the

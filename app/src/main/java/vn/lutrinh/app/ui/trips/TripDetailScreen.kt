@@ -5,6 +5,15 @@ import vn.lutrinh.app.domain.model.GeoPoint
 import vn.lutrinh.app.domain.routing.LegMeasure
 import vn.lutrinh.app.domain.routing.LegRoute
 import vn.lutrinh.app.domain.routing.LegRoutes
+import vn.lutrinh.app.domain.routing.NearMe
+import vn.lutrinh.app.domain.routing.NearMeFinder
+import vn.lutrinh.app.domain.routing.NearMeState
+import vn.lutrinh.app.domain.routing.NearMeSession
+import vn.lutrinh.app.domain.routing.Origin
+import vn.lutrinh.app.ui.picker.DeviceLocation
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.os.CancellationSignal
 import vn.lutrinh.app.ui.common.ReadoutCount
 import vn.lutrinh.app.ui.common.KmReadout
 import vn.lutrinh.app.ui.common.MapButton
@@ -147,6 +156,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import vn.lutrinh.app.domain.catalog.RouteLink
 import vn.lutrinh.app.ui.routes.RouteBadge
@@ -164,12 +174,12 @@ import vn.lutrinh.app.ui.common.TopoPanel
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 
-/** LazyColumn item indexes of [TripDetailContent]: map, header, GPS card, then the timeline. */
+/** LazyColumn item indexes of [TripDetailContent]: map, header, GPS card, the view switch (R45), then the timeline. */
 private const val ITEM_HEADER = 1
 private const val ITEM_GPS = 2
 
-/** LazyColumn index of the first step's item (after the map, header and GPS card). */
-private const val FIRST_STEP_ITEM = 3
+/** LazyColumn index of the first step's item (after the map, header, GPS card and view switch). */
+private const val FIRST_STEP_ITEM = 4
 
 data class TripDetail(
     val trip: Trip,
@@ -293,6 +303,32 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
 
     fun cancelMove() { pendingMove.value = null }
 
+    // R45 "Gần tôi": the stops by road distance from the user. The screen finds the position (permission,
+    // GPS) and answers [locateRequests] with [onOrigin]; the result stays in memory while the stops are unchanged.
+    private val locateChannel = Channel<Unit>(Channel.CONFLATED)
+    val locateRequests = locateChannel.receiveAsFlow()
+    private val near = NearMeSession(
+        viewModelScope, NearMeFinder(c.routers, c.clock, log = { android.util.Log.i("NearMe", it) }),
+        // The user's position and the stops go to the routing server: only with routing on and its notice accepted.
+        consent = { c.routingSettings.enabled.value && c.routingSettings.noticeSeen.value },
+        online = { c.network.online.value },
+        locate = { locateChannel.trySend(Unit) },
+    )
+    val nearMe: StateFlow<NearMeState> = near.state
+
+    /** The user opened "Gần tôi" ([force] = "Thử lại" / "Làm mới": a new position, a new calculation). */
+    fun openNearMe(detail: TripDetail, force: Boolean = false) = near.open(NearMe.rowsOf(detail.steps, detail.numbers), force)
+
+    /** "Đồng ý và tính đường": routing on, the notice counted as shown (the view showed the same words). */
+    fun acceptNearMeConsent(detail: TripDetail) {
+        c.routingSettings.setEnabled(true)
+        c.routingSettings.markNoticeSeen()
+        openNearMe(detail, force = true)
+    }
+
+    /** The screen's answer to a [locateRequests] entry. */
+    fun onOrigin(origin: Origin) = near.onOrigin(origin)
+
     fun setLegMode(toStepId: String, mode: TransportMode?) = viewModelScope.launch { c.setLegTransport(toStepId, mode) }
     fun setLegNote(toStepId: String, note: String) = viewModelScope.launch { c.setLegNote(toStepId, note) }
 
@@ -391,6 +427,20 @@ fun TripDetailScreen(
     val pendingMove by vm.pendingMove.collectAsStateWithLifecycle()
     var noRoomStepId by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    var stopView by rememberSaveable { mutableStateOf(StopView.Order) }
+    val nearState by vm.nearMe.collectAsStateWithLifecycle()
+    var locateSignal by remember { mutableStateOf<CancellationSignal?>(null) }
+    DisposableEffect(Unit) { onDispose { locateSignal?.cancel() } }
+    fun fix() {
+        if (!DeviceLocation.isEnabled(context)) { vm.onOrigin(Origin.LocationOff); return }
+        locateSignal = DeviceLocation.request(context) { p -> vm.onOrigin(if (p != null) Origin.Fix(p) else Origin.NoFix) }
+    }
+    val locationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        if (DeviceLocation.hasPermission(context)) fix() else vm.onOrigin(Origin.NoPermission)
+    }
+    LaunchedEffect(Unit) {
+        vm.locateRequests.collect { if (DeviceLocation.hasPermission(context)) fix() else locationPermission.launch(DeviceLocation.PERMISSIONS) }
+    }
     val movedEdit = stringResource(R.string.stop_moved_edit)
     LaunchedEffect(Unit) {
         vm.moveEvents.collect { e ->
@@ -418,6 +468,8 @@ fun TripDetailScreen(
         if (r == SnackbarResult.ActionPerformed) onOpenOffline()
     }
     val detail = (state as? Loadable.Ready)?.value
+    // R45: opening "Gần tôi" (or a change of stops while it is open) starts the calculation; the same stops do not redo it.
+    LaunchedEffect(stopView, detail?.steps) { if (stopView == StopView.Near && detail != null) vm.openNearMe(detail) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     // Collapsing top bar: the title is in the header until that scrolls away, then it moves up.
@@ -501,6 +553,11 @@ fun TripDetailScreen(
             is Loadable.Ready -> TripDetailContent(
                 s.value, padding, listState, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it },
                 onDropStop = vm::dropStop,
+                stopView = stopView,
+                onStopView = { stopView = it },
+                nearState = nearState,
+                onNearRetry = { vm.openNearMe(s.value, force = true) },
+                onNearConsent = { vm.acceptNearMeConsent(s.value) },
                 routeLink = routeLink, onRouteBadge = vm.route::openSheet, onCloseRouteNotice = vm.route::closeNotice,
                 gpsCard = {
                     GpsCard(
@@ -582,6 +639,11 @@ private fun TripDetailContent(
     onOpenStep: (String) -> Unit,
     onEditLeg: (toStepId: String) -> Unit,
     onDropStop: (stepId: String, slot: Int) -> Unit,
+    stopView: StopView,
+    onStopView: (StopView) -> Unit,
+    nearState: NearMeState,
+    onNearRetry: () -> Unit,
+    onNearConsent: () -> Unit,
     routeLink: RouteLink?,
     onRouteBadge: () -> Unit,
     onCloseRouteNotice: () -> Unit,
@@ -609,7 +671,13 @@ private fun TripDetailContent(
         }
         item { TripHeader(d, routeLink, onRouteBadge, onCloseRouteNotice) }
         item(key = "gps") { gpsCard() }
-        if (d.steps.isEmpty()) {
+        // R45: the same stops in order (the timeline, drag to reorder) or by road distance from the user.
+        item(key = "view") {
+            if (d.numbers.isNotEmpty()) StopViewSwitch(stopView, onStopView, Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        }
+        if (stopView == StopView.Near && d.numbers.isNotEmpty()) {
+            nearMeItems(nearState, onOpenStep, onNearRetry, onNearConsent)
+        } else if (d.steps.isEmpty()) {
             item {
                 MessageState(
                     title = stringResource(R.string.trip_no_steps_title),

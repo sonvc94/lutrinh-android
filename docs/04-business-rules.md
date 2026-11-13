@@ -1130,7 +1130,8 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
   not allowed on them), tried again with `auto` when it has no route (car fallback below). Fallback for **car only** when the primary is unavailable: OSRM
   (FOSSGIS `routed-car`). The server addresses live in one registry, never in screens.
 * **What is sent.** Per leg: the two stop positions and the profile, nothing else (no names,
-  notes, photos, dates, account). Besides it, only a route code (R40, typed by the user, to the
+  notes, photos, dates, account). "Gần tôi" (R45) sends, once per calculation, the user's position and the
+  stops' positions in one batch request (after its own consent). Besides it, only a route code (R40, typed by the user, to the
   Lữ Trình route server) and the Google Maps link the user shares into the app (R43, to Google's
   own hosts, to follow its redirect) leave the device.
 * **Switch and notice.** Routing is **on by default**. Before the first request the app shows a
@@ -1628,6 +1629,52 @@ cho người dùng chọn nó sẽ gắn với route nào".
   gap and by clamp, plan slot/unchanged/no-room, no choice for bare or draft legs, choices to writes, form insert,
   hidden data, and `MoveStop` on the fake store: time stored, leg data attached to the chosen leg, dropped).
   Checked by hand on an AVD: `docs/img/stop-drag/`.
+
+## R45 — Stops by road distance from me ("Gần tôi")
+
+Rules live in `domain/routing/NearMe.kt` (`NearMe.sort`, `NearMeFinder`, `NearMeSession`, `Origin`, `NearMeState`;
+pure, the iOS port copies it); the batch call is `RoutingProvider.distancesFrom` (Valhalla `sources_to_targets`,
+`routing/valhalla/ValhallaRouter.kt`); the view is `ui/trips/NearMeUi.kt` + `TripDetailScreen`. *Captain 2026-11-13:*
+"ngoài hiện thị theo order thứ tự của các điểm kèm route, tôi muốn có hiện thị theo khoảng cách từ vị trí hiện tại của
+người dùng đến các điểm order theo khoảng cách từ gần đến xa (khoang cách di chuyển thực tế chứ không phải chim bay)".
+
+* **Two views of one trip.** Under the GPS card of Trip detail a switch "Theo thứ tự" | "Gần tôi" (shown when the
+  trip has a published stop). "Theo thứ tự" is the timeline of R2/R12/R44 unchanged (legs, drag, notes). "Gần tôi"
+  replaces the timeline by a list of the **published stops** (drafts have no number, R20) from the nearest to the
+  farthest **by road**: the stop's timeline number, its title, "12 km · ~29 phút". Tap = Step detail. Nothing is
+  reordered or stored: the trip's order stays the arrival time.
+* **Road distance only.** The distance is the router's travel length for the motorbike profile (R36: "Chưa chọn" is
+  Xe máy), from the user's position to the stop. The straight-line distance is never computed, shown or used to
+  sort. Sort key: road metres ascending, ties by timeline number.
+* **Car fallback (like a leg).** A stop with no motorbike route is asked again with the car profile (Valhalla `auto`,
+  OSRM when Valhalla is down); the row then says "· tuyến ô tô". The time is the router's estimate ("~", R36).
+* **No road distance → last.** A stop that could not be routed goes after every stop that has one, in timeline order,
+  labelled "Chưa tính được đường · không có đường tới đây" (the router found no road) or "Chưa tính được đường ·
+  thử làm mới" (the server did not answer). While a stop is still being asked it sits between the two groups as
+  "Đang tính đường…" and the caption says "Đang tính đường: còn N điểm".
+* **Requests.** One batch request first (one source = the user, all stops as targets, ≤ 50 per request); a stop the
+  batch did not answer (Valhalla answers null past its ~100 km matrix limit, and an error 154 for the whole call when one
+  target is too far) is asked alone, then with the car profile. Every request keeps R36's pace (≤ 1 per second, a
+  rate limit pauses 60 s); results appear as they arrive. A batch that fails as "unavailable" stops the run: no
+  per-stop requests against a server that is down.
+* **Position.** Asked once when the view is opened (the "Vị trí của tôi" code: fine or coarse permission, GPS else
+  network, `DeviceLocation`), never stored. "Làm mới" asks again and recalculates. The result is kept in memory
+  (the view model) while the trip's stops (id, title, position) are unchanged: switching views or coming back from a
+  step does not ask or calculate again; not in the database.
+* **What is sent.** The user's position and the stops' positions + profile, to the routing server only (FOSSGIS,
+  R36): that is the first time the user's own position leaves the device. So the view needs **consent**: while routing
+  is off ("Cài đặt") or its notice was never accepted, "Gần tôi" shows "Gửi vị trí để tính đường?" with the words
+  above and the button "Đồng ý và tính đường" (routing on, notice counted as seen); nothing is located or sent before.
+* **States** (`NearMeState`, each with a message and a button): consent; "Đang lấy vị trí của bạn…"; "Chưa có quyền
+  dùng vị trí" (permission refused); "Vị trí đang tắt"; "Chưa lấy được vị trí" (no fix); "Chưa tính được đường" with
+  "Cần có mạng…" (offline, or the server answered for no stop); the list. The button is "Thử lại" (the list has
+  "Làm mới" above it) and starts over from the permission.
+* **Out of scope:** reordering the trip by distance, routes on the map for this view, navigation, a stored cache.
+* **Tests:** `NearMeTest` (14: road order against the straight-line order of the same stops, the batch's null cells asked
+  alone, one request per second, car fallback labelled, unroutable last with both labels, offline, no stops, drafts,
+  ties; the session: consent gate, offline before locating, permission / location off / no fix and retry,
+  result kept while the stops are the same, refresh and changed stops recompute), `RouterAdaptersTest.valhallaMatrix…`
+  (request and answer). Checked by hand on an AVD: `docs/img/near-me/`.
 
 ## Text rules
 

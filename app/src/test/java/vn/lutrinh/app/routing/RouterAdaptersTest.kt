@@ -40,6 +40,21 @@ class RouterAdaptersTest {
         assertEquals(104.9930, locs.getJSONObject(1).getDouble("lon"), 1e-9)
     }
 
+    @Test fun valhallaMatrixAsksOneSourceManyTargetsAndReadsDistancesInMetres() {
+        val body = JSONObject(ValhallaRouter.matrixRequest(haGiang, listOf(quanBa, haGiang), RouteProfile.MOTORBIKE))
+        assertEquals("motor_scooter", body.getString("costing"))
+        assertEquals(1, body.getJSONArray("sources").length())
+        assertEquals(2, body.getJSONArray("targets").length())
+        val answer = """{"sources_to_targets":[[{"from_index":0,"to_index":0,"time":421,"distance":2.159},{"from_index":0,"to_index":1,"time":null,"distance":null}]]}"""
+        val r = ValhallaRouter.parseMatrix(HttpAnswer(200, answer), 2) as vn.lutrinh.app.domain.routing.MatrixResult.Rows
+        assertEquals(2_159.0, r.distances[0]!!.distanceM, 1e-6)
+        assertEquals(421.0, r.distances[0]!!.durationS, 1e-6)
+        assertEquals(null, r.distances[1])
+        // A far target spoils the whole call (error 154): ask each stop alone. 429 = rate limited.
+        assertEquals(vn.lutrinh.app.domain.routing.MatrixResult.NotSupported, ValhallaRouter.parseMatrix(HttpAnswer(400, """{"error_code":154}"""), 2))
+        assertTrue((ValhallaRouter.parseMatrix(HttpAnswer(429, ""), 2) as vn.lutrinh.app.domain.routing.MatrixResult.Unavailable).rateLimited)
+    }
+
     @Test fun valhallaAnswerIsConverted() {
         val body = """{"trip":{"summary":{"length":48.512,"time":5530.2},"legs":[{"shape":"${Polyline.encode6(line)}"}]}}"""
         val r = ValhallaRouter.parse(HttpAnswer(200, body)) as RouteResult.Found

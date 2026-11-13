@@ -172,6 +172,15 @@ The picker returns its result to the step form through the previous screen's sav
   “X”. Giờ đến mới: HH:mm" with "Sửa giờ". When a leg with a note or a mode is broken by the move, a bottom
   sheet asks which new leg ("A → B") takes it, or to drop it; with no room between two stops a dialog opens the
   stop's form instead. Screenshots: `img/stop-drag/drag.png` (drop line while dragging), `leg-choice.png` (sheet), `moved-snackbar.png` (new time + "Sửa giờ").
+* **View switch (R45):** under the GPS card (only with a published stop) two segments "Theo thứ tự" (the timeline above)
+  and "Gần tôi". "Gần tôi" lists the published stops nearest → farthest by road distance from the user's position
+  (stop number disc, title, "12 km · ~29 phút", "· tuyến ô tô" when only the car profile has a route), with
+  "Làm mới" above the list; a stop with no road distance goes last as "Chưa tính được đường · …". Opening it
+  asks for the location permission and a position once. One message with a button replaces the list when there is
+  nothing to show: "Gửi vị trí để tính đường?" (consent: routing off or notice not accepted, button "Đồng ý và tính
+  đường"), "Chưa có quyền dùng vị trí", "Vị trí đang tắt", "Chưa lấy được vị trí", "Chưa tính được đường" (offline),
+  each with "Thử lại". Drag-reorder exists in "Theo thứ tự" only. Screenshots: `img/near-me/list.png`,
+  `consent.png`, `permission-denied.png`, `offline.png`.
 * **Top bar:** back, share icon ("Chia sẻ chuyến đi") and ⋮. The trip title appears in the bar only
   after the header has scrolled away (it is not shown twice); there is one entry to the Trip map
   (the header map and its expand button), no map icon in the bar.
@@ -800,6 +809,18 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
 * **Inspired by:** the captain's request (Google Maps' "Share" lists Lữ Trình). Polarsteps has no such entry.
 
 ## Screenshot index (`docs/img/`, Android emulator, Pixel 6 size)
+
+### Gần tôi (`img/near-me/`, R45, §3)
+
+Own AVD (pixel_6, android-36), debug build, `adb emu geo fix 105.3600 23.2800` (next to Phố cổ Đồng Văn), sample trip
+"Vòng cung Hà Giang". 540 px wide.
+
+| File | Shows |
+| --- | --- |
+| list.png | the list by road distance (the straight-line order of the same stops differs, e.g. Làng Lô Lô Chải 9,1 km chim bay but 28 km by road) |
+| consent.png | "Gửi vị trí để tính đường?" while routing's notice was not accepted |
+| permission-denied.png | permission refused: message + "Thử lại" |
+| offline.png | airplane mode: "Chưa tính được đường" + "Thử lại" |
 
 ### Share from Google Maps (`img/share-in/`, R43, §15)
 

@@ -233,6 +233,15 @@ enum CatalogResult<T> { case ok(T), refused(CatalogError, retryAfterS: Int?), un
 | `LegChoiceSheet` (`ModalBottomSheet`, one per displaced leg) | `.sheet` with `.presentationDetents([.medium])`; strings `leg_choice_*`, `leg_pair` |
 | accessibility actions "Đưa điểm dừng lên trước/ra sau" | `.accessibilityAction(named:)` |
 
+## Stops by road distance from me (R45)
+
+| Android | iOS |
+| --- | --- |
+| `NearMe.sort`, `NearMeFinder` (batch, then each alone, motorbike → car, ≥ 1 s apart), `NearMeSession` (consent, offline, origin states, in-memory result), `Origin` | the same pure types; port `NearMeTest` (a fake router that counts requests and times) |
+| `RoutingProvider.distancesFrom` + `ValhallaRouter.matrixRequest/parseMatrix` | the same protocol method; Valhalla `sources_to_targets` JSON as in docs/05 |
+| `DeviceLocation.request` (fine/coarse, GPS else network, one fix) | `CLLocationManager.requestLocation()` with `requestWhenInUseAuthorization()`; permission denied, services off and no fix map to `Origin.NoPermission/LocationOff/NoFix` |
+| `StopViewSwitch` + `nearMeItems` (`LazyListScope`) | a `Picker(.segmented)` over the stop list; rows as in the timeline; the straight-line distance must not appear (no `CLLocation.distance(from:)`) |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;
