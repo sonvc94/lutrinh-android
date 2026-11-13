@@ -541,6 +541,7 @@ tap-to-move the pin; neighbour steps are drawn there as a dotted line, here as s
 
 ## Place search — the offline gazetteer (R23, R24)
 
+* **Third use (R43):** a place shared from Google Maps whose link has no coordinates is guessed by its name with `Gazetteer.search` (`PlaceGuess`, docs/04 R43 "Guess by name"); the picker then opens centred on it.
 * **Data:** `app/src/main/assets/places/vn_places.tsv` (UTF-8, ~0.9 MB, ~0.3 MB compressed in the
   APK): the 34 provinces of the 2025 merger (with the merged former provinces as aliases), ~3 200
   communes/wards, cities, towns, villages, hamlets and ~5 000 travel places (attractions,

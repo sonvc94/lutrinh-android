@@ -419,6 +419,9 @@
     <string name="share_in_new_trip">Chuyến đi mới</string>
     <string name="share_in_only_maps">Lữ Trình chỉ nhận địa điểm chia sẻ từ Google Maps.</string>
     <string name="share_in_gap_eyebrow">CHƯA CÓ VỊ TRÍ</string>
+    <string name="share_in_guess_eyebrow">VỊ TRÍ ĐOÁN</string>
+    <string name="share_in_guess_note">Vị trí đoán theo tên — kéo ghim cho đúng</string>
+    <string name="share_in_guess_card">Vị trí đoán theo tên — kéo ghim cho đúng</string>
     <string name="share_in_gap_none">Liên kết không có tọa độ. Hãy chọn vị trí trên bản đồ.</string>
     <string name="share_in_gap_offline">Không có mạng để đọc liên kết. Hãy chọn vị trí trên bản đồ.</string>
 </resources>

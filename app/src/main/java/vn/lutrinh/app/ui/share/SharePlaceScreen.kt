@@ -35,11 +35,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.TripSummary
 import vn.lutrinh.app.domain.usecase.DisplayFormat
+import vn.lutrinh.app.domain.usecase.PlaceGuess
 import vn.lutrinh.app.domain.usecase.SharedPlaces
 import vn.lutrinh.app.domain.usecase.SharedPlaces.Resolved
 import vn.lutrinh.app.ui.common.Eyebrow
@@ -72,12 +75,19 @@ class SharePlaceViewModel(private val c: AppContainer, handle: SavedStateHandle)
 
     init {
         if (place != null) viewModelScope.launch {
-            val r = SharedPlaces.resolve(place, c.linkFollower)
-            android.util.Log.i("ShareIn", "resolved: " + r.javaClass.simpleName + (if (r is Resolved.Found) " (from " + (if (place.point != null) "the text" else "the short link") + ")" else ""))
+            var r = SharedPlaces.resolve(place, c.linkFollower)
+            // R43: no position from the link: guess one from the name in the offline gazetteer (nothing is sent).
+            if (r !is Resolved.Found) {
+                val g = c.places.gazetteer.value ?: kotlinx.coroutines.withTimeoutOrNull(GAZETTEER_WAIT_MS) { c.places.await() }
+                if (g != null) r = withContext(Dispatchers.Default) { PlaceGuess.apply(g, r) }
+            }
+            android.util.Log.i("ShareIn", "resolved: " + r.javaClass.simpleName + (if (r is Resolved.Found) " (from " + (if (place.point != null) "the text" else "the short link") + ")" else if (r.guess != null) " (name guessed in the gazetteer)" else ""))
             _resolved.value = r
         }
     }
 }
+
+private const val GAZETTEER_WAIT_MS = 4_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -136,8 +146,11 @@ private fun PlaceCard(resolved: Resolved?) {
             Icon(TopoIcons.Place, null, tint = Palette.Contour, modifier = Modifier.size(18.dp))
             val (text, color) = when (resolved) {
                 is Resolved.Found -> formatCoord(resolved.point.latitude, resolved.point.longitude) to MaterialTheme.colorScheme.onSurfaceVariant
-                is Resolved.NoCoordinates -> stringResource(R.string.share_in_gap_none) to MaterialTheme.colorScheme.onSurface
-                is Resolved.Unreachable -> stringResource(R.string.share_in_gap_offline) to MaterialTheme.colorScheme.onSurface
+                is Resolved.NoCoordinates, is Resolved.Unreachable -> when {
+                    resolved.guess != null -> stringResource(R.string.share_in_guess_card) to MaterialTheme.colorScheme.onSurfaceVariant
+                    resolved is Resolved.NoCoordinates -> stringResource(R.string.share_in_gap_none) to MaterialTheme.colorScheme.onSurface
+                    else -> stringResource(R.string.share_in_gap_offline) to MaterialTheme.colorScheme.onSurface
+                }
             }
             Text(text, style = MaterialTheme.typography.bodyMedium, color = color)
         }

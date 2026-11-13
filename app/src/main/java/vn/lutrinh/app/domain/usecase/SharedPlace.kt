@@ -107,14 +107,23 @@ object SharedPlaces {
         val name: String
         val address: String?
 
+        /** R43: where the offline gazetteer puts the place by its name ([PlaceGuess]); null = no guess. Only a position-less result has one. */
+        val guess: GeoPoint? get() = null
+
         /** Position known: [point]. */
         data class Found(override val name: String, override val address: String?, val point: GeoPoint) : Resolved
 
         /** The link gave no position (unknown format, a place by name only, a redirect off Google). */
-        data class NoCoordinates(override val name: String, override val address: String?) : Resolved
+        data class NoCoordinates(
+            override val name: String,
+            override val address: String?,
+            /** The name in the final URL's `/place/<name>/` path ("Hoàn Kiếm Lake, Hoan Kiem, Ha Noi, Vietnam"), for the guess. */
+            val pathName: String? = null,
+            override val guess: GeoPoint? = null,
+        ) : Resolved
 
         /** The link could not be followed (offline, timeout, server error). */
-        data class Unreachable(override val name: String, override val address: String?) : Resolved
+        data class Unreachable(override val name: String, override val address: String?, override val guess: GeoPoint? = null) : Resolved
     }
 
     /**
@@ -132,7 +141,8 @@ object SharedPlaces {
         } ?: return Resolved.NoCoordinates(place.name, place.address)
         val name = place.name.ifEmpty { nameIn(finalUrl).orEmpty() }
         val point = coordinatesIn(finalUrl)
-        return if (point != null) Resolved.Found(name, place.address, point) else Resolved.NoCoordinates(name, place.address)
+        return if (point != null) Resolved.Found(name, place.address, point)
+        else Resolved.NoCoordinates(name, place.address, pathName = nameIn(finalUrl))
     }
 
     const val MAX_NAME = 120

@@ -1503,27 +1503,71 @@ the incoming intent is handled in `MainActivity`; the prefill is `SharedPrefill`
   reason ("Liên kết không có tọa độ. Hãy chọn vị trí trên bản đồ." or "Không có mạng để đọc liên kết. Hãy chọn vị trí trên bản đồ."),
   and the location picker (docs/03 §6) opens once over the form, so the user places the stop; closing
   it leaves the form with the note and no location (a stop cannot be saved without a location).
+  Unless the name gave a guess (next bullet).
+* **Guess by name (`PlaceGuess`, pure, `domain/usecase/PlaceGuess.kt`).** When the result has no
+  position (`NoCoordinates` or `Unreachable`), the share screen looks the place up in the offline
+  gazetteer (R23, `Gazetteer.search`; waits ≤ 4 s for the asset to load, no match if it is not there)
+  and `Resolved.guess` holds the position (`PlaceGuess.apply`). **Nothing is sent**: no geocoder, the
+  name stays on the device; works offline (`Unreachable` keeps its guess). Precision is the gazetteer's:
+  a commune / ward / town / city or a well-known place (sight, lake, pass, bay, worship place, …).
+  Rules, in order:
+  1. *By name.* The heads are the first comma part of the shared name and of the link's path name
+     (`Hoàn Kiếm Lake, Hoan Kiem, Ha Noi, Vietnam`); the other comma parts and the address lines are
+     the *tail*. Each head is searched as typed (diacritics, case and punctuation do not matter, R23;
+     English names the gazetteer holds as aliases match too). A hit counts when it is tier 0 (exact name
+     or alias), or tier ≤ 2 for a query of two words or more; a province is never a guess; a village or
+     hamlet counts only when its province is spelt out in the tail. If nothing matches and the head starts or
+     ends with an English type word (`lake`, `pass`, `waterfall`, `falls`, `beach`, `bay`, `cave`,
+     `island`, `mountain`, `mount`, `peak`, `temple`, `pagoda`, `church`, `cathedral`, `viewpoint`) it is
+     searched again without it, accepting only places of that kind ("Mount Phan Si Pang" → Phan Si Păng).
+  2. *Which one.* Best tier first, then a place whose province (current or former name) is in the tail,
+     then importance. With no province in the tail the best hit is taken only when it leads the
+     best one in another province by 10 importance points ("Đồng Văn" → the town in Tuyên Quang;
+     "Thôn 1" → no guess).
+  3. *By address.* No place by name (a café, a shop): each tail part from the first, without
+     `Quận` / `Huyện` / `Phường` / `Xã` / `Thành phố` / `Tx` / `Tt` / `TP` in front or `District` / `Ward` / `Commune` /
+     `City` / `Town` / `Province` behind, must be exactly the name of a commune, ward, town or city
+     (not a city that is the province's own name) whose province is named elsewhere in the tail, or be the
+     only such place in the gazetteer. First part that works wins ("Highlands Coffee, Phố Tràng Tiền,
+     Hoàn Kiếm, Hà Nội" → Phường Hoàn Kiếm).
+  4. Otherwise no guess, and the form behaves as above.
+  A guess is wrong at times (a name that is also a commune elsewhere, an alias that belongs to another
+  place): the picker is where the user corrects it, which is why the form says it is a guess.
 * **Not Google Maps.** Any other `text/plain` share (no allow-listed Google Maps link in it): the
   toast "Lữ Trình chỉ nhận địa điểm chia sẻ từ Google Maps.", then the app closes (it was started for
   this share) or goes back to the previous app (it was already running). Nothing is parsed further,
   nothing is sent.
+* **Guessed position in the form.** With a guess (captain's choice, news #92: "đoán từ dữ liệu địa
+  danh offline … không gửi gì ra ngoài, chỉ chính xác tới mức xã/phường hoặc điểm nổi tiếng"): the
+  title = the shared name, the location = the guess (so "Lưu" works even if the picker is closed), a Card
+  "VỊ TRÍ ĐOÁN" under the title says "Vị trí đoán theo tên — kéo ghim cho đúng", and the picker opens once
+  over the form **centred on the guess** (zoom 13, the fixed needle is the pin the user moves with the map;
+  "Dùng vị trí này" confirms). The Card shows while the location is still exactly the guess; once
+  the user confirms another position it goes away and the stop keeps what the user chose. The place card
+  of "Thêm vào chuyến đi" says the same instead of "Liên kết không có tọa độ". A share with no match
+  behaves as before (note "CHƯA CÓ VỊ TRÍ", picker at the default view).
 * **Named places have no coordinates.** Because a named place's link carries no position
   (observed above), the usual share of a business or landmark lands in the *position missing* case:
-  the user places it on the picker (search by name works offline, R23). Only dropped pins and links that
-  carry `@` / `!3d!4d` / `q=` arrive with a position. Guessing a position by name (the gazetteer, or a
-  geocoding service) was not done: the first is imprecise, the second would send the place name
-  to a third party. Open product question for the captain.
+  guessed by name offline (above), or placed by the user on the picker (search by name works offline,
+  R23). Only dropped pins and links that carry `@` / `!3d!4d` / `q=` arrive with a position, and the
+  guess never replaces one (an exact position is never guessed over). A geocoding service was not
+  used: it would send the place name to a third party.
 * **What leaves the device.** Only the shared short link's URL, to `maps.app.goo.gl` /
   `google.com` (the redirect chain, nothing else in the request but the User-Agent), and only when
   the user picked Lữ Trình in the share sheet. Nothing about the user's trips, photos or position is
-  sent; the response body is not read. It does not depend on "Tính đường đi" (R36), which is about the
+  sent; the response body is not read. The position guessed from the name (above) is computed on the
+  device from the bundled gazetteer and sends nothing. It does not depend on "Tính đường đi" (R36), which is about the
   road legs. The `INTERNET` permission was already there. `sharein` is the only package besides
   `routing`/`catalog` allowed to open a connection (`RoutingBoundaryTest`, `CatalogBoundaryTest`).
 * **Log.** `logcat -s ShareIn` prints the kind of share (`Google Maps place` / `not Google Maps (refused)`)
   and the result of the link (`resolved: Found (from the short link)` / `NoCoordinates` / `Unreachable`); no
-  names, no coordinates.
+  names, no coordinates; `resolved: NoCoordinates (name guessed in the gazetteer)` when the name gave a guess.
 
-*Tests:* `SharedPlacesTest` (17: real share = subject + short link; short link of a named place → no
+*Tests:* `PlaceGuessTest` (8, the bundled gazetteer: the recorded lake share and its path name, Vietnamese
+with and without diacritics, English names and type words, name + address tail, a business named by its ward,
+no match, a province is no guess, the province in the address picks among same names, `apply` on a recorded
+share online and offline and on a dropped pin), `SharedPrefillTest` (+2: the guess rides along only without a position,
+routes carry it), `SharedPlacesTest` (17: real share = subject + short link; short link of a named place → no
 coordinates; of a dropped pin → coordinates; bare link takes the name from the URL; offline = `Unreachable`
 keeps the name; a redirect off Google; full URL needs no network; `@lat,lng` / `!3d!4d` / `q=` / `ll=`
 formats, the pin beats the map centre, consent `continue`, URLs without usable coordinates, non-Maps text,
@@ -1531,7 +1575,8 @@ other Maps link shapes, multi-line name + address, subject only when the text ha
 never leaves the allow-list), `SharedPrefillTest` (6: position known fills name and location, no position
 keeps the name and says why, invalid position, not from a share, long name fits the title limit, routes
 carry the shared place), `RoutingBoundaryTest` and `CatalogBoundaryTest` (allow-list includes `sharein`).
-Checked by hand on an AVD with the real Google Maps app: `docs/img/share-in/`.
+Checked by hand on an AVD with the real Google Maps app: `docs/img/share-in/`; the guess on an AVD with simulated
+shares of the recorded texts (`09`–`12`).
 *Inspired by* the captain's request (Google Maps' "Share a place" lists Lữ Trình).
 
 ## Text rules

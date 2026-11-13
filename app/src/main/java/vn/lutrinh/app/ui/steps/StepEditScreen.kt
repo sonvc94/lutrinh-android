@@ -180,7 +180,12 @@ data class StepForm(
     val titleBeforeAuto: String = "",
     /** R43: why a stop from a Google Maps share has no position yet (null = none); the form says so and opens the picker. */
     val sharedNote: SharedGap? = null,
+    /** R43: the position the offline gazetteer guessed from the shared name (also in [location] until the user moves it); null = none. */
+    val sharedGuess: GeoPoint? = null,
 ) {
+    /** R43: the guess is still the stop's position: the form says it is a guess. */
+    val guessShown: Boolean get() = sharedGuess != null && location == sharedGuess
+
     /** R24: the title after the location moved to a point named [place]; a typed title stays. */
     fun placed(place: String?): StepForm =
         AutoTitle(title, autoTitle, titleBeforeAuto).placed(place).let { copy(title = it.title, autoTitle = it.auto, titleBeforeAuto = it.beforeAuto) }
@@ -211,7 +216,7 @@ data class VideoRefusal(val problem: VideoProblem, val durationMs: Long?, val si
 enum class SharedGap { NO_COORDINATES, UNREACHABLE }
 
 /** Values passed by the Google Maps share through the navigation arguments (Routes.stepFromShare). */
-data class SharedPrefill(val title: String, val location: GeoPoint?, val gap: SharedGap?) {
+data class SharedPrefill(val title: String, val location: GeoPoint?, val gap: SharedGap?, val guess: GeoPoint? = null) {
     companion object {
         fun from(handle: SavedStateHandle): SharedPrefill? {
             if (handle.get<String>("shared") != "1") return null
@@ -219,7 +224,11 @@ data class SharedPrefill(val title: String, val location: GeoPoint?, val gap: Sh
             val lng = handle.get<String>("sharedLng")?.toDoubleOrNull()
             val point = if (lat != null && lng != null) GeoPoint(lat, lng).takeIf { it.isValid } else null
             val gap = if (point != null) null else if (handle.get<String>("sharedGap") == "offline") SharedGap.UNREACHABLE else SharedGap.NO_COORDINATES
-            return SharedPrefill(handle.get<String>("sharedTitle").orEmpty().take(Limits.STEP_TITLE_MAX), point, gap)
+            // R43: no position in the link, but the gazetteer guessed one from the name (only then).
+            val guess = if (point != null) null else handle.get<String>("sharedGuessLat")?.toDoubleOrNull()?.let { gl ->
+                handle.get<String>("sharedGuessLng")?.toDoubleOrNull()?.let { GeoPoint(gl, it) }
+            }?.takeIf { it.isValid }
+            return SharedPrefill(handle.get<String>("sharedTitle").orEmpty().take(Limits.STEP_TITLE_MAX), point, gap, guess)
         }
     }
 }
@@ -292,11 +301,11 @@ class StepEditViewModel(private val c: AppContainer, private val handle: SavedSt
                         trip = trip,
                         date = arrival.toLocalDate(),
                         time = arrival.toLocalTime(),
-                        suggestedLocation = shared?.location ?: NewStepDefaults.location(steps),
+                        suggestedLocation = shared?.location ?: shared?.guess ?: NewStepDefaults.location(steps),
                         tripSteps = steps,
                     )
                     if (shared == null) base
-                    else base.copy(title = shared.title, location = shared.location, sharedNote = shared.gap)
+                    else base.copy(title = shared.title, location = shared.location ?: shared.guess, sharedNote = shared.gap, sharedGuess = shared.guess)
                         .let { f -> if (shared.title.isBlank() && shared.location != null) f.placed(c.places.await()?.nearest(shared.location)?.place?.name) else f }
                 }
             }
@@ -594,7 +603,7 @@ fun StepEditScreen(
     // R43: no position from the shared link: open the picker once, over the form that says why.
     var pickerOpened by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(f.loading, f.sharedNote) {
-        if (!f.loading && f.sharedNote != null && f.location == null && !pickerOpened) {
+        if (!f.loading && f.sharedNote != null && (f.location == null || f.guessShown) && !pickerOpened) {
             pickerOpened = true
             onPickLocation(f.suggestedLocation)
         }
@@ -668,7 +677,8 @@ fun StepEditScreen(
                     colors = topoFieldColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (f.sharedNote != null && f.location == null) SharedGapNote(f.sharedNote!!)
+                if (f.guessShown) SharedGapNote(null)
+                else if (f.sharedNote != null && f.location == null) SharedGapNote(f.sharedNote!!)
                 LocationCard(f, vm.stepId, onPick = { onPickLocation(f.location ?: f.suggestedLocation) })
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateField(stringResource(R.string.step_field_date), f.date.display(), Modifier.weight(1f)) { pickDate = true }
@@ -773,11 +783,17 @@ fun StepEditScreen(
 
 /** R43: the short note why a shared place has to be placed by hand. */
 @Composable
-private fun SharedGapNote(gap: SharedGap) {
+private fun SharedGapNote(gap: SharedGap?) {
     TopoCard(Modifier.fillMaxWidth()) {
-        Eyebrow(stringResource(R.string.share_in_gap_eyebrow))
+        Eyebrow(stringResource(if (gap == null) R.string.share_in_guess_eyebrow else R.string.share_in_gap_eyebrow))
         Text(
-            stringResource(if (gap == SharedGap.UNREACHABLE) R.string.share_in_gap_offline else R.string.share_in_gap_none),
+            stringResource(
+                when (gap) {
+                    null -> R.string.share_in_guess_note
+                    SharedGap.UNREACHABLE -> R.string.share_in_gap_offline
+                    SharedGap.NO_COORDINATES -> R.string.share_in_gap_none
+                },
+            ),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 4.dp),
         )

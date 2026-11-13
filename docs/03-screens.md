@@ -779,9 +779,17 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
   R17, included) and back from the form lands on the trip (`img/share-in/04-stop-in-trip.png`).
   **"Chuyến đi mới"** → the new-trip form; once saved, the stop form follows for that trip.
 * **No position** (offline, or a named place whose link has no coordinates — the usual case, R43): the
-  form has the name, a Card "CHƯA CÓ VỊ TRÍ" with the reason, and the location picker (§6) opens once on
-  top so the user places the stop (`img/share-in/05-offline-pick-trip.png`, `06-offline-picker.png`,
-  `07-offline-form-note.png`). Closing the picker leaves the form without a location; "Lưu" needs one.
+  offline gazetteer is searched with the name (and the address parts of the link, R43 "Guess by name"). **Guess
+  found**: the place card's status line reads "Vị trí đoán theo tên — kéo ghim cho đúng"; the form has the
+  name, the location = the guess and a Card "VỊ TRÍ ĐOÁN" with the same sentence, and the location picker (§6)
+  opens once on top **centred on the guess** (zoom 13, needle on it) so the user drags the map to the right
+  spot and taps "Dùng vị trí này" (`img/share-in/09-guess-picker.png`, `10-guess-form-note.png`,
+  `11-guess-picker-offline.png`). The Card disappears once the position is no longer the guess. **No match**:
+  the form has the name, a Card "CHƯA CÓ VỊ TRÍ" with the reason, and the picker opens at the default view
+  so the user places the stop (`img/share-in/05-offline-pick-trip.png`, `06-offline-picker.png`,
+  `07-offline-form-note.png`). Closing the picker leaves the form without a location when there is no guess
+  ("Lưu" needs one); with a guess the guess stays. A dropped pin keeps its exact position and no note
+  (`img/share-in/12-dropped-pin-keeps-position.png`).
 * **Design:** Parchment, TopoCard + Eyebrow, no new tokens (docs/08).
 * **Inspired by:** the captain's request (Google Maps' "Share" lists Lữ Trình). Polarsteps has no such entry.
 
@@ -802,6 +810,10 @@ shots with airplane mode on. 540 px wide.
 | 06-offline-picker.png | offline: the location picker opened over the form |
 | 07-offline-form-note.png | offline: the form with the name and the "CHƯA CÓ VỊ TRÍ" note |
 | 08-not-maps-message.png | a text that is not a Google Maps place: the toast |
+| 09-guess-picker.png | "Hoàn Kiếm Lake" (link without coordinates): the picker centred on the guessed lake (21.02883, 105.85254) |
+| 10-guess-form-note.png | the form after closing that picker: the guess as location + the "VỊ TRÍ ĐOÁN" Card |
+| 11-guess-picker-offline.png | offline, "Cột cờ Lũng Cú": the guess needs no network (the basemap is missing, as offline) |
+| 12-dropped-pin-keeps-position.png | a dropped pin: exact position, no guess note |
 
 ### Leg note (`img/leg-note/`, R41)
 

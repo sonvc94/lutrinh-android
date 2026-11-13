@@ -73,13 +73,13 @@ object Routes {
     const val TRIPS = "trips"
     const val MY_MAP = "myMap"
     const val TRIP_EDIT = "tripEdit?tripId={tripId}&record={record}&shared={shared}&sharedTitle={sharedTitle}" +
-        "&sharedLat={sharedLat}&sharedLng={sharedLng}&sharedGap={sharedGap}"
+        "&sharedLat={sharedLat}&sharedLng={sharedLng}&sharedGap={sharedGap}&sharedGuessLat={sharedGuessLat}&sharedGuessLng={sharedGuessLng}"
     const val TRIP = "trip/{tripId}?record={record}&fromRoute={fromRoute}"
     const val TRIP_MAP = "trip/{tripId}/map"
     const val STEP_EDIT =
         "trip/{tripId}/stepEdit?stepId={stepId}&stopTrack={stopTrack}&stopStart={stopStart}&stopEnd={stopEnd}" +
             "&lat={lat}&lng={lng}&title={title}" +
-            "&shared={shared}&sharedTitle={sharedTitle}&sharedLat={sharedLat}&sharedLng={sharedLng}&sharedGap={sharedGap}"
+            "&shared={shared}&sharedTitle={sharedTitle}&sharedLat={sharedLat}&sharedLng={sharedLng}&sharedGap={sharedGap}&sharedGuessLat={sharedGuessLat}&sharedGuessLng={sharedGuessLng}"
     const val STEP = "trip/{tripId}/step/{stepId}"
     const val PICKER = "trip/{tripId}/pick?stepId={stepId}&lat={lat}&lng={lng}"
     const val PHOTOS = "trip/{tripId}/step/{stepId}/photos?index={index}"
@@ -113,6 +113,7 @@ object Routes {
             is SharedPlaces.Resolved.Unreachable -> append("&sharedGap=offline")
             is SharedPlaces.Resolved.NoCoordinates -> append("&sharedGap=none")
         }
+        r.guess?.let { append("&sharedGuessLat=${it.latitude}&sharedGuessLng=${it.longitude}") }
     }
 
     /** New stop of an existing trip, prefilled from a Google Maps share (R43). */
@@ -153,10 +154,11 @@ private fun sharedResolved(a: android.os.Bundle?): SharedPlaces.Resolved {
     val name = a?.getString("sharedTitle").orEmpty()
     val lat = a?.getString("sharedLat")?.toDoubleOrNull()
     val lng = a?.getString("sharedLng")?.toDoubleOrNull()
+    val guess = a?.getString("sharedGuessLat")?.toDoubleOrNull()?.let { gl -> a.getString("sharedGuessLng")?.toDoubleOrNull()?.let { GeoPoint(gl, it) } }
     return when {
         lat != null && lng != null -> SharedPlaces.Resolved.Found(name, null, GeoPoint(lat, lng))
-        a?.getString("sharedGap") == "offline" -> SharedPlaces.Resolved.Unreachable(name, null)
-        else -> SharedPlaces.Resolved.NoCoordinates(name, null)
+        a?.getString("sharedGap") == "offline" -> SharedPlaces.Resolved.Unreachable(name, null, guess)
+        else -> SharedPlaces.Resolved.NoCoordinates(name, null, guess = guess)
     }
 }
 
@@ -275,7 +277,7 @@ private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
         }
         composable(
             Routes.TRIP_EDIT,
-            arguments = listOf(optional("tripId"), optional("record")) + listOf("shared", "sharedTitle", "sharedLat", "sharedLng", "sharedGap").map { optional(it) },
+            arguments = listOf(optional("tripId"), optional("record")) + listOf("shared", "sharedTitle", "sharedLat", "sharedLng", "sharedGap", "sharedGuessLat", "sharedGuessLng").map { optional(it) },
         ) { entry ->
             val record = entry.arguments?.getString("record") == "true"
             val shared = entry.arguments?.getString("shared") == "1"
@@ -329,7 +331,7 @@ private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
         composable(
             Routes.STEP_EDIT,
             arguments = listOf(required("tripId"), optional("stepId")) +
-                listOf("stopTrack", "stopStart", "stopEnd", "lat", "lng", "title", "shared", "sharedTitle", "sharedLat", "sharedLng", "sharedGap").map { optional(it) },
+                listOf("stopTrack", "stopStart", "stopEnd", "lat", "lng", "title", "shared", "sharedTitle", "sharedLat", "sharedLng", "sharedGap", "sharedGuessLat", "sharedGuessLng").map { optional(it) },
         ) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!
             val stepId = entry.arguments?.getString("stepId")

@@ -52,4 +52,23 @@ class SharedPrefillTest {
         val offline = vn.lutrinh.app.domain.usecase.SharedPlaces.Resolved.Unreachable("A", null)
         assertEquals("tripEdit?shared=1&sharedTitle=A&sharedGap=offline", Routes.tripEditFromShare(offline))
     }
+
+    @Test fun guessFromTheNameRidesAlongOnlyWithoutAPosition() {
+        val g = SharedPrefill.from(handle("shared" to "1", "sharedTitle" to "A", "sharedGap" to "none", "sharedGuessLat" to "21.02883", "sharedGuessLng" to "105.85254"))!!
+        assertEquals(GeoPoint(21.02883, 105.85254), g.guess)
+        assertNull(g.location)
+        assertEquals(SharedGap.NO_COORDINATES, g.gap)
+        // a dropped pin's exact position wins, and a bad guess is no guess
+        val pin = SharedPrefill.from(handle("shared" to "1", "sharedTitle" to "A", "sharedLat" to "21.0", "sharedLng" to "105.8", "sharedGuessLat" to "10", "sharedGuessLng" to "100"))!!
+        assertNull(pin.guess)
+        assertNull(SharedPrefill.from(handle("shared" to "1", "sharedTitle" to "A", "sharedGuessLat" to "95", "sharedGuessLng" to "10"))!!.guess)
+        assertNull(SharedPrefill.from(handle("shared" to "1", "sharedTitle" to "A", "sharedGap" to "none"))!!.guess)
+    }
+
+    @Test fun routesCarryTheGuess() {
+        val r = vn.lutrinh.app.domain.usecase.SharedPlaces.Resolved.NoCoordinates("A", null, guess = GeoPoint(21.02883, 105.85254))
+        assertEquals("trip/t1/stepEdit?shared=1&sharedTitle=A&sharedGap=none&sharedGuessLat=21.02883&sharedGuessLng=105.85254", Routes.stepFromShare("t1", r))
+        val off = vn.lutrinh.app.domain.usecase.SharedPlaces.Resolved.Unreachable("A", null, GeoPoint(1.5, 2.5))
+        assertEquals("tripEdit?shared=1&sharedTitle=A&sharedGap=offline&sharedGuessLat=1.5&sharedGuessLng=2.5", Routes.tripEditFromShare(off))
+    }
 }

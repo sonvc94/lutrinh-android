@@ -45,7 +45,7 @@ class SharedPlacesTest {
 
     @Test fun shortLinkWithoutCoordinatesFallsBackToNameOnly() = runBlocking {
         val r = SharedPlaces.resolve(place(poiText, poiSubject), follower(poiText to poiFinal))
-        assertEquals(Resolved.NoCoordinates("Hoàn Kiếm Lake", null), r)
+        assertEquals(Resolved.NoCoordinates("Hoàn Kiếm Lake", null, pathName = "Hoàn Kiếm Lake, Hoan Kiem, Ha Noi, Vietnam"), r)
     }
 
     @Test fun shortLinkOfADroppedPinResolvesToItsCoordinates() = runBlocking {
