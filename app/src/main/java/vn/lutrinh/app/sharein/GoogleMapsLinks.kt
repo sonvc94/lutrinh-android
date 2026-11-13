@@ -2,6 +2,7 @@ package vn.lutrinh.app.sharein
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -13,9 +14,10 @@ import java.util.concurrent.TimeUnit
 
 /**
  * The ONLY network call of "Chia sẻ từ Google Maps" (R43): follows the redirects of a shared
- * Google Maps link (`maps.app.goo.gl/…` → `google.com/maps/place/…@lat,lng`) to read the position
- * out of the final address. Nothing but that URL is sent (no trip data, no position of the
- * user); the page behind it is never read. Every hop must be on the Google host allow-list
+ * Google Maps link (`maps.app.goo.gl/…` → `google.com/maps/place/…`) to read the position out of
+ * the final address; when that has none but a place id, one more GET to Google's own
+ * `maps/preview/place` with only that id ([placeReply]). Nothing else is sent (no trip data, no
+ * position of the user); the redirect pages are never read. Every hop must be on the Google host allow-list
  * ([SharedPlaces.isAllowedHost], https only), at most [MAX_HOPS] hops, short timeouts.
  */
 class GoogleMapsLinks(
@@ -49,7 +51,36 @@ class GoogleMapsLinks(
         current
     }
 
+    /**
+     * `GET https://www.google.com/maps/preview/place?hl=vi&pb=!1m1!1s<fid>`: no cookies, no key; the
+     * body is read up to [MAX_REPLY_BYTES]. One retry on a 5xx. Null for any other answer.
+     */
+    override suspend fun placeReply(fid: String): String? = withContext(Dispatchers.IO) {
+        if (!FID_SHAPE.matches(fid)) return@withContext null
+        val url = HttpUrl.Builder().scheme("https").host(PLACE_HOST).addPathSegments("maps/preview/place")
+            .addQueryParameter("hl", "vi").addEncodedQueryParameter("pb", "!1m1!1s$fid").build()
+        repeat(2) { attempt ->
+            val request = Request.Builder().url(url).get().header("User-Agent", USER_AGENT).build()
+            val retry = client.newCall(request).execute().use { r ->
+                when {
+                    r.isSuccessful -> return@withContext r.body?.source()?.let { src ->
+                        src.request(MAX_REPLY_BYTES)
+                        src.buffer.snapshot().utf8().take(MAX_REPLY_BYTES.toInt())
+                    }
+                    r.code in 500..599 && attempt == 0 -> true
+                    else -> return@withContext null
+                }
+            }
+            if (!retry) return@withContext null
+        }
+        null
+    }
+
     companion object {
+        private const val PLACE_HOST = "www.google.com"
+        private const val MAX_REPLY_BYTES = 64L * 1024
+        private val FID_SHAPE = Regex("""0x[0-9a-f]+:0x[0-9a-f]+""")
+
         const val MAX_HOPS = 6
         const val TIMEOUT_S = 6L
         const val CALL_TIMEOUT_S = 12L

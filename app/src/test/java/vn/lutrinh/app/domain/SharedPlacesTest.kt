@@ -43,6 +43,69 @@ class SharedPlacesTest {
         assertNull(p.point)
     }
 
+    // The place id Google's redirect gave for that link, and the recorded `maps/preview/place` answer for it (Maps 25.11, 2026-11-13).
+    private val lakeFid = "0x3135ab953357c995:0x1babf6bb4f9a20e"
+    private val lakeReply = javaClass.getResource("/maps/place-reply-hoan-kiem.json")!!.readText()
+
+    private fun placeFollower(reply: suspend (String) -> String?) = object : LinkFollower {
+        override suspend fun finalUrl(url: String): String? = poiFinal
+        override suspend fun placeReply(fid: String): String? = reply(fid)
+    }
+
+    @Test fun placeIdIsReadFromTheRedirect() {
+        assertEquals(lakeFid, SharedPlaces.featureIdIn(poiFinal))
+        assertNull(SharedPlaces.featureIdIn("https://www.google.com/maps/place/Hanoi"))
+    }
+
+    @Test fun namedPlaceIsFoundAtThePairOfTheRecordedReply() = runBlocking {
+        var asked: String? = null
+        val r = SharedPlaces.resolve(place(poiText, poiSubject), placeFollower { asked = it; lakeReply })
+        assertEquals(lakeFid, asked)
+        assertEquals(Resolved.Found("Hoàn Kiếm Lake", null, GeoPoint(21.028666899999997, 105.85214839999999)), r)
+    }
+
+    @Test fun changedOrWrongRepliesFallBackToTheGuess() = runBlocking {
+        val bad = listOf(
+            lakeReply.removePrefix(")]}'"), // prefix gone
+            lakeReply.replace("[null,null,21.028666899999997,105.85214839999999]", "[null,null,121.0,105.8]"), // lat out of range
+            lakeReply.replace("[null,null,21.028666899999997,105.85214839999999],", "[21.028666899999997,105.85214839999999],"), // pair shape changed
+            "<html>consent</html>", "",
+        )
+        for (body in bad) {
+            val r = SharedPlaces.resolve(place(poiText, poiSubject), placeFollower { body })
+            assertEquals(Resolved.NoCoordinates("Hoàn Kiếm Lake", null, pathName = "Hoàn Kiếm Lake, Hoan Kiem, Ha Noi, Vietnam"), r)
+        }
+        // A reply about another place (wrong fid): the pair is not anchored to ours.
+        val other = SharedPlaces.positionInPlaceReply(lakeReply, "0x3135ab953357c995:0x1")
+        assertNull(other)
+    }
+
+    @Test fun placeLookupThatFailsOrIsAbsentFallsBackToTheGuess() = runBlocking {
+        val expected = Resolved.NoCoordinates("Hoàn Kiếm Lake", null, pathName = "Hoàn Kiếm Lake, Hoan Kiem, Ha Noi, Vietnam")
+        assertEquals(expected, SharedPlaces.resolve(place(poiText, poiSubject), placeFollower { throw IOException("HTTP 500") }))
+        assertEquals(expected, SharedPlaces.resolve(place(poiText, poiSubject), placeFollower { null }))
+        assertEquals(expected, SharedPlaces.resolve(place(poiText, poiSubject), LinkFollower { poiFinal })) // default placeReply = none
+    }
+
+    @Test fun coordinatesInTheUrlNeedNoPlaceLookup() = runBlocking {
+        val f = object : LinkFollower {
+            override suspend fun finalUrl(url: String): String? = pinFinal
+            override suspend fun placeReply(fid: String): String? = error("place lookup used")
+        }
+        assertTrue(SharedPlaces.resolve(place(pinText, "X"), f) is Resolved.Found)
+    }
+
+    @Test fun droppedPinSubjectIsNoName() {
+        for (s in listOf("Dropped pin", "Ghim đã thả")) {
+            val p = place(pinText, s)
+            assertEquals(s, "", p.name)
+            assertNull(s, p.address)
+        }
+        val r = runBlocking { SharedPlaces.resolve(place(pinText, "Ghim đã thả"), follower(pinText to pinFinal)) } as Resolved.Found
+        assertEquals("Trung Hòa Nhân Chính, Yen Hoa, Ha Noi, Vietnam", r.name)
+        assertNull(SharedPlaces.nameIn("https://www.google.com/maps/place/Dropped+pin/data=!3d1!4d2"))
+    }
+
     @Test fun shortLinkWithoutCoordinatesFallsBackToNameOnly() = runBlocking {
         val r = SharedPlaces.resolve(place(poiText, poiSubject), follower(poiText to poiFinal))
         assertEquals(Resolved.NoCoordinates("Hoàn Kiếm Lake", null, pathName = "Hoàn Kiếm Lake, Hoan Kiem, Ha Noi, Vietnam"), r)

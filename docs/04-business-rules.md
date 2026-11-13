@@ -1133,7 +1133,8 @@ Code: `OfflineConfig.MAX_AREA_BYTES`, `MAX_AREA_TILES`, `estimateTiles`, `within
   notes, photos, dates, account). "Gần tôi" (R45) sends, once per calculation, the user's position and the
   stops' positions in one batch request (after its own consent). Besides it, only a route code (R40, typed by the user, to the
   Lữ Trình route server) and the Google Maps link the user shares into the app (R43, to Google's
-  own hosts, to follow its redirect) leave the device.
+  own hosts, to follow its redirect; when that gives only a place id, that one id to Google's
+  `maps/preview/place`) leave the device.
 * **Switch and notice.** Routing is **on by default**. Before the first request the app shows a
   one-time notice ("Vẽ chặng theo đường đi?", what is sent, to FOSSGIS in Germany; "Đã hiểu" or
   "Tắt tính đường"); no request goes out before it was shown. "Cài đặt" (trip list menu) has the
@@ -1458,16 +1459,22 @@ the incoming intent is handled in `MainActivity`; the prefill is `SharedPrefill`
   is `singleTask`: a share that arrives while the app runs goes to the same activity
   (`onNewIntent`); a second share replaces the first one's screen. A recreated activity (rotation,
   process death) does not take the same share again. Texts over 2 000 characters are cut.
-* **Observed share texts** (Google Maps on the Android 16 google_apis AVD, "Share" → the system
-  sheet, 2026-11-13):
-  * a **place found by name** (a business, a landmark): `EXTRA_TEXT` = the bare short link
-    `https://maps.app.goo.gl/<id>`, `EXTRA_SUBJECT` = the place name. No address in the text.
-  * the short link answers with redirects to `https://www.google.com/maps/place/<Name>/data=!4m2!3m1!1s0x<hex>:0x<hex>…`
-    (a consent page `consent.google.com/…?continue=<that URL>` is also unwrapped, from Google's documented behaviour, not seen on the AVD): **no coordinates anywhere in
-    the URL** (the page behind it is not read).
-  * a **dropped pin** (long press on the map): the same short link, which redirects to a URL
-    ending `…!8m2!3d<lat>!4d<lng>`: the only shape seen with coordinates. (The exact `EXTRA_SUBJECT` of a pin was
-    not recorded; a blank one leaves the stop untitled and the gazetteer's name fills it, R24.)
+* **Observed share texts** (Maps 25.11, Android 16, en + vi, 20 real shares, 2026-11-13): always
+  `EXTRA_TEXT` = the bare short link `https://maps.app.goo.gl/<id>` and `EXTRA_SUBJECT` = the name
+  (a pin: "Dropped pin" / "Ghim đã thả" = **no name**: `parse` drops it, so the title comes from R24 as for any
+  position-only stop). No address in the text. The short link has one redirect, to
+  `https://www.google.com/maps/place/<Name>/data=…!1s0x<hex>:0x<hex>…` (a consent page
+  `consent.google.com/…?continue=<that URL>` is also unwrapped, from Google's documented behaviour, not seen on the AVD).
+  A place **opened from a search** has no coordinates in it (15 of 15). A place or pin **tapped on the map**
+  ends `…!8m2!3d<lat>!4d<lng>`.
+* **Position by place id (`SharedPlaces.featureIdIn`, `positionInPlaceReply`, `LinkFollower.placeReply`).**
+  No coordinates in the URL but a feature id `0x<hex>:0x<hex>`: one
+  `GET https://www.google.com/maps/preview/place?hl=vi&pb=!1m1!1s<id>` (same host as the redirect, https, no cookies, no key,
+  same 6 s / 12 s timeouts, one retry on a 5xx, ≤ 64 KB read). Its answer must start with `)]}'`, and the position is the
+  pair `[null,null,<lat>,<lng>],"<id>"` anchored on the same id (range-checked, `0,0` refused). **Sent: only that id**,
+  which Google's own redirect gave. Any other answer (prefix, pair, range, wrong id, HTTP error, no network) = no
+  position → the guess by name below. This is Google's internal, undocumented endpoint (keyless, may change
+  without notice): the fallback is the reason it is allowed to fail.
   * Other apps' formats the parser also accepts, from Google's documented URLs: `…/maps/place/…/@lat,lng,17z`,
     `…/maps?q=lat,lng`, `ll=`, `query=`, `destination=`, `center=`, a `/place/<lat>,<lng>` path, and the
     older text form "name ⏎ address ⏎ link" (first non-link line = name, the next lines = address).
@@ -1484,7 +1491,7 @@ the incoming intent is handled in `MainActivity`; the prefill is `SharedPrefill`
 * **Following the short link (`GoogleMapsLinks`).** One `GET` per hop, redirects followed by hand: at most
   6 hops, https only, every hop's host on the allow-list (a redirect elsewhere = no coordinates),
   connect/read timeout 6 s, whole call 12 s, User-Agent `LuTrinh/<version> (Android; vn.lutrinh.app)`;
-  it stops as soon as a hop's URL holds coordinates. The page body is never read. The result is
+  it stops as soon as a hop's URL holds coordinates. The redirect pages' bodies are never read (only the place-id reply above is). The result is
   `Found(name, address, point)`, `NoCoordinates` (a place by name only, an unknown format, a
   redirect off Google) or `Unreachable` (offline, timeout, server error); `resolve` never throws.
   A bare link takes its name from the final `/place/<name>/` path.
@@ -1568,8 +1575,8 @@ the incoming intent is handled in `MainActivity`; the prefill is `SharedPrefill`
 with and without diacritics, English names and type words, name + address tail, a business named by its ward,
 no match, a province is no guess, the province in the address picks among same names, `apply` on a recorded
 share online and offline and on a dropped pin), `SharedPrefillTest` (+2: the guess rides along only without a position,
-routes carry it), `SharedPlacesTest` (17: real share = subject + short link; short link of a named place → no
-coordinates; of a dropped pin → coordinates; bare link takes the name from the URL; offline = `Unreachable`
+routes carry it), `SharedPlacesTest` (23: real share = subject + short link; short link of a named place without a place-id answer → no
+coordinates; with the recorded `maps/preview/place` reply (`src/test/resources/maps/`) → found at its pair; a changed / wrong-id / out-of-range / failing / absent reply → the guess; coordinates in the URL need no lookup; "Dropped pin" / "Ghim đã thả" = no name; of a dropped pin → coordinates; bare link takes the name from the URL; offline = `Unreachable`
 keeps the name; a redirect off Google; full URL needs no network; `@lat,lng` / `!3d!4d` / `q=` / `ll=`
 formats, the pin beats the map centre, consent `continue`, URLs without usable coordinates, non-Maps text,
 other Maps link shapes, multi-line name + address, subject only when the text has no name, the follower

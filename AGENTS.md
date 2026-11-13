@@ -8,7 +8,8 @@ switch in "Cài đặt") the two stop positions + travel mode of each road leg g
 routing server (FOSSGIS Valhalla, OSRM car fallback); (R40) a route code the user types goes to
 the Lữ Trình route server (repo `lutrinh-server`), which returns the route to download, and the
 update check sends only code + route id + version of downloaded routes; (R43) a Google Maps link the
-user shares into the app has its redirects followed (only that URL, to Google's own hosts).
+user shares into the app has its redirects followed (only that URL, to Google's own hosts) and, when it has no
+coordinates, the place id from it goes to Google's `maps/preview/place` for the position (nothing else).
 (R45) "Gần tôi" sends the user's current position + the stops' positions to the same routing server, only after its own consent line
 (routing on + notice accepted). Nothing else about the user's own trips, photos or positions leaves the device.
 
@@ -76,9 +77,9 @@ app/src/main/java/vn/lutrinh/app/
             "Dẫn đường" (R42): domain/usecase/StopNavigation.kt (geo: URI + Google Maps URL, pure) + ui/common/NavigateToStop.kt
   sharein/  "Chia sẻ từ Google Maps" (R43): Lữ Trình is a `text/plain` share target (MainActivity, singleTask); rules in
             domain/usecase/SharedPlace.kt (pure parse + coordinates + `LinkFollower`), GoogleMapsLinks.kt (the ONLY network call:
-            follows the short link, Google host allow-list; boundary tests list `sharein`), ui/share/SharePlaceScreen.kt (pick a trip)
-            → the add-stop form via `SharedPrefill` (StepEditScreen). A named place's link has NO coordinates (observed): the position is guessed by name
-            from the offline gazetteer (domain/usecase/PlaceGuess.kt, nothing sent; form = guess + "VỊ TRÍ ĐOÁN" note, picker centred on it),
+            follows the short link, Google host allow-list, then `placeReply(fid)` = the position by place id; boundary tests list `sharein`), ui/share/SharePlaceScreen.kt (pick a trip)
+            → the add-stop form via `SharedPrefill` (StepEditScreen). A named place's link has NO coordinates (observed) but a place id: its position comes from Google's `maps/preview/place` (`positionInPlaceReply`); only when that fails
+            it is guessed by name from the offline gazetteer (domain/usecase/PlaceGuess.kt, nothing sent; form = guess + "VỊ TRÍ ĐOÁN" note, picker centred on it),
             else the form opens with the name + the location picker; share texts seen: docs/04 R43
   places    offline gazetteer (R23 search, R24 auto name): domain/usecase/Places.kt (pure),
             data/PlaceIndex.kt (loads assets/places/vn_places.tsv), ui/picker/PlaceSearchUi.kt;

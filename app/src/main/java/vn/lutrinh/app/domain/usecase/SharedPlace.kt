@@ -61,8 +61,10 @@ object SharedPlaces {
         val link = URL.findAll(text).map { it.value.trimEnd('.', ',', ')', ';') }.firstOrNull { isMapsUrl(it) }
             ?: return Parsed.NotGoogleMaps
         val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() && !URL.containsMatchIn(it) }
-        val name = lines.firstOrNull().orEmpty().take(MAX_NAME)
-        val address = lines.drop(1).joinToString(", ").takeIf { it.isNotEmpty() }?.take(MAX_ADDRESS)
+        // A dropped pin has no name ("Dropped pin" / "Ghim đã thả" is Google's label, not the user's): R24 names it.
+        val named = if (lines.firstOrNull()?.let { isPinLabel(it) } == true) lines.drop(1) else lines
+        val name = named.firstOrNull().orEmpty().take(MAX_NAME)
+        val address = named.drop(1).joinToString(", ").takeIf { it.isNotEmpty() }?.take(MAX_ADDRESS)
         return Parsed.Place(name, address, link, coordinatesIn(link))
     }
 
@@ -99,8 +101,31 @@ object SharedPlaces {
         if (i < 0) return null
         val seg = path.substring(i + "/place/".length).substringBefore('/')
         val name = decode(seg.replace('+', ' ')).trim()
-        return name.takeIf { it.isNotEmpty() && PAIR.matchEntire(it) == null }?.take(MAX_NAME)
+        return name.takeIf { it.isNotEmpty() && PAIR.matchEntire(it) == null && !isPinLabel(it) }?.take(MAX_NAME)
     }
+
+    /** Google's subject for a dropped pin, English and Vietnamese: no name. */
+    fun isPinLabel(s: String): Boolean = s.trim().lowercase() in PIN_LABELS
+
+    private val PIN_LABELS = setOf("dropped pin", "ghim đã thả")
+
+    private val FID = Regex("""!1s(0x[0-9a-f]+:0x[0-9a-f]+)""", RegexOption.IGNORE_CASE)
+
+    /** The feature id (`0x<hex>:0x<hex>`) Google's redirect puts in a place URL's `data=…!1s<id>`, or null. */
+    fun featureIdIn(url: String): String? = FID.find(decode(url))?.groupValues?.get(1)?.lowercase()
+
+    /**
+     * The position in a `maps/preview/place` reply for [fid]: the reply starts with `)]}'` and holds
+     * `[null,null,<lat>,<lng>],"<fid>"`. Null when the prefix, the fid-anchored pair or the range is wrong.
+     */
+    fun positionInPlaceReply(body: String, fid: String): GeoPoint? {
+        if (!body.startsWith(REPLY_PREFIX)) return null
+        val quoted = Regex.escape("\"" + fid + "\"")
+        val m = Regex("""\[null,null,(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)],""" + quoted, RegexOption.IGNORE_CASE).find(body) ?: return null
+        return point(m.groupValues[1], m.groupValues[2])
+    }
+
+    const val REPLY_PREFIX = ")]}'"
 
     /** What the share resolves to once the link has been followed. */
     sealed interface Resolved {
@@ -140,7 +165,16 @@ object SharedPlaces {
             return Resolved.Unreachable(place.name, place.address)
         } ?: return Resolved.NoCoordinates(place.name, place.address)
         val name = place.name.ifEmpty { nameIn(finalUrl).orEmpty() }
-        val point = coordinatesIn(finalUrl)
+        // Coordinates in the URL, else the position Google's place id gives; any failure = no position (the guess takes over).
+        val point = coordinatesIn(finalUrl) ?: featureIdIn(finalUrl)?.let { fid ->
+            try {
+                follower.placeReply(fid)?.let { positionInPlaceReply(it, fid) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+        }
         return if (point != null) Resolved.Found(name, place.address, point)
         else Resolved.NoCoordinates(name, place.address, pathName = nameIn(finalUrl))
     }
@@ -177,4 +211,10 @@ object SharedPlaces {
  */
 fun interface LinkFollower {
     suspend fun finalUrl(url: String): String?
+
+    /**
+     * R43 "Position by place id": the body (≤ ~64 KB) of Google's `maps/preview/place` answer for the
+     * feature id [fid] taken from the redirect, or null (no answer, not https/Google). Default: none.
+     */
+    suspend fun placeReply(fid: String): String? = null
 }

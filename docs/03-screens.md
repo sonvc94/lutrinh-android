@@ -793,7 +793,7 @@ No screen of their own: menu entries, the system file picker and dialogs (`ui/tr
   name and location (`img/share-in/03-prefilled-form.png`); "Lưu" saves as ever (extend-dates question,
   R17, included) and back from the form lands on the trip (`img/share-in/04-stop-in-trip.png`).
   **"Chuyến đi mới"** → the new-trip form; once saved, the stop form follows for that trip.
-* **No position** (offline, or a named place whose link has no coordinates — the usual case, R43): the
+* **No position** (offline, or Google's place-id answer missing or changed; a named place's link has no coordinates, but its place id gives the exact position first, R43 "Position by place id"): the
   offline gazetteer is searched with the name (and the address parts of the link, R43 "Guess by name"). **Guess
   found**: the place card's status line reads "Vị trí đoán theo tên — kéo ghim cho đúng"; the form has the
   name, the location = the guess and a Card "VỊ TRÍ ĐOÁN" with the same sentence, and the location picker (§6)
