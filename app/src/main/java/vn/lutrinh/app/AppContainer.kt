@@ -129,6 +129,9 @@ class AppContainer(context: Context) {
     val routes = RoomRouteRepository(db, photos.photoDir) { photos.delete(it) }
     val routeDownloads = RouteDownloads(context.applicationContext, prefs)
 
+    /** Follows a shared Google Maps link to its position (R43); a var so tests can put a fake in. */
+    var linkFollower: vn.lutrinh.app.domain.usecase.LinkFollower = vn.lutrinh.app.sharein.GoogleMapsLinks()
+
     /** Local backup/restore of all user data (R26). */
     val backup = BackupManager(context, db, photos.photoDir, BuildConfig.VERSION_NAME)
 }

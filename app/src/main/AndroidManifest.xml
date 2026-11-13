@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Map style + tiles (MapLibre + OpenFreeMap), road routing while "Tính đường đi" is on (R36)
-         and the Lữ Trình route server when the user enters a route code (R40). No other network use. -->
+    <!-- Map style + tiles (MapLibre + OpenFreeMap), road routing while "Tính đường đi" is on (R36),
+         the Lữ Trình route server when the user enters a route code (R40), and the redirect of a Google
+         Maps link shared into the app (R43). No other network use. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Offline maps (R15): know when the device is offline to show the offline indicator. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -42,10 +43,18 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- R43: "Chia sẻ" from Google Maps lists Lữ Trình; only a Google Maps place is used,
+                 any other text is answered with a short message (MainActivity). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
         <service

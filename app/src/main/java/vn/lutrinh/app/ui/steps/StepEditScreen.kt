@@ -68,6 +68,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -177,6 +178,8 @@ data class StepForm(
     /** R24: the place name last filled into [title] (null = none) and the title before it. */
     val autoTitle: String? = null,
     val titleBeforeAuto: String = "",
+    /** R43: why a stop from a Google Maps share has no position yet (null = none); the form says so and opens the picker. */
+    val sharedNote: SharedGap? = null,
 ) {
     /** R24: the title after the location moved to a point named [place]; a typed title stays. */
     fun placed(place: String?): StepForm =
@@ -204,6 +207,23 @@ data class StopPhotosState(
 /** A video that was not added (R29), with what was read of it for the message. */
 data class VideoRefusal(val problem: VideoProblem, val durationMs: Long?, val sizeBytes: Long?)
 
+/** R43: why the position of a shared place is missing. */
+enum class SharedGap { NO_COORDINATES, UNREACHABLE }
+
+/** Values passed by the Google Maps share through the navigation arguments (Routes.stepFromShare). */
+data class SharedPrefill(val title: String, val location: GeoPoint?, val gap: SharedGap?) {
+    companion object {
+        fun from(handle: SavedStateHandle): SharedPrefill? {
+            if (handle.get<String>("shared") != "1") return null
+            val lat = handle.get<String>("sharedLat")?.toDoubleOrNull()
+            val lng = handle.get<String>("sharedLng")?.toDoubleOrNull()
+            val point = if (lat != null && lng != null) GeoPoint(lat, lng).takeIf { it.isValid } else null
+            val gap = if (point != null) null else if (handle.get<String>("sharedGap") == "offline") SharedGap.UNREACHABLE else SharedGap.NO_COORDINATES
+            return SharedPrefill(handle.get<String>("sharedTitle").orEmpty().take(Limits.STEP_TITLE_MAX), point, gap)
+        }
+    }
+}
+
 /** The trip dates now and the smallest dates that would hold the step (R17). */
 data class ExtendOffer(val current: TripDates, val widened: TripDates)
 
@@ -213,6 +233,9 @@ class StepEditViewModel(private val c: AppContainer, private val handle: SavedSt
 
     /** Set when the editor was opened from "Thêm điểm dừng" on a stop suggestion (R17). */
     private val fromStop: StopPrefill? = StopPrefill.from(handle)
+
+    /** Set when the editor was opened by a Google Maps share (R43). */
+    private val fromShare: SharedPrefill? = if (stepId == null) SharedPrefill.from(handle) else null
     private val _form = MutableStateFlow(
         StepForm(stopPhotos = fromStop?.let { StopPhotosState(StopPhotos.window(it.startAt, it.endAt, ZoneId.systemDefault())) }),
     )
@@ -262,14 +285,19 @@ class StepEditViewModel(private val c: AppContainer, private val handle: SavedSt
                     ).placed(stopPlace)
                 } else {
                     val arrival = NewStepDefaults.arrival(trip, steps, LocalDateTime.now())
-                    it.copy(
+                    // R43: the shared place's name and position; the shared name stays (a typed title), a blank one takes the gazetteer's.
+                    val shared = fromShare
+                    val base = it.copy(
                         loading = false,
                         trip = trip,
                         date = arrival.toLocalDate(),
                         time = arrival.toLocalTime(),
-                        suggestedLocation = NewStepDefaults.location(steps),
+                        suggestedLocation = shared?.location ?: NewStepDefaults.location(steps),
                         tripSteps = steps,
                     )
+                    if (shared == null) base
+                    else base.copy(title = shared.title, location = shared.location, sharedNote = shared.gap)
+                        .let { f -> if (shared.title.isBlank() && shared.location != null) f.placed(c.places.await()?.nearest(shared.location)?.place?.name) else f }
                 }
             }
         }
@@ -563,6 +591,14 @@ fun StepEditScreen(
             onPickedConsumed()
         }
     }
+    // R43: no position from the shared link: open the picker once, over the form that says why.
+    var pickerOpened by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(f.loading, f.sharedNote) {
+        if (!f.loading && f.sharedNote != null && f.location == null && !pickerOpened) {
+            pickerOpened = true
+            onPickLocation(f.suggestedLocation)
+        }
+    }
     LaunchedEffect(f.savedId) { if (f.savedId != null) onSaved() }
     LaunchedEffect(f.deleted) { if (f.deleted) onDeleted() }
     BackHandler(enabled = f.dirty) { confirmDiscard = true }
@@ -632,6 +668,7 @@ fun StepEditScreen(
                     colors = topoFieldColors(),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                if (f.sharedNote != null && f.location == null) SharedGapNote(f.sharedNote!!)
                 LocationCard(f, vm.stepId, onPick = { onPickLocation(f.location ?: f.suggestedLocation) })
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     DateField(stringResource(R.string.step_field_date), f.date.display(), Modifier.weight(1f)) { pickDate = true }
@@ -732,6 +769,19 @@ fun StepEditScreen(
         )
     }
     if (confirmDiscard) DiscardDialog(onDiscard = { confirmDiscard = false; onBack() }, onDismiss = { confirmDiscard = false })
+}
+
+/** R43: the short note why a shared place has to be placed by hand. */
+@Composable
+private fun SharedGapNote(gap: SharedGap) {
+    TopoCard(Modifier.fillMaxWidth()) {
+        Eyebrow(stringResource(R.string.share_in_gap_eyebrow))
+        Text(
+            stringResource(if (gap == SharedGap.UNREACHABLE) R.string.share_in_gap_offline else R.string.share_in_gap_none),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+    }
 }
 
 @Composable

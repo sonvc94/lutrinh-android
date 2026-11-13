@@ -51,7 +51,7 @@ class RoutingBoundaryTest {
     }
 
     @Test fun httpClientOnlyInAdapters() {
-        // catalog/server is the route server's adapter (R40, CatalogBoundaryTest).
-        assertEquals(emptyList<String>(), leaks({ it.under("routing") || it.under("map/maplibre") || it.under("catalog/server") }) { "okhttp3" in it })
+        // catalog/server is the route server's adapter (R40, CatalogBoundaryTest); sharein/ follows a shared Google Maps link (R43).
+        assertEquals(emptyList<String>(), leaks({ it.under("routing") || it.under("map/maplibre") || it.under("catalog/server") || it.under("sharein") }) { "okhttp3" in it })
     }
 }

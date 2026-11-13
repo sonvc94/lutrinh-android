@@ -409,4 +409,16 @@
     <string name="restore_error_damaged">Bản sao lưu bị hỏng hoặc thiếu (%1$s). Dữ liệu hiện tại không thay đổi.</string>
     <string name="restore_error_recording">Đang ghi hành trình GPS. Hãy dừng ghi trước khi khôi phục. Dữ liệu hiện tại không thay đổi.</string>
     <string name="restore_error_failed">Khôi phục thất bại (%1$s). Dữ liệu hiện tại không thay đổi.</string>
+
+    <!-- Share a place from Google Maps (R43) -->
+    <string name="share_in_title">Thêm vào chuyến đi</string>
+    <string name="share_in_from_maps">ĐỊA ĐIỂM TỪ GOOGLE MAPS</string>
+    <string name="share_in_resolving">Đang lấy vị trí…</string>
+    <string name="share_in_no_name">Địa điểm chưa có tên</string>
+    <string name="share_in_pick">CHỌN CHUYẾN ĐI</string>
+    <string name="share_in_new_trip">Chuyến đi mới</string>
+    <string name="share_in_only_maps">Lữ Trình chỉ nhận địa điểm chia sẻ từ Google Maps.</string>
+    <string name="share_in_gap_eyebrow">CHƯA CÓ VỊ TRÍ</string>
+    <string name="share_in_gap_none">Liên kết không có tọa độ. Hãy chọn vị trí trên bản đồ.</string>
+    <string name="share_in_gap_offline">Không có mạng để đọc liên kết. Hãy chọn vị trí trên bản đồ.</string>
 </resources>

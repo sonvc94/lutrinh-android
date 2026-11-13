@@ -51,7 +51,7 @@ class CatalogBoundaryTest {
     }
 
     @Test fun httpClientOnlyInAdapters() {
-        val adapters = listOf("routing", "map/maplibre", "catalog/server")
+        val adapters = listOf("routing", "map/maplibre", "catalog/server", "sharein")
         assertEquals(emptyList<String>(), leaks({ f -> adapters.any { f.under(it) } }) { "okhttp3" in it })
     }
 }

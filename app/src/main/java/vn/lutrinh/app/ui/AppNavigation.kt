@@ -49,6 +49,8 @@ import androidx.navigation.navArgument
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Dwell
 import vn.lutrinh.app.domain.model.GeoPoint
+import vn.lutrinh.app.domain.usecase.SharedPlaces
+import vn.lutrinh.app.ui.share.SharePlaceScreen
 import vn.lutrinh.app.ui.offline.OfflineMapsScreen
 import vn.lutrinh.app.ui.photos.PhotoViewerScreen
 import vn.lutrinh.app.ui.picker.LocationPickerScreen
@@ -70,12 +72,14 @@ import vn.lutrinh.app.ui.trips.MyMapScreen
 object Routes {
     const val TRIPS = "trips"
     const val MY_MAP = "myMap"
-    const val TRIP_EDIT = "tripEdit?tripId={tripId}&record={record}"
+    const val TRIP_EDIT = "tripEdit?tripId={tripId}&record={record}&shared={shared}&sharedTitle={sharedTitle}" +
+        "&sharedLat={sharedLat}&sharedLng={sharedLng}&sharedGap={sharedGap}"
     const val TRIP = "trip/{tripId}?record={record}&fromRoute={fromRoute}"
     const val TRIP_MAP = "trip/{tripId}/map"
     const val STEP_EDIT =
         "trip/{tripId}/stepEdit?stepId={stepId}&stopTrack={stopTrack}&stopStart={stopStart}&stopEnd={stopEnd}" +
-            "&lat={lat}&lng={lng}&title={title}"
+            "&lat={lat}&lng={lng}&title={title}" +
+            "&shared={shared}&sharedTitle={sharedTitle}&sharedLat={sharedLat}&sharedLng={sharedLng}&sharedGap={sharedGap}"
     const val STEP = "trip/{tripId}/step/{stepId}"
     const val PICKER = "trip/{tripId}/pick?stepId={stepId}&lat={lat}&lng={lng}"
     const val PHOTOS = "trip/{tripId}/step/{stepId}/photos?index={index}"
@@ -85,6 +89,7 @@ object Routes {
     const val BATTERY_GUIDE = "batteryGuide"
     const val SETTINGS = "settings"
     const val ROUTE_CODE = "routeCode?code={code}"
+    const val SHARE_PLACE = "sharePlace?text={text}"
 
     fun tripEdit(tripId: String? = null) = if (tripId == null) "tripEdit" else "tripEdit?tripId=$tripId"
 
@@ -97,6 +102,25 @@ object Routes {
     fun tripFromRoute(tripId: String, withMap: Boolean) = "trip/$tripId?fromRoute=${if (withMap) "map" else "nomap"}"
 
     /** "Nhập mã lộ trình" (R40), optionally with the code filled in and looked up. */
+    /** "Thêm vào chuyến đi" (R43): the text of a Google Maps share. */
+    fun sharePlace(text: String) = "sharePlace?text=${Uri.encode(text)}"
+
+    /** The shared place as navigation arguments (R43): `shared=1`, its name, its position or why it has none. */
+    private fun sharedArgs(r: SharedPlaces.Resolved) = buildString {
+        append("shared=1&sharedTitle=${Uri.encode(r.name)}")
+        when (r) {
+            is SharedPlaces.Resolved.Found -> append("&sharedLat=${r.point.latitude}&sharedLng=${r.point.longitude}")
+            is SharedPlaces.Resolved.Unreachable -> append("&sharedGap=offline")
+            is SharedPlaces.Resolved.NoCoordinates -> append("&sharedGap=none")
+        }
+    }
+
+    /** New stop of an existing trip, prefilled from a Google Maps share (R43). */
+    fun stepFromShare(tripId: String, r: SharedPlaces.Resolved) = "trip/$tripId/stepEdit?${sharedArgs(r)}"
+
+    /** "Chuyến đi mới" from a Google Maps share (R43): the new-trip form; once saved, the stop form follows. */
+    fun tripEditFromShare(r: SharedPlaces.Resolved) = "tripEdit?${sharedArgs(r)}"
+
     fun routeCode(code: String? = null) = if (code == null) "routeCode" else "routeCode?code=$code"
     fun share(tripId: String) = "trip/$tripId/share"
     fun stepEdit(tripId: String, stepId: String? = null) =
@@ -124,6 +148,18 @@ private fun pickedPoint(v: String): GeoPoint = v.split(',', limit = 3).let { Geo
 
 private fun pickedName(v: String): String? = v.split(',', limit = 3).getOrNull(2)?.takeIf { it.isNotBlank() }
 
+/** The shared place back from a route's arguments (R43). */
+private fun sharedResolved(a: android.os.Bundle?): SharedPlaces.Resolved {
+    val name = a?.getString("sharedTitle").orEmpty()
+    val lat = a?.getString("sharedLat")?.toDoubleOrNull()
+    val lng = a?.getString("sharedLng")?.toDoubleOrNull()
+    return when {
+        lat != null && lng != null -> SharedPlaces.Resolved.Found(name, null, GeoPoint(lat, lng))
+        a?.getString("sharedGap") == "offline" -> SharedPlaces.Resolved.Unreachable(name, null)
+        else -> SharedPlaces.Resolved.NoCoordinates(name, null)
+    }
+}
+
 private fun optional(name: String) = navArgument(name) {
     type = NavType.StringType
     nullable = true
@@ -133,7 +169,12 @@ private fun optional(name: String) = navArgument(name) {
 private fun required(name: String) = navArgument(name) { type = NavType.StringType }
 
 @Composable
-fun AppNavigation(nav: NavHostController = rememberNavController()) {
+fun AppNavigation(
+    nav: NavHostController = rememberNavController(),
+    /** Text of a Google Maps share waiting to be opened (R43); [onShareHandled] clears it. */
+    incomingShare: String? = null,
+    onShareHandled: () -> Unit = {},
+) {
     // One snackbar for the whole app: a recording is also stopped from its notification (R16).
     val context = LocalContext.current
     val recorder = (context.applicationContext as LuTrinhApp).container.recorder
@@ -147,6 +188,14 @@ fun AppNavigation(nav: NavHostController = rememberNavController()) {
                 }
                 launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(text) }
             }
+        }
+    }
+    LaunchedEffect(incomingShare) {
+        if (incomingShare != null) {
+            // A second share replaces the first one's screen (its view model holds the first text).
+            nav.popBackStack(Routes.SHARE_PLACE, inclusive = true)
+            nav.navigate(Routes.sharePlace(incomingShare))
+            onShareHandled()
         }
     }
     Box(Modifier.fillMaxSize()) {
@@ -210,13 +259,33 @@ private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
         composable(Routes.MY_MAP) {
             MyMapScreen(onBack = { nav.popBackStack() }, onOpenTrip = { nav.navigate(Routes.trip(it)) })
         }
-        composable(Routes.TRIP_EDIT, arguments = listOf(optional("tripId"), optional("record"))) { entry ->
+        composable(Routes.SHARE_PLACE, arguments = listOf(optional("text"))) {
+            SharePlaceScreen(
+                onBack = { nav.popBackStack() },
+                onPick = { tripId, resolved ->
+                    if (tripId == null) {
+                        nav.navigate(Routes.tripEditFromShare(resolved)) { popUpTo(Routes.SHARE_PLACE) { inclusive = true } }
+                    } else {
+                        // Back from the stop form lands on the trip, as after "Thêm điểm dừng".
+                        nav.navigate(Routes.trip(tripId)) { popUpTo(Routes.SHARE_PLACE) { inclusive = true } }
+                        nav.navigate(Routes.stepFromShare(tripId, resolved))
+                    }
+                },
+            )
+        }
+        composable(
+            Routes.TRIP_EDIT,
+            arguments = listOf(optional("tripId"), optional("record")) + listOf("shared", "sharedTitle", "sharedLat", "sharedLng", "sharedGap").map { optional(it) },
+        ) { entry ->
             val record = entry.arguments?.getString("record") == "true"
+            val shared = entry.arguments?.getString("shared") == "1"
             TripEditScreen(
                 onBack = { nav.popBackStack() },
                 onSaved = { id, created ->
                     nav.popBackStack()
                     if (created) nav.navigate(Routes.trip(id, record))
+                    // R43: the trip made for a shared place goes straight on to that place's stop form.
+                    if (created && shared) nav.navigate(Routes.stepFromShare(id, sharedResolved(entry.arguments)))
                 },
                 onDeleted = { nav.popBackStack(Routes.TRIPS, inclusive = false) },
             )
@@ -260,7 +329,7 @@ private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
         composable(
             Routes.STEP_EDIT,
             arguments = listOf(required("tripId"), optional("stepId")) +
-                listOf("stopTrack", "stopStart", "stopEnd", "lat", "lng", "title").map { optional(it) },
+                listOf("stopTrack", "stopStart", "stopEnd", "lat", "lng", "title", "shared", "sharedTitle", "sharedLat", "sharedLng", "sharedGap").map { optional(it) },
         ) { entry ->
             val tripId = entry.arguments?.getString("tripId")!!
             val stepId = entry.arguments?.getString("stepId")
