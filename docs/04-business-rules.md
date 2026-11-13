@@ -1579,6 +1579,56 @@ Checked by hand on an AVD with the real Google Maps app: `docs/img/share-in/`; t
 shares of the recorded texts (`09`–`12`).
 *Inspired by* the captain's request (Google Maps' "Share a place" lists Lữ Trình).
 
+## R44 — Reorder stops by dragging ("Kéo để đổi thứ tự")
+
+Rules live in `domain/usecase/StopMove.kt` (`StopMove`, `LegReattach`, `MoveStop`, `ApplyLegData`; pure
+but for the two use cases, the iOS port copies it); the drag is `StopDrag` in `ui/trips/TripDetailScreen.kt`,
+the question is `LegChoiceSheet` in `ui/trips/LegUi.kt`, the insert question in `StepEditViewModel.save`.
+*Captain 2026-11-13:* "giữ-và-kéo trong danh sách điểm dừng; thả xuống thì app tự đặt giờ đến vào giữa hai điểm kề
+bên (báo giờ mới, sửa được)" and, for the notes and modes: "khi kéo thả một điểm vào giữa 2 điểm khác, hiện option
+cho người dùng chọn nó sẽ gắn với route nào".
+
+* **Order is still the arrival time (R2).** There is no position column and no migration. A drag stores one
+  thing: the moved stop's new `arrivedAt`. Editing the arrival in the form (R5) still reorders as before; photo
+  drag (R27), routing (R36), drafts (R20) and the trip-date check (R5) are unchanged.
+* **The gesture.** Long-press a stop card on Trip detail, then drag up or down: the card follows the finger, an
+  orange line shows between which two stops it will land, and the list scrolls near its top/bottom edge. Release
+  drops it; lifting the finger back where it started changes nothing. Each card also has the accessibility actions
+  "Đưa điểm dừng lên trước" / "Đưa điểm dừng ra sau" (one place up/down, same rules). Every row of the list
+  can be dragged, drafts too (a draft's drag changes no leg).
+* **New time** (`StopMove.newArrival(prev, next, tripStart, tripEnd)`, minute precision; *prev* / *next* =
+  the stops before / after the drop place, without the moved one, all steps incl. drafts):
+  * between two: `prev + ⌊(next − prev) / 2⌋` minutes; needs at least 2 minutes between them;
+  * before the first: `next − 30 min`; after the last: `prev + 30 min`;
+  * the edge times are clamped into the trip dates (before the start: 00:00 of the first day; after the end: 23:59
+    of the last day; no clamp at the end of an open-ended trip);
+  * no room (fewer than 2 minutes between the neighbours, or the clamped time is not strictly before *next* /
+    after *prev*): **nothing moves**; a dialog says "Chưa đặt được giờ đến" and its button "Sửa giờ đến" opens the
+    stop's form (screen 5) to set the time by hand.
+  After a move the snackbar says "Đã chuyển “X”. Giờ đến mới: HH:mm" with the action "Sửa giờ" (the step form).
+* **Legs keep nothing silently** (`LegReattach.plan(before, after)`, published steps only, R20). A leg's note and
+  mode live on its arrival step (R12, R41), so a move or an insert would leave old data on whichever new leg ends
+  at that step. Instead: an *old* leg whose pair of stops is no longer adjacent and that carries a note or a mode
+  is **displaced**; the legs of the new order whose pair is new are the **targets**; the stops whose incoming leg
+  changed are **cleared** (also hidden data of what was the first stop). If there is a displaced leg the user
+  gets a bottom sheet per leg ("Chặng A → B không còn nữa", its mode and note, then one row "Gắn vào chặng C → D" per target
+  that no earlier answer took, then "Bỏ ghi chú và phương tiện này"). The note and the mode go together. A new leg
+  takes one leg's data only. Back or "Hủy, không chuyển" cancels the move (nothing stored); the answers are applied
+  with the move, in order (`MoveStop`: new arrival first, then `ApplyLegData`). No sheet when the broken legs
+  had neither note nor mode.
+* **Insert through the form.** Saving a new, published stop (the add-stop form, also a shared place R43 or a stop
+  suggestion R17) whose time falls between two stops runs the same plan with the new stop as the inserted one: the
+  old leg B → C, when it had a note or mode, is offered to B → X and X → C (or dropped). The sheet comes
+  before anything is saved ("Hủy, quay lại sửa" returns to the form); a form that is not valid yet skips it
+  and shows its errors first. A draft, an edit of an existing stop and a stop at the end or before the first break no
+  leg and ask nothing (an edited arrival time that reorders keeps R2's old behaviour).
+* **Routes.** Road routes are keyed by the leg's two ends (R36): after a move the legs that changed are fetched
+  again by themselves.
+* **Tests:** `StopMoveTest` (19: midpoint and rounding, start/end, clamping both ends and open-ended, no room by
+  gap and by clamp, plan slot/unchanged/no-room, no choice for bare or draft legs, choices to writes, form insert,
+  hidden data, and `MoveStop` on the fake store: time stored, leg data attached to the chosen leg, dropped).
+  Checked by hand on an AVD: `docs/img/stop-drag/`.
+
 ## Text rules
 
 Titles, descriptions and notes are trimmed before validation and storage. Limits count

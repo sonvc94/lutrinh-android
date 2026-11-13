@@ -49,6 +49,7 @@ import vn.lutrinh.app.domain.routing.LegMeasure
 import vn.lutrinh.app.domain.usecase.DisplayFormat
 import vn.lutrinh.app.domain.usecase.Leg
 import vn.lutrinh.app.domain.usecase.LegNotes
+import vn.lutrinh.app.domain.usecase.LegReattach
 import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.ui.common.topoFieldColors
 import vn.lutrinh.app.map.TransportStyle
@@ -231,6 +232,74 @@ private fun LegNoteEditor(initial: String, onSave: (String) -> Unit, onCancel: (
             if (initial.isNotEmpty()) TextButton(onClick = { onSave("") }) { Text(stringResource(R.string.leg_note_clear)) }
             TextButton(onClick = onCancel) { Text(stringResource(R.string.action_cancel)) }
             Button(shape = MaterialTheme.shapes.small, enabled = !tooLong, onClick = { onSave(text) }) { Text(stringResource(R.string.action_save)) }
+        }
+    }
+}
+
+/**
+ * R44: a stop was moved or inserted and a leg that carried a note or a transport is gone. One
+ * sheet per such leg: the new legs (named "A → B") it can go to, or "Bỏ". Nothing is stored here:
+ * [onDone] gets one choice per [LegReattach.Plan.displaced] (null = drop, else an index into
+ * [LegReattach.Plan.targets]); [onCancel] (back, outside tap, the text button) leaves everything as it was.
+ * A new leg takes one leg's data only, so a target already chosen is not offered again.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LegChoiceSheet(plan: LegReattach.Plan, cancelLabel: String, onDone: (List<Int?>) -> Unit, onCancel: () -> Unit) {
+    var index by remember { mutableStateOf(0) }
+    val choices = remember { mutableListOf<Int?>() }
+    val leg = plan.displaced[index]
+    val taken = choices.filterNotNull().toSet()
+    fun pick(choice: Int?) {
+        choices += choice
+        if (index == plan.displaced.lastIndex) onDone(choices.toList()) else index++
+    }
+    ModalBottomSheet(onDismissRequest = onCancel, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.navigationBarsPadding().verticalScroll(rememberScrollState()).padding(bottom = 12.dp)) {
+            Text(
+                stringResource(R.string.leg_choice_eyebrow, index + 1, plan.displaced.size),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
+            Text(
+                stringResource(R.string.leg_choice_title, stringResource(R.string.leg_pair, leg.from.title, leg.to.title)),
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp),
+            )
+            val mode = leg.data.mode?.let { stringResource(TransportStyle.of(it).label) }
+            val note = leg.data.note?.let { stringResource(R.string.leg_choice_note, it) }
+            Text(
+                listOfNotNull(mode, note).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 3, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp),
+            )
+            Text(
+                stringResource(R.string.leg_choice_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 8.dp),
+            )
+            HorizontalDivider(Modifier.padding(horizontal = 24.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            plan.targets.forEachIndexed { t, target ->
+                if (t in taken) return@forEachIndexed
+                ListItem(
+                    headlineContent = {
+                        Text(stringResource(R.string.leg_choice_attach, stringResource(R.string.leg_pair, target.from.title, target.to.title)))
+                    },
+                    leadingContent = { Icon(TopoIcons.Route, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.padding(horizontal = 12.dp).clip(MaterialTheme.shapes.small).clickable { pick(t) },
+                )
+            }
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.leg_choice_drop)) },
+                leadingContent = { Icon(TopoIcons.Delete, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                modifier = Modifier.padding(horizontal = 12.dp).clip(MaterialTheme.shapes.small).clickable { pick(null) },
+            )
+            TextButton(onClick = onCancel, modifier = Modifier.padding(horizontal = 12.dp)) { Text(cancelLabel) }
         }
     }
 }

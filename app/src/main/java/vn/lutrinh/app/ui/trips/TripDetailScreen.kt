@@ -60,6 +60,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.derivedStateOf
@@ -70,6 +71,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -97,6 +99,20 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.lazy.LazyListItemInfo
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.zIndex
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+import vn.lutrinh.app.domain.usecase.StopMove
+import vn.lutrinh.app.ui.common.MessageDialog
 import vn.lutrinh.app.AppContainer
 import vn.lutrinh.app.R
 import vn.lutrinh.app.domain.model.Step
@@ -152,6 +168,9 @@ import androidx.compose.ui.geometry.Offset
 private const val ITEM_HEADER = 1
 private const val ITEM_GPS = 2
 
+/** LazyColumn index of the first step's item (after the map, header and GPS card). */
+private const val FIRST_STEP_ITEM = 3
+
 data class TripDetail(
     val trip: Trip,
     val steps: List<Step>,
@@ -194,6 +213,13 @@ fun TripDetail.stopMarkers(): List<StopMarker> = stopSuggestions.map { StopMarke
 fun List<Step>.toMarkers(highlightId: String? = null): List<MapMarker> {
     val numbers = stepNumbers(this)
     return map { s -> MapMarker(s.id, numbers[s.id]?.toString().orEmpty(), s.location, s.id == highlightId, draft = s.isDraft) }
+}
+
+/** R44: what the screen says after a drop. */
+sealed interface MoveEvent {
+    data class Moved(val stepId: String, val title: String, val arrival: java.time.LocalDateTime) : MoveEvent
+    /** No whole minute fits there: nothing moved, the time edit opens after the message. */
+    data class NoRoom(val stepId: String) : MoveEvent
 }
 
 class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle) : ViewModel() {
@@ -245,6 +271,27 @@ class TripDetailViewModel(private val c: AppContainer, handle: SavedStateHandle)
 
     /** R40: the route this trip was downloaded from (badge, update sheet, banner); null link = an own trip. */
     val route = TripRouteLink(c, tripId, viewModelScope)
+
+    /** R44: a stop dropped at a place that needs the user's pick of a leg first (null = none pending). */
+    val pendingMove = MutableStateFlow<StopMove.Plan.Move?>(null)
+    private val moveEventChannel = Channel<MoveEvent>(Channel.BUFFERED)
+    val moveEvents = moveEventChannel.receiveAsFlow()
+
+    /** R44: [stepId] dropped with [slot] other stops before it. */
+    fun dropStop(stepId: String, slot: Int) = viewModelScope.launch {
+        when (val p = c.moveStop.plan(tripId, stepId, slot)) {
+            StopMove.Plan.Unchanged -> {}
+            is StopMove.Plan.NoRoom -> moveEventChannel.send(MoveEvent.NoRoom(stepId))
+            is StopMove.Plan.Move -> if (p.legs.needsChoice) pendingMove.value = p else commitMove(p, emptyList())
+        }
+    }
+
+    fun commitMove(move: StopMove.Plan.Move, choices: List<Int?>) = viewModelScope.launch {
+        pendingMove.value = null
+        if (c.moveStop(move, choices)) moveEventChannel.send(MoveEvent.Moved(move.step.id, move.step.title, move.arrival))
+    }
+
+    fun cancelMove() { pendingMove.value = null }
 
     fun setLegMode(toStepId: String, mode: TransportMode?) = viewModelScope.launch { c.setLegTransport(toStepId, mode) }
     fun setLegNote(toStepId: String, note: String) = viewModelScope.launch { c.setLegNote(toStepId, note) }
@@ -309,6 +356,8 @@ fun TripDetailScreen(
     onAddFromStop: (Dwell, String) -> Unit,
     onAddFromPhotos: () -> Unit,
     onOpenStep: (String) -> Unit,
+    /** R44: the step's edit form (the time edit after a drop, or a drop with no room). */
+    onEditStep: (String) -> Unit = {},
     /** "Tạo chuyến mới và ghi" (R16, ended trips): the new-trip form, then recording on the new trip. */
     onNewTripAndRecord: () -> Unit = {},
     onOpenBatteryGuide: () -> Unit = {},
@@ -339,6 +388,26 @@ fun TripDetailScreen(
     LaunchedEffect(deleted) { if (deleted) onBack() }
     val routeLink by vm.route.link.collectAsStateWithLifecycle()
     val routeSheet by vm.route.sheet.collectAsStateWithLifecycle()
+    val pendingMove by vm.pendingMove.collectAsStateWithLifecycle()
+    var noRoomStepId by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val movedEdit = stringResource(R.string.stop_moved_edit)
+    LaunchedEffect(Unit) {
+        vm.moveEvents.collect { e ->
+            when (e) {
+                is MoveEvent.NoRoom -> noRoomStepId = e.stepId
+                is MoveEvent.Moved -> {
+                    snackbar.currentSnackbarData?.dismiss()
+                    launch {
+                        val r = snackbar.showSnackbar(
+                            context.getString(R.string.stop_moved, e.title, e.arrival.displayTime()), actionLabel = movedEdit, duration = SnackbarDuration.Long,
+                        )
+                        if (r == SnackbarResult.ActionPerformed) onEditStep(e.stepId)
+                    }
+                }
+            }
+        }
+    }
     var routeAddedShown by rememberSaveable { mutableStateOf(false) }
     val addedMsg = stringResource(R.string.route_added)
     val addedMap = stringResource(R.string.route_added_map)
@@ -431,6 +500,7 @@ fun TripDetailScreen(
             is Loadable.Failed -> MessageState(stringResource(R.string.state_error, s.message), "", Modifier.padding(padding))
             is Loadable.Ready -> TripDetailContent(
                 s.value, padding, listState, onOpenMap, onAddStep, onOpenStep, onEditLeg = { editLegTo = it },
+                onDropStop = vm::dropStop,
                 routeLink = routeLink, onRouteBadge = vm.route::openSheet, onCloseRouteNotice = vm.route::closeNotice,
                 gpsCard = {
                     GpsCard(
@@ -458,6 +528,21 @@ fun TripDetailScreen(
             onPick = { vm.setLegMode(leg.to.id, it); editLegTo = null },
             onSaveNote = { vm.setLegNote(leg.to.id, it); editLegTo = null },
             onDismiss = { editLegTo = null },
+        )
+    }
+
+    pendingMove?.let { move ->
+        LegChoiceSheet(
+            move.legs, cancelLabel = stringResource(R.string.leg_choice_cancel_move),
+            onDone = { vm.commitMove(move, it) }, onCancel = vm::cancelMove,
+        )
+    }
+    noRoomStepId?.let { id ->
+        MessageDialog(
+            title = stringResource(R.string.stop_move_no_room_title),
+            body = stringResource(R.string.stop_move_no_room_body, detail?.steps?.firstOrNull { it.id == id }?.title.orEmpty()),
+            closeLabel = stringResource(R.string.stop_move_no_room_edit),
+            onClose = { noRoomStepId = null; onEditStep(id) },
         )
     }
 
@@ -496,11 +581,15 @@ private fun TripDetailContent(
     onAddStep: () -> Unit,
     onOpenStep: (String) -> Unit,
     onEditLeg: (toStepId: String) -> Unit,
+    onDropStop: (stepId: String, slot: Int) -> Unit,
     routeLink: RouteLink?,
     onRouteBadge: () -> Unit,
     onCloseRouteNotice: () -> Unit,
     gpsCard: @Composable () -> Unit,
 ) {
+    val drag = rememberStopDrag(listState, d.steps, onDropStop)
+    val moveUp = stringResource(R.string.stop_move_up)
+    val moveDown = stringResource(R.string.stop_move_down)
     LazyColumn(
         state = listState,
         contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = Space.XXL * 3), // clears the FAB (56 + 16 + 24)
@@ -535,6 +624,7 @@ private fun TripDetailContent(
             itemsIndexed(d.steps, key = { _, s -> s.id }) { i, step ->
                 val prevDay = d.steps.getOrNull(i - 1)?.arrivedAt?.toLocalDate()
                 val day = step.arrivedAt.toLocalDate()
+                if (drag.lineBefore == step.id) DropLine()
                 d.legInto(step.id)?.let { leg -> LegRow(leg, d.measure(leg)) { onEditLeg(step.id) } }
                 if (day != prevDay) {
                     val n = ChronoUnit.DAYS.between(d.trip.startDate, day) + 1
@@ -544,10 +634,116 @@ private fun TripDetailContent(
                     )
                 }
                 val number = d.numbers[step.id]
-                StepRow(number, discRole(number, lastNumber), step, isLast = i == d.steps.lastIndex) { onOpenStep(step.id) }
+                val isDragged = drag.id == step.id
+                val actions = buildList {
+                    if (i > 0) add(CustomAccessibilityAction(moveUp) { onDropStop(step.id, i - 1); true })
+                    if (i < d.steps.lastIndex) add(CustomAccessibilityAction(moveDown) { onDropStop(step.id, i + 1); true })
+                }
+                StepRow(
+                    number, discRole(number, lastNumber), step, isLast = i == d.steps.lastIndex,
+                    modifier = Modifier
+                        .semantics { customActions = actions }
+                        .then(
+                            if (isDragged) Modifier.zIndex(1f).graphicsLayer { translationY = drag.offsetY; scaleX = 1.03f; scaleY = 1.03f; alpha = 0.95f }
+                            else Modifier,
+                        )
+                        .pointerInput(step.id) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { drag.start(step.id) },
+                                onDragEnd = { drag.end() },
+                                onDragCancel = { drag.cancel() },
+                                onDrag = { change, amount -> change.consume(); drag.move(amount.y, 32.dp.toPx()) },
+                            )
+                        },
+                ) { onOpenStep(step.id) }
+                if (drag.lineAfterLast == step.id) DropLine()
             }
         }
     }
+}
+
+/**
+ * R44: the long-press drag of a stop in the timeline. While it is held the stop follows the finger
+ * and a line shows where it will go (between the two stops whose middles are above/below it); the
+ * list scrolls when the finger is near an edge. Nothing is stored until release: [onDrop] gets the
+ * stop and the number of OTHER stops that come before the drop place.
+ */
+@Stable
+private class StopDrag(
+    private val list: LazyListState,
+    private val steps: () -> List<Step>,
+    private val onDrop: (String, Int) -> Unit,
+) {
+    var id by mutableStateOf<String?>(null); private set
+    var offsetY by mutableFloatStateOf(0f); private set
+    private var slot by mutableIntStateOf(-1)
+
+    /** The step whose item the drop line is drawn above, or the last step (line below it). */
+    val lineBefore: String?
+        get() = id?.let { me ->
+            val others = steps().filter { it.id != me }
+            if (slot < 0 || slot == currentSlot(me)) null else others.getOrNull(slot)?.id
+        }
+    val lineAfterLast: String?
+        get() = id?.let { me ->
+            val others = steps().filter { it.id != me }
+            if (slot < 0 || slot == currentSlot(me) || slot < others.size) null else others.lastOrNull()?.id
+        }
+
+    private fun currentSlot(me: String) = steps().indexOfFirst { it.id == me }
+
+    fun start(stepId: String) { id = stepId; offsetY = 0f; slot = currentSlot(stepId) }
+
+    fun move(dy: Float, edgePx: Float) {
+        val me = id ?: return
+        val layout = list.layoutInfo
+        val mine = layout.visibleItemsInfo.firstOrNull { it.key == me } ?: return
+        offsetY += dy
+        // Near an edge the list follows the finger; the stop keeps its place under it.
+        val top = mine.offset + offsetY
+        val scroll = when {
+            dy > 0 && top + mine.size > layout.viewportEndOffset - edgePx -> dy
+            dy < 0 && top < layout.viewportStartOffset + edgePx -> dy
+            else -> 0f
+        }
+        if (scroll != 0f) offsetY += list.dispatchRawDelta(scroll)
+        slot = slotAt(me)
+    }
+
+    /** Other stops whose item middle is above the dragged stop's middle (off-screen ones by their index). */
+    private fun slotAt(me: String): Int {
+        val layout = list.layoutInfo
+        val visible = layout.visibleItemsInfo
+        val mine = visible.firstOrNull { it.key == me } ?: return slot
+        val centre = mine.offset + mine.size / 2f + offsetY
+        val byKey: Map<Any, LazyListItemInfo> = visible.associateBy { it.key }
+        val firstVisible = visible.firstOrNull()?.index ?: 0
+        return steps().withIndex().count { (i, s) ->
+            s.id != me && (byKey[s.id]?.let { it.offset + it.size / 2f < centre } ?: (FIRST_STEP_ITEM + i < firstVisible))
+        }
+    }
+
+    fun end() {
+        val me = id
+        val target = slot
+        cancel()
+        if (me != null && target >= 0) onDrop(me, target)
+    }
+
+    fun cancel() { id = null; offsetY = 0f; slot = -1 }
+}
+
+@Composable
+private fun rememberStopDrag(list: LazyListState, steps: List<Step>, onDrop: (String, Int) -> Unit): StopDrag {
+    val latestSteps by rememberUpdatedState(steps)
+    val latestDrop by rememberUpdatedState(onDrop)
+    return remember(list) { StopDrag(list, { latestSteps }, { id, slot -> latestDrop(id, slot) }) }
+}
+
+/** The line that shows where a dragged stop will land (the route's Signal orange, 4 dp). */
+@Composable
+private fun DropLine() {
+    Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(4.dp).background(Palette.Signal, CircleShape))
 }
 
 /**
@@ -637,10 +833,10 @@ private fun discRole(number: Int?, lastNumber: Int): DiscRole = when {
  * (R20, [number] null) has a hollow disc, a "Nháp" badge and muted content.
  */
 @Composable
-private fun StepRow(number: Int?, role: DiscRole, step: Step, isLast: Boolean, onClick: () -> Unit) {
+private fun StepRow(number: Int?, role: DiscRole, step: Step, isLast: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val rail = MaterialTheme.colorScheme.outlineVariant
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp).drawBehind {
+        modifier.fillMaxWidth().padding(horizontal = 16.dp).drawBehind {
             // The rail runs from under the disc to the row's bottom, whatever the card's height.
             if (!isLast) {
                 val x = 16.dp.toPx()

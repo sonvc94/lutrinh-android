@@ -303,6 +303,7 @@ private fun NavGraph(nav: NavHostController) = SharedTransitionLayout {
                 onAddFromStop = { dwell, title -> nav.navigate(Routes.stepFromStop(tripId, dwell, title)) },
                 onAddFromPhotos = { nav.navigate(Routes.fromPhotos(tripId)) },
                 onOpenStep = { nav.navigate(Routes.step(tripId, it)) },
+                onEditStep = { nav.navigate(Routes.stepEdit(tripId, it)) },
                 onNewTripAndRecord = { nav.navigate(Routes.tripEditAndRecord()) },
                 onOpenBatteryGuide = { nav.navigate(Routes.BATTERY_GUIDE) },
                 autoRecord = entry.arguments?.getString("record") == "true",

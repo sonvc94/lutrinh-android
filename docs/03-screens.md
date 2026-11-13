@@ -166,6 +166,12 @@ The picker returns its result to the step form through the previous screen's sav
   note** (R41, note icon + text, 2 lines, then "Xem thêm" / "Thu gọn"); the header map draws
   the legs per mode, routed legs along the road (05-map.md), and the recorded tracks
   (ink, 05-map.md "Recorded tracks").
+* **Reorder (R44):** long-press a stop card and drag it between two others (the card follows the finger,
+  an orange line marks the place, the list scrolls at its edges); on release the stop's arrival time becomes
+  the middle of its new neighbours (30 min before the first / after the last) and a snackbar says "Đã chuyển
+  “X”. Giờ đến mới: HH:mm" with "Sửa giờ". When a leg with a note or a mode is broken by the move, a bottom
+  sheet asks which new leg ("A → B") takes it, or to drop it; with no room between two stops a dialog opens the
+  stop's form instead. Screenshots: `img/stop-drag/drag.png` (drop line while dragging), `leg-choice.png` (sheet), `moved-snackbar.png` (new time + "Sửa giờ").
 * **Top bar:** back, share icon ("Chia sẻ chuyến đi") and ⋮. The trip title appears in the bar only
   after the header has scrolled away (it is not shown twice); there is one entry to the Trip map
   (the header map and its expand button), no map icon in the bar.

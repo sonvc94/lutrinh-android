@@ -106,6 +106,9 @@ import vn.lutrinh.app.domain.usecase.GallerySelection
 import vn.lutrinh.app.domain.usecase.AutoTitle
 import vn.lutrinh.app.domain.usecase.PlaceLabel
 import vn.lutrinh.app.domain.usecase.ExtendCase
+import vn.lutrinh.app.domain.usecase.LegReattach
+import vn.lutrinh.app.domain.usecase.StepValidator
+import vn.lutrinh.app.ui.trips.LegChoiceSheet
 import vn.lutrinh.app.domain.usecase.Limits
 import vn.lutrinh.app.domain.usecase.PhotoWindow
 import vn.lutrinh.app.domain.usecase.NewStepDefaults
@@ -167,6 +170,8 @@ data class StepForm(
     val suggestedLocation: GeoPoint? = null,
     /** R17: asks whether to widen the trip for a step from a stop suggestion dated outside it. */
     val extendOffer: ExtendOffer? = null,
+    /** R44: a new stop in the middle breaks a leg that has a note or mode: the user picks where it goes (null = no question). */
+    val legPrompt: LegReattach.Plan? = null,
     /** R19: "Ảnh chụp trong lúc dừng"; only for a step opened from a stop suggestion. */
     val stopPhotos: StopPhotosState? = null,
     /** Steps of the trip (for "gần <điểm dừng>" under the location, F15); includes the edited one. */
@@ -505,9 +510,16 @@ class StepEditViewModel(private val c: AppContainer, private val handle: SavedSt
      * [draft]: "Lưu nháp" (true) or "Lưu" (false: published, R20). [extendTrip]: the user accepted
      * widening the trip for this step (only offered from a stop suggestion).
      */
-    fun save(draft: Boolean = false, extendTrip: Boolean = false) = viewModelScope.launch {
-        _form.update { it.copy(extendOffer = null, saveAsDraft = draft) }
+    fun save(draft: Boolean = false, extendTrip: Boolean = false, legChoices: List<Int?>? = null) = viewModelScope.launch {
+        _form.update { it.copy(extendOffer = null, legPrompt = null, saveAsDraft = draft) }
         val f = _form.value
+        // R44: a new published stop between two others: ask about the leg it splits before anything is stored.
+        val legPlan = if (stepId == null && !draft) legPlanForInsert(f, extendTrip) else null
+        if (legPlan != null && legPlan.needsChoice && legChoices == null) {
+            promptExtend = extendTrip
+            _form.update { it.copy(legPrompt = legPlan) }
+            return@launch
+        }
         val fromGallery = importTickedGalleryPhotos(f) ?: return@launch
         val files = f.photos + fromGallery.filterNot { it in f.photos }
         val input = StepInput(
@@ -524,6 +536,9 @@ class StepEditViewModel(private val c: AppContainer, private val handle: SavedSt
                     )
                 }
                 c.photos.delete(importedThisSession - files.toSet())
+                legPlan?.writes(legChoices.orEmpty())?.takeIf { it.isNotEmpty() }?.let { writes ->
+                    c.applyLegData(writes.map { w -> if (w.stepId == NEW_STEP_ID) w.copy(stepId = r.id) else w })
+                }
                 _form.update { it.copy(savedId = r.id, dirty = false) }
             }
             is SaveResult.Invalid -> {
@@ -540,6 +555,29 @@ class StepEditViewModel(private val c: AppContainer, private val handle: SavedSt
 
     fun dismissExtendOffer() = _form.update { it.copy(extendOffer = null) }
 
+    private var promptExtend = false
+
+    /** R44: the user answered the leg question: save with the same options as before it. */
+    fun saveWithLegChoices(choices: List<Int?>) = save(draft = false, extendTrip = promptExtend, legChoices = choices)
+
+    /** R44: "Hủy, quay lại sửa": nothing is saved, the form stays as it is. */
+    fun dismissLegPrompt() = _form.update { it.copy(legPrompt = null) }
+
+    /** R44: the legs that change when [f] is saved as a new published stop; null when the form is not valid yet. */
+    private suspend fun legPlanForInsert(f: StepForm, extendTrip: Boolean): LegReattach.Plan? {
+        val location = f.location ?: return null
+        val trip = c.trips.getTrip(tripId) ?: return null
+        val arrival = LocalDateTime.of(f.date, f.time)
+        // An invalid form is left to the save itself (it shows the errors); a widened trip (R17) is valid by then.
+        if (!extendTrip) {
+            val input = StepInput(f.title, f.note, location, arrival, emptyList())
+            if (StepValidator.validate(input, trip.startDate, trip.endDate).isNotEmpty()) return null
+        }
+        val before = c.steps.getSteps(tripId)
+        val added = Step(NEW_STEP_ID, tripId, f.title.trim(), "", location, arrival, createdAt = Long.MAX_VALUE, updatedAt = 0)
+        return LegReattach.plan(before, before + added)
+    }
+
     fun delete() = viewModelScope.launch {
         stepId?.let { c.deleteStep(it) }
         _form.update { it.copy(deleted = true) }
@@ -554,6 +592,9 @@ class StepEditViewModel(private val c: AppContainer, private val handle: SavedSt
 }
 
 private const val KEY_CAPTURE = "pendingCapture"
+
+/** R44: the id the new stop has in a [LegReattach.Plan] before it is stored. */
+private const val NEW_STEP_ID = "new-stop"
 
 /** Values passed by "Thêm điểm dừng" through the navigation arguments (Routes.stepFromStop). */
 data class StopPrefill(
@@ -776,6 +817,13 @@ fun StepEditScreen(
             dismissLabel = stringResource(R.string.action_cancel),
             onConfirm = { vm.save(draft = f.saveAsDraft, extendTrip = true) },
             onDismiss = vm::dismissExtendOffer,
+        )
+    }
+    f.legPrompt?.let { plan ->
+        LegChoiceSheet(
+            plan, cancelLabel = stringResource(R.string.leg_choice_cancel_save),
+            onDone = vm::saveWithLegChoices,
+            onCancel = vm::dismissLegPrompt,
         )
     }
     if (confirmDiscard) DiscardDialog(onDiscard = { confirmDiscard = false; onBack() }, onDismiss = { confirmDiscard = false })

@@ -119,6 +119,24 @@
     <string name="leg_note_more">Xem thêm</string>
     <string name="leg_note_less">Thu gọn</string>
 
+    <!-- R44: drag a stop, leg choice -->
+    <string name="stop_move_up">Đưa điểm dừng lên trước</string>
+    <string name="stop_move_down">Đưa điểm dừng ra sau</string>
+    <string name="stop_moved">Đã chuyển “%1$s”. Giờ đến mới: %2$s</string>
+    <string name="stop_moved_edit">Sửa giờ</string>
+    <string name="stop_move_no_room_title">Chưa đặt được giờ đến</string>
+    <string name="stop_move_no_room_body">Giữa hai điểm dừng này không còn phút nào để đặt “%1$s”, nên điểm dừng vẫn ở chỗ cũ. Hãy chọn giờ đến cho nó.</string>
+    <string name="stop_move_no_room_edit">Sửa giờ đến</string>
+    <string name="leg_pair">%1$s → %2$s</string>
+    <string name="leg_choice_eyebrow">Chặng %1$d/%2$d cần chọn</string>
+    <string name="leg_choice_title">Chặng %1$s không còn nữa</string>
+    <string name="leg_choice_body">Chặng này có ghi chú hoặc phương tiện. Gắn vào chặng nào?</string>
+    <string name="leg_choice_note">Ghi chú: %1$s</string>
+    <string name="leg_choice_attach">Gắn vào chặng %1$s</string>
+    <string name="leg_choice_drop">Bỏ ghi chú và phương tiện này</string>
+    <string name="leg_choice_cancel_move">Hủy, không chuyển</string>
+    <string name="leg_choice_cancel_save">Hủy, quay lại sửa</string>
+
     <!-- Step edit -->
     <string name="action_navigate">Dẫn đường</string>
     <string name="step_detail_bar">Điểm dừng</string>

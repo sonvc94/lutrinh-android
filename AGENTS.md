@@ -14,7 +14,7 @@ Nothing about the user's own trips, photos or positions leaves the device.
 ## Standing rule
 
 **Every behaviour change updates `docs/01`–`07`** (the platform-neutral spec the iOS app is built
-from) in the same branch: rules R1–R42 in `docs/04` with their test names, screens in `docs/03`,
+from) in the same branch: rules R1–R44 in `docs/04` with their test names, screens in `docs/03`,
 map in `docs/05`, photos in `docs/06`, and the Swift equivalent in `docs/07-ios-port.md`. Add a
 screenshot to `docs/img/` (and the index in `docs/03`) when a screen changes.
 
@@ -55,6 +55,7 @@ app/src/main/java/vn/lutrinh/app/
             server/LuTrinhServerCatalog (public API v1), file/PackageFileCatalog; CatalogBoundaryTest;
             data/RouteDownloads (WorkManager) + RouteStagingDir + RoomRouteRepository (Room `route_links`, v10);
             leg notes (R41): `steps.arrival_note` (v11) on the arrival step, `SetLegNote`, editor in ui/trips/LegUi.kt;
+            drag a stop (R44): domain/usecase/StopMove.kt (new arrival between neighbours + `LegReattach`: broken-leg note/mode asks the user, nothing moves silently), drag `StopDrag` in ui/trips/TripDetailScreen.kt, sheet `LegChoiceSheet` in LegUi.kt;
             ui/routes/ (code / preview / download screen, badge + sheet + banner); shared spec copy in
             app/src/test/resources/spec/ (SOURCE.md = server commit)
   ui/settings/  "Cài đặt" (routing switch) + RoutingNoticeDialog (shown once from AppNavigation)

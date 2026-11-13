@@ -222,6 +222,17 @@ enum CatalogResult<T> { case ok(T), refused(CatalogError, retryAfterS: Int?), un
 | `SharePlaceScreen` (trip list + "Chuyến đi mới" → stop form prefilled) | a `NavigationStack` route fed by the extension/URL; the stop form takes a `SharedPrefill` (title, optional location, optional gap reason) and opens the location picker once when there is no location |
 | non-Maps text: toast + `finish()` | an alert/label in the extension, then `completeRequest` (`NSExtensionContext`) |
 
+## Reorder stops by dragging (R44)
+
+| Android | iOS |
+| --- | --- |
+| `StopMove.newArrival/plan` (pure, minute maths on `LocalDateTime`) | same functions on `Date`/`DateComponents` in the trip's calendar (floor the midpoint to the minute); port `StopMoveTest` (no-room and clamp vectors included) |
+| `LegReattach.plan/writes` (pure) | same; the vectors of `StopMoveTest` define the question set |
+| `MoveStop`, `ApplyLegData` | the same two use cases over the store (one write transaction is better than Android's sequential writes) |
+| `StopDrag` (`detectDragGesturesAfterLongPress` on the card, drop line, edge scroll) | `.onLongPressGesture` + `DragGesture` on the card in a `ScrollViewReader` list, or `List` with `.onMove` where the system drag fits; the drop slot is the number of other cards whose middle is above the dragged card's middle |
+| `LegChoiceSheet` (`ModalBottomSheet`, one per displaced leg) | `.sheet` with `.presentationDetents([.medium])`; strings `leg_choice_*`, `leg_pair` |
+| accessibility actions "Đưa điểm dừng lên trước/ra sau" | `.accessibilityAction(named:)` |
+
 ## Porting checklist
 
 1. Models + `Validation` + `Ordering` + use cases with the fakes from `app/src/test/.../Fakes.kt`;
